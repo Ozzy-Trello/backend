@@ -1,0 +1,27 @@
+name: Node.js CD
+
+on:
+  push:
+    branches: ["development"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using private key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PRIVATE_KEY }}
+          port: 22
+          debug: true
+          script: |
+            cd /home/ozzy-trello/backend
+            git fetch -p
+            git pull origin development
+            export NVM_DIR=~/.nvm
+            source ~/.nvm/nvm.sh
+            npm install
+            npm run build
+            pm2 restart all

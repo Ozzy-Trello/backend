@@ -24,7 +24,7 @@ export class Server {
         this.rest.get('/', (req, res) => {
             res.json({
                 status: 'success',
-                message: 'Hello World ! This task management app is running'
+                message: 'Hello World ! This task management app is running with CICD'
             });
         })
     }
