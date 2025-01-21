@@ -19,4 +19,13 @@ export class Server {
             console.log(`Task Management Service running on http://localhost:${Config.Port}`);
         });
     }
+
+    public helloWorld(){
+        this.rest.get('/', (req, res) => {
+            res.json({
+                status: 'success',
+                message: 'Hello World ! This task management app is running'
+            });
+        })
+    }
 };
