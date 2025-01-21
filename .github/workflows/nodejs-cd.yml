@@ -1,0 +1,23 @@
+name: Node.js CD
+
+on:
+  push:
+    branches: ["feat/setup-cicd"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.PRIVATE_KEY }}
+          port: 8872
+          script: cd /home/ozzy-trello/backend
+            git fetch -p
+            git pull origin development
+            npm install
+            npm run build
+            pm2 restart all
