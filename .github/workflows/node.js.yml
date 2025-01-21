@@ -2,9 +2,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: ["development"]
+    branches: ["feat/setup-cicd"]
   pull_request:
-    branches: ["development"]
+    branches: ["feat/setup-cicd"]
 
 jobs:
   build:
