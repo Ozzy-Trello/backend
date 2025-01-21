@@ -2,7 +2,7 @@ name: Node.js CD
 
 on:
   push:
-    branches: ["feat/setup-cicd"]
+    branches: ["development"]
 
 jobs:
   build:
