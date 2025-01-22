@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export class Config {
-  public static readonly Port: number = Number(process.env.PORT) || 8872;
-  public static readonly Env: string = process.env.NODE_ENV || "dev";
+  public static readonly PORT: number = Number(process.env.PORT) || 8872;
+  public static readonly NODE_ENV: string = process.env.NODE_ENV || "dev";
   public static readonly DB_HOST: string = process.env.DB_HOST || "";
   public static readonly DB_PORT: number = Number(process.env.DB_PORT) || 5432;
   public static readonly DB_NAME: string = process.env.DB_NAME || "";
@@ -15,4 +15,16 @@ export class Config {
     process.env.S3_SECRET_ACCESS_KEY || "";
   public static readonly S3_REGION: string = process.env.S3_REGION || "";
   public static readonly S3_ENDPOINT: string = process.env.S3_ENDPOINT || "";
+
+  static {
+      if (!process.env.DB_HOST) {
+          console.warn('DB_HOST not loaded from .env we are using default: localhost');
+      }
+      if (!process.env.DB_PORT) {
+          console.warn('DB_PORT not loaded from .env we are using default: 5432');
+      }
+      if (!process.env.PORT) {
+          console.warn('PORT not loaded from .env we are using default: 8872');
+      }
+  }
 }
