@@ -1,5 +1,5 @@
 import { Server } from "./server";
 
 const app = new Server();
-app.start()
-app.helloWorld()
+app.start();
+app.helloWorld();
