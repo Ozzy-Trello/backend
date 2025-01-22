@@ -1,20 +1,13 @@
 import { ListBucketsCommand, S3Client } from "@aws-sdk/client-s3";
 
-const accessKeyId = process.env.S3_ACCESS_KEY;
-const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
-const region = process.env.S3_REGION;
-const endpoint = process.env.S3_ENDPOINT;
-
-if (!accessKeyId || !secretAccessKey || !region || !endpoint) {
-  throw new Error("Missing required environment variables");
-}
+import { Config } from "@/config";
 
 export const s3 = new S3Client({
-  region: region,
-  endpoint: endpoint,
+  region: Config.S3_REGION,
+  endpoint: Config.S3_ENDPOINT,
   credentials: {
-    accessKeyId: accessKeyId,
-    secretAccessKey: secretAccessKey,
+    accessKeyId: Config.S3_ACCESS_KEY,
+    secretAccessKey: Config.S3_SECRET_ACCESS_KEY,
   },
   forcePathStyle: true,
 });
