@@ -9,10 +9,8 @@ export class Config {
   public static readonly DB_NAME: string = process.env.DB_NAME || "";
   public static readonly DB_USER: string = process.env.DB_USER || "";
   public static readonly DB_PASSWORD: string = process.env.DB_PASSWORD || "";
-  public static readonly S3_ACCESS_KEY: string =
-    process.env.S3_ACCESS_KEY || "";
-  public static readonly S3_SECRET_ACCESS_KEY: string =
-    process.env.S3_SECRET_ACCESS_KEY || "";
+  public static readonly S3_ACCESS_KEY: string = process.env.S3_ACCESS_KEY || "";
+  public static readonly S3_SECRET_ACCESS_KEY: string = process.env.S3_SECRET_ACCESS_KEY || "";
   public static readonly S3_REGION: string = process.env.S3_REGION || "";
   public static readonly S3_ENDPOINT: string = process.env.S3_ENDPOINT || "";
 
@@ -28,7 +26,7 @@ export class Config {
       }
 
       if (!this.S3_ACCESS_KEY || !this.S3_SECRET_ACCESS_KEY || !this.S3_REGION || !this.S3_ENDPOINT) {
-        throw new Error("Missing required environment variables");
+        throw new Error("Missing S3 environment variables");
       }
   }
 }

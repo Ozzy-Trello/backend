@@ -1,5 +1,5 @@
 import { Model, DataTypes } from 'sequelize';
-import db from "@/schemas/connections";
+import db from "@/database/connections";
 
 class Account extends Model {
 	public id!: number;
