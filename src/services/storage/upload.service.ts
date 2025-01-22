@@ -4,6 +4,7 @@ import {
   PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 import { s3 } from "./s3.service";
+import { Config } from "@/config";
 
 export const UploadFile = async (file: any) => {
   const uploadParams: PutObjectCommandInput = {
@@ -18,7 +19,7 @@ export const UploadFile = async (file: any) => {
 
     const res = await s3.send(command);
 
-    const fileUrl = `${process.env.S3_ENDPOINT}/${uploadParams.Bucket}/${uploadParams.Key}`;
+    const fileUrl = `${Config.S3_ENDPOINT}/${uploadParams.Bucket}/${uploadParams.Key}`;
 
     return { ...res, fileUrl };
   } catch (error) {

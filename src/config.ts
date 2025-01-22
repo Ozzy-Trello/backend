@@ -26,5 +26,9 @@ export class Config {
       if (!process.env.PORT) {
           console.warn('PORT not loaded from .env we are using default: 8872');
       }
+
+      if (!this.S3_ACCESS_KEY || !this.S3_SECRET_ACCESS_KEY || !this.S3_REGION || !this.S3_ENDPOINT) {
+        throw new Error("Missing required environment variables");
+      }
   }
 }
