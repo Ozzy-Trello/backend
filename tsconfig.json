@@ -12,6 +12,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/database/sequelize.config.js"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }
