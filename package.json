@@ -22,6 +22,7 @@
   },
   "scripts": {
     "start": "ts-node src/main.ts",
+    "pm2": "pm2 start pm2.config.js",
     "dev": "nodemon src/main.ts",
     "lint": "eslint .",
     "build": "tsc",
