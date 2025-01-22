@@ -21,7 +21,7 @@
     "zod": "^3.24.1"
   },
   "scripts": {
-    "start": "ts-node src/main.ts",
+    "start": "ts-node dist/main.ts",
     "pm2": "pm2 start pm2.config.js",
     "dev": "nodemon src/main.ts",
     "lint": "eslint .",
