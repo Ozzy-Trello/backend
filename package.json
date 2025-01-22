@@ -21,7 +21,7 @@
     "zod": "^3.24.1"
   },
   "scripts": {
-    "start": "ts-node dist/main.js",
+    "start": "ts-node -T -P tsconfig.json dist/main.js",
     "dev": "nodemon src/main.ts",
     "lint": "eslint .",
     "build": "tsc",
