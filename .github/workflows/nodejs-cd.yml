@@ -23,6 +23,7 @@ jobs:
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
             nvm use 22
+            npm install pm2 -g
             npm install
             npm run build
             pm2 restart all
