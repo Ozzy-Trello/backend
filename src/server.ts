@@ -3,6 +3,11 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
 
+import swaggerJSDoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+
+import { options as swaggerOption } from "@/views/rest/swagger";
+
 import db from "@/database/connections";
 import { Config } from "@/config";
 
@@ -25,18 +30,14 @@ export class Server {
 	}
 
 	restRoute() {
+		const specs = swaggerJSDoc(swaggerOption);
+
 		this.rest_router.use(bodyParser.json());
 		this.rest_router.use(cors());
 		this.rest_router.use(morgan(Config.NODE_ENV));
 
 		this.rest_router.use("/v1", rest())
-
-		this.rest_router.get('/', (req, res) => {
-			res.json({
-				status: 'success',
-				message: 'Hello World ! This task management app is running with CICD'
-			});
-		})
+		this.rest_router.use("/", swaggerUi.serve, swaggerUi.setup(specs, { explorer: true }))
 	}
 
 	public async start() {
