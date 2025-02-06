@@ -3,6 +3,7 @@ name: Node.js CD
 on:
   push:
     branches: ["development"]
+    types: ["closed"]
 
 jobs:
   build:
