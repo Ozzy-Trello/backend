@@ -37,7 +37,7 @@ Workspace.init(
         },
     },
     {
-        tableName: 'board',
+        tableName: 'workspace',
         sequelize,
     }
 )

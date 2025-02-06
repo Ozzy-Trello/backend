@@ -5,6 +5,7 @@ import sequelize from '@/database/connections';
 interface ListAttributes {
     id : string;
     board_id: string;
+    order: number;
     name: string;
     background : string;
 }
@@ -14,6 +15,7 @@ interface ListCreationAttributes extends Optional<ListAttributes, 'id'> {}
 class List extends Model<ListAttributes, ListCreationAttributes> implements ListAttributes {
     public id! : string;
     public board_id! : string;
+    public order!: number;
     public name!: string;
     public background! : string;
 
@@ -30,8 +32,9 @@ List.init(
         },
         board_id: {
             type: DataTypes.UUID,
-            defaultValue: uuidv4,
-            primaryKey: true,
+        },
+        order: {
+            type: DataTypes.INTEGER,
         },
         name: {
             type: new DataTypes.STRING(128),
@@ -44,7 +47,7 @@ List.init(
         }
     },
     {
-        tableName: 'board',
+        tableName: 'list',
         sequelize,
     }
 )
