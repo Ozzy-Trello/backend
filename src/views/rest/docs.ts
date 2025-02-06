@@ -139,6 +139,8 @@
  *   get:
  *     summary: Login Register
  *     tags: [Account]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         token: "this token"
