@@ -37,7 +37,12 @@ export class Server {
 		this.rest_router.use(morgan(Config.NODE_ENV));
 
 		this.rest_router.use("/v1", rest())
-		this.rest_router.use("/", swaggerUi.serve, swaggerUi.setup(specs, { explorer: true }))
+		this.rest_router.use("/", swaggerUi.serve, swaggerUi.setup(
+			specs,
+			{
+				customCssUrl: "https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-newspaper.css",
+			}
+		))
 	}
 
 	public async start() {
