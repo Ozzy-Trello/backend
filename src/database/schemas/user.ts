@@ -43,7 +43,7 @@ User.init(
         },
     },
     {
-        tableName: 'users',
+        tableName: 'user',
         sequelize, // passing the `sequelize` instance is required
     }
 );

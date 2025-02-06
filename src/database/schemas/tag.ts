@@ -2,15 +2,16 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
 
-interface Tag {
+interface TagAttributes {
     id : string;
     name: string;
     description : string;
 }
 
-interface TaskCreationAttributes extends Optional<Tag, 'id'> {}
 
-class Card extends Model<Tag, TaskCreationAttributes> implements Tag {
+interface TagCreationAttributes extends Optional<TagAttributes, 'id'> {}
+
+class Tag extends Model<TagAttributes, TagCreationAttributes> implements TagAttributes {
     public id! : string;
     public name!: string;
     public description! : string;
@@ -19,7 +20,7 @@ class Card extends Model<Tag, TaskCreationAttributes> implements Tag {
     public readonly updatedAt!: Date;
 }
 
-Card.init(
+Tag.init(
     {
         id: {
             type: DataTypes.UUID,
@@ -41,4 +42,4 @@ Card.init(
     }
 )
 
-export default Card
+export default Tag
