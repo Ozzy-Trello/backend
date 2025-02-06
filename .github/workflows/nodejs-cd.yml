@@ -1,12 +1,14 @@
 name: Node.js CD
 
 on:
-  push:
+  pull_request:
     branches: ["development"]
+    types: ["closed"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged }}
     steps:
       - name: executing remote ssh commands using private key
         uses: appleboy/ssh-action@master
@@ -25,4 +27,5 @@ jobs:
             nvm use 22
             npm install
             npm run build
+            npm run sequelize -- db:migrate
             pm2 restart all

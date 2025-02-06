@@ -37,12 +37,12 @@ CardActivity.init(
             allowNull: false,
         },
         activity_type: {
-            type: DataTypes.UUID,
+            type: DataTypes.ENUM('action', 'comment'),
             allowNull: false,
         },
     },
     {
-        tableName: 'card_tag',
+        tableName: 'card_activity',
         sequelize,
     }
 )

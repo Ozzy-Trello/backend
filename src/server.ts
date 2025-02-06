@@ -3,11 +3,18 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
 
+import swaggerJSDoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+
+import { options as swaggerOption } from "@/views/rest/swagger";
+
 import db from "@/database/connections";
 import { Config } from "@/config";
 
+import rest from "@/routes/rest";
+
 export class Server {
-	private rest: Express = express();
+	private rest_router: Express = express();
 
 	constructor() {
 		this.restRoute()
@@ -23,20 +30,18 @@ export class Server {
 	}
 
 	restRoute() {
-		this.rest.use(bodyParser.json());
-		this.rest.use(cors());
-		this.rest.use(morgan(Config.NODE_ENV));
+		const specs = swaggerJSDoc(swaggerOption);
 
-		this.rest.get('/', (req, res) => {
-			res.json({
-				status: 'success',
-				message: 'Hello World ! This task management app is running with CICD'
-			});
-		})
+		this.rest_router.use(bodyParser.json());
+		this.rest_router.use(cors());
+		this.rest_router.use(morgan(Config.NODE_ENV));
+
+		this.rest_router.use("/v1", rest())
+		this.rest_router.use("/", swaggerUi.serve, swaggerUi.setup(specs, { explorer: true }))
 	}
 
 	public async start() {
-		this.rest.listen(Config.PORT, () => {
+		this.rest_router.listen(Config.PORT, () => {
 			console.log(`Task Management Service running on http://localhost:${Config.PORT}`);
 		});
 	}

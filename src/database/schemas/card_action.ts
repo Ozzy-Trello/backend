@@ -31,7 +31,7 @@ ActivityAction.init(
             allowNull: false,
         },
         action: {
-            type: DataTypes.STRING(8),
+            type: DataTypes.ENUM('move_card', 'assign_tag', 'unassign_tag'),
         },
         move_list: {
             type: DataTypes.JSONB,
