@@ -25,5 +25,5 @@ export const options = {
       }
     },
   },
-  apis: ["./src/views/rest/docs.ts"],
+  apis: ["./src/views/rest/*.docs.ts"],
 };

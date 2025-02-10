@@ -1,10 +1,36 @@
 import {filterUserDetail, UserDetail, UserRepositoryI} from "@/repository/user/user_interfaces";
 import User from "@/database/schemas/user";
-import {Op, Error} from "sequelize";
-import {ResponseData} from "@/utils/response_utils";
+import {Error, Op} from "sequelize";
+import {Response, ResponseData} from "@/utils/response_utils";
 import {ReasonPhrases, StatusCodes} from "http-status-codes";
 
 export class UserRepository implements UserRepositoryI {
+	async createUser(data: UserDetail): Promise<Response> {
+		try {
+			await User.create({
+				username: data.username,
+				email: data.email!,
+				phone: data.phone!,
+				password: data.getHashedPassword()
+			});
+			return new ResponseData({
+				status_code: StatusCodes.OK,
+				message: "create user success",
+			});
+		} catch (e) {
+			if (e instanceof Error) {
+				return new ResponseData({
+					status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+					message: e.message,
+				})
+			}
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: ReasonPhrases.INTERNAL_SERVER_ERROR,
+			})
+		}
+	}
+
 	async getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>> {
 		const whereClause: any = {};
 
@@ -13,14 +39,14 @@ export class UserRepository implements UserRepositoryI {
 		if (filter.phone) whereClause.phone = filter.phone;
 		if (filter.identify) {
 			whereClause[Op.or] = [
-				{ username: filter.identify },
-				{ email: filter.identify },
-				{ phone: filter.identify }
+				{username: filter.identify},
+				{email: filter.identify},
+				{phone: filter.identify}
 			];
 		}
 
 		try {
-			const user = await User.findOne({ where: whereClause });
+			const user = await User.findOne({where: whereClause});
 			if (!user) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
@@ -55,11 +81,11 @@ export class UserRepository implements UserRepositoryI {
 	async getUserList(filter: filterUserDetail): Promise<Array<UserDetail>> {
 		const whereClause: any = {};
 
-		if (filter.username) whereClause.username = { [Op.like]: `%${filter.username}%` };
-		if (filter.email) whereClause.email = { [Op.like]: `%${filter.email}%` };
-		if (filter.phone) whereClause.phone = { [Op.like]: `%${filter.phone}%` };
+		if (filter.username) whereClause.username = {[Op.like]: `%${filter.username}%`};
+		if (filter.email) whereClause.email = {[Op.like]: `%${filter.email}%`};
+		if (filter.phone) whereClause.phone = {[Op.like]: `%${filter.phone}%`};
 
-		const users = await User.findAll({ where: whereClause });
+		const users = await User.findAll({where: whereClause});
 		return users.map(user => user.toJSON() as unknown as UserDetail);
 	}
 }

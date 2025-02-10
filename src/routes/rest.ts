@@ -3,6 +3,7 @@ import AccountRestView from "@/views/rest/account_view";
 import AuthRestView from "@/views/rest/auth_view";
 import {UserRepository} from "@/repository/user/user_repository";
 import {AuthController} from "@/controller/auth/auth_controller";
+import {restJwt} from "@/middleware/rest_middleware";
 
 export default function (): Router {
     const root_router = Router();
@@ -16,7 +17,7 @@ export default function (): Router {
 
     const router_account = Router();
     {
-        router_account.get("/", account_rest_view.GetAccount);
+        router_account.get("/", restJwt, account_rest_view.GetAccount);
     }
 
     const router_auth = Router();
