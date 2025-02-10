@@ -6,6 +6,7 @@ interface UserAttributes {
     id: string;
     username: string;
     email: string;
+    phone: string;
     password: string;
 }
 
@@ -15,6 +16,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public id!: string;
     public username!: string;
     public email!: string;
+    public phone!: string;
     public password!: string;
 
     public readonly createdAt!: Date;
@@ -37,8 +39,13 @@ User.init(
             allowNull: false,
             unique: true,
         },
+        phone: {
+          type: new DataTypes.STRING(20),
+          allowNull: false,
+          unique: true,
+        },
         password: {
-            type: new DataTypes.STRING(128),
+            type: new DataTypes.TEXT,
             allowNull: false,
         },
     },

@@ -4,20 +4,19 @@ import {Request, Response} from "express";
 
 
 export default class WorkspaceRestView implements WorkspaceRestViewI {
-    GetWorkspace(req: Request, res: Response): void {
+    async GetWorkspace(req: Request, res: Response): Promise<void> {
         throw new Error("Method not implemented.");
     }
 
-    GetWorkspaceList(req: Request, res: Response): void {
+    async GetWorkspaceList(req: Request, res: Response): Promise<void> {
         throw new Error("Method not implemented.");
     }
 
-    UpdateWorkspace(req: Request, res: Response): void {
+    async UpdateWorkspace(req: Request, res: Response): Promise<void> {
         throw new Error("Method not implemented.");
     }
 
-    DeleteWorkspace(req: Request, res: Response): void {
+    async DeleteWorkspace(req: Request, res: Response): Promise<void> {
         throw new Error("Method not implemented.");
     }
 }
-

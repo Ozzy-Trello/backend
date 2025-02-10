@@ -27,10 +27,23 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
+      phone: {
+        type: new DataTypes.STRING(20),
+        allowNull: false,
+        unique: true,
+      },
       password: {
-        type: new DataTypes.STRING(128),
+        type: new DataTypes.TEXT,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('workspace', {
@@ -47,6 +60,14 @@ module.exports = {
         type: new DataTypes.TEXT,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('workspace_member', {
@@ -62,6 +83,14 @@ module.exports = {
         type: DataTypes.UUID,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('board', {
@@ -85,6 +114,14 @@ module.exports = {
         type: DataTypes.STRING(8),
         defaultValue: '#FFFFFF',
         allowNull: false,
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
 
@@ -101,6 +138,14 @@ module.exports = {
         type: DataTypes.UUID,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('list', {
@@ -123,6 +168,14 @@ module.exports = {
         type: DataTypes.STRING(8),
         defaultValue: '#797979',
         allowNull: false,
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
 
@@ -144,6 +197,14 @@ module.exports = {
         type: new DataTypes.TEXT,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('tag', {
@@ -160,6 +221,14 @@ module.exports = {
         type: new DataTypes.TEXT,
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('card_tag', {
@@ -174,6 +243,14 @@ module.exports = {
       color: {
         type: DataTypes.STRING(8),
         defaultValue: '#FFFFFF',
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
 
@@ -195,6 +272,14 @@ module.exports = {
         type: DataTypes.ENUM('action', 'comment'),
         allowNull: false,
       },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
     })
 
     await queryInterface.createTable('card_activity_text', {
@@ -208,6 +293,14 @@ module.exports = {
       },
       text: {
         type: DataTypes.STRING(8),
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
 
@@ -225,6 +318,14 @@ module.exports = {
       },
       move_list: {
         type: DataTypes.JSONB,
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
 

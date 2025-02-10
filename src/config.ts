@@ -1,8 +1,11 @@
 import dotenv from "dotenv";
+import * as crypto from "node:crypto";
+
 dotenv.config();
 
 export class Config {
   public static readonly PORT: number = Number(process.env.PORT) || 8872;
+  public static readonly REST_KEY: string = process.env.REST_KEY || crypto.randomBytes(20).toString('hex');
   public static readonly NODE_ENV: string = process.env.NODE_ENV || "dev";
   public static readonly DB_HOST: string = process.env.DB_HOST || "";
   public static readonly DB_PORT: number = Number(process.env.DB_PORT) || 5432;

@@ -29,7 +29,7 @@ ActivityComment.init(
             allowNull: false,
         },
         text: {
-            type: DataTypes.STRING(8),
+          type: DataTypes.STRING(8),
         }
     },
     {
