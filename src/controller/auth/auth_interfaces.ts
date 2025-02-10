@@ -1,8 +1,10 @@
+import {ResponseData} from "@/utils/response_utils";
+
 export interface AuthControllerI {
-	Login(data: LoginData): Promise<LoginSuccessResponse>
+	Login(data: LoginData): Promise<ResponseData<LoginResponse>>
 }
 
-export interface LoginSuccessResponse {
+export interface LoginResponse  {
 	token: string;
 }
 

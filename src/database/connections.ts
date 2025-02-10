@@ -8,5 +8,6 @@ export default new Sequelize({
     username: Config.DB_USER,
     password: Config.DB_PASSWORD,
     database: Config.DB_NAME,
-    logging: false // set true untuk melihat SQL queries
+    // logging: false // set true untuk melihat SQL queries
+    logging: console.log
 });
