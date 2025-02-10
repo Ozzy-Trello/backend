@@ -16,17 +16,20 @@ export default class AuthRestView implements AuthRestViewI {
 
 	async Login(req: Request, res: Response): Promise<void> {
 		try {
-			const login_credential: ResponseData<LoginResponse> = await this.controller.Login({
+			const login_response: ResponseData<LoginResponse> = await this.controller.Login({
 				identity: req.body.identity,
 				password: req.body.password
 			})
-			if (login_credential.message) {
-				res.status(login_credential.status_code).json({
-					"message": login_credential.message,
+			if (login_response.status_code != StatusCodes.OK) {
+				res.status(login_response.status_code).json({
+					"message": login_response.message,
 				})
 				return
 			}
-			res.status(login_credential.status_code).json(login_credential.data)
+			res.status(login_response.status_code).json({
+				"data": login_response.data,
+				"message": login_response.message
+			})
 			return
 		} catch {
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
@@ -45,13 +48,16 @@ export default class AuthRestView implements AuthRestViewI {
 				phone: req.body.phone,
 				password: req.body.password,
 			})
-			if (register_response.message) {
+			if (register_response.status_code != StatusCodes.NO_CONTENT) {
 				res.status(register_response.status_code).json({
 					"message": register_response.message,
 				})
 				return
 			}
-			res.status(register_response.status_code).json(register_response.data)
+			res.status(register_response.status_code).json({
+				"data": register_response.data,
+				"message": register_response.message
+			})
 			return
 		} catch {
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
