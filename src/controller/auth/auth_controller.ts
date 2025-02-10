@@ -21,6 +21,36 @@ export class AuthController implements AuthControllerI {
 	}
 
 	async Register(data: RegisterData): Promise<ResponseData<RegisterResponse>> {
+		let checkAccount = await this.user_repo.getUser(new UserDetail({
+			username: data.username,
+		}));
+		if (checkAccount.status_code == StatusCodes.OK) {
+			return new ResponseData({
+				message: "username already used",
+				status_code: StatusCodes.BAD_REQUEST,
+			})
+		}
+
+		checkAccount = await this.user_repo.getUser(new UserDetail({
+			phone: data.phone,
+		}));
+		if (checkAccount.status_code == StatusCodes.OK) {
+			return new ResponseData({
+				message: "phone number already used",
+				status_code: StatusCodes.BAD_REQUEST,
+			})
+		}
+
+		checkAccount = await this.user_repo.getUser(new UserDetail({
+			email: data.email,
+		}));
+		if (checkAccount.status_code == StatusCodes.OK) {
+			return new ResponseData({
+				message: "email number already used",
+				status_code: StatusCodes.BAD_REQUEST,
+			})
+		}
+
 		let account = await this.user_repo.createUser(new UserDetail({
 			username: data.username,
 			password: data.password,
