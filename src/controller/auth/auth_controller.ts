@@ -5,11 +5,11 @@ import {
 	RegisterData,
 	RegisterResponse
 } from "@/controller/auth/auth_interfaces";
-import {UserDetail, UserRepositoryI} from "@/repository/user/user_interfaces";
-import {ResponseData} from "@/utils/response_utils";
-import {ReasonPhrases, StatusCodes} from "http-status-codes";
-import {GenerateToken} from "@/utils/security_utils";
-import {Config} from '@/config';
+import { UserDetail, UserRepositoryI } from "@/repository/user/user_interfaces";
+import { ResponseData } from "@/utils/response_utils";
+import { ReasonPhrases, StatusCodes } from "http-status-codes";
+import { GenerateToken } from "@/utils/security_utils";
+import { Config } from '@/config';
 
 export class AuthController implements AuthControllerI {
 	private user_repo: UserRepositoryI
@@ -41,6 +41,7 @@ export class AuthController implements AuthControllerI {
 		return new ResponseData({
 			status_code: account.status_code,
 			message: "Create user is success",
+			data: account,
 		})
 	}
 
@@ -75,8 +76,7 @@ export class AuthController implements AuthControllerI {
 		const token = GenerateToken({user_id: account.data!.id}, Config.REST_KEY);
 		return {
 			status_code: StatusCodes.OK,
-			message: token,
-			// message: "Login successful",
+			message: "Login successful",
 			data: {
 				token: token
 			}
