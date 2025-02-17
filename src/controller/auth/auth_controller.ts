@@ -10,6 +10,7 @@ import { ResponseData } from "@/utils/response_utils";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import {ExtractToken, GenerateToken} from "@/utils/security_utils";
 import { Config } from '@/config';
+import { InternalServerError } from "@/utils/errors";
 
 export class AuthController implements AuthControllerI {
 	private user_repo: UserRepositoryI
@@ -102,42 +103,35 @@ export class AuthController implements AuthControllerI {
 	}
 
 	async RefreshToken(data: RefreshTokenData): Promise<ResponseData<LoginResponse>> {
-		// let account = await this.user_repo.getUser({identify: data});
-		// if (account.status_code !== StatusCodes.OK) {
-		// 	switch (account.status_code) {
-		// 		case StatusCodes.NOT_FOUND : {
-		// 			return new ResponseData({
-		// 				message: "Incorrect credential or password",
-		// 				status_code: StatusCodes.UNAUTHORIZED,
-		// 			})
-		// 		}
-		// 		case StatusCodes.INTERNAL_SERVER_ERROR : {
-		// 			console.log(account.message)
-		// 			return new ResponseData({
-		// 				message: ReasonPhrases.INTERNAL_SERVER_ERROR,
-		// 				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-		// 			})
-		// 		}
-		// 	}
-		// }
+		const tokenData = ExtractToken(data.access_token, Config.REST_SECRET_KEY)
+		const refreshData = ExtractToken(data.refresh_token, Config.REST_REFRESH_KEY)
+		if (tokenData.user_id !== refreshData.user_id) {
+			return new ResponseData({
+				message: "Incorrect credential",
+				status_code: StatusCodes.UNAUTHORIZED,
+			})
+		}
 
+		let account = await this.user_repo.getUser({id: tokenData.user_id});
+		if (account.status_code !== StatusCodes.OK) {
+			switch (account.status_code) {
+				case StatusCodes.NOT_FOUND : {
+					return new ResponseData({
+						message: "Incorrect credential or password",
+						status_code: StatusCodes.UNAUTHORIZED,
+					})
+				}
+				case StatusCodes.INTERNAL_SERVER_ERROR : {
+					throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, account.message)
+				}
+			}
+		}
 
-		// const isPasswordValid = account.data!.verifyPassword(data.password);
-		// if (!isPasswordValid) {
-		// 	return {
-		// 		status_code: StatusCodes.UNAUTHORIZED,
-		// 		message: "Incorrect credential or password",
-		// 	};
-		// }
-
-		ExtractToken(data.access_token, Config.REST_SECRET_KEY)
-		ExtractToken(data.refresh_token, Config.REST_REFRESH_KEY)
-
-		const access_token = GenerateToken({user_id: "account.data!.id"}, Config.REST_SECRET_KEY, {expiresIn: '1d'});
-		const refresh_token = GenerateToken({user_id: "account.data!.id"}, Config.REST_REFRESH_KEY, {expiresIn: '400d'});
+		const access_token = GenerateToken({user_id: tokenData.user_id}, Config.REST_SECRET_KEY, {expiresIn: '1h'});
+		const refresh_token = GenerateToken({user_id: tokenData.user_id}, Config.REST_REFRESH_KEY, {expiresIn: '400d'});
 		return {
 			status_code: StatusCodes.OK,
-			message: "Login successful",
+			message: "Refresh token successful",
 			data: {
 				access_token: access_token,
 				refresh_token: refresh_token

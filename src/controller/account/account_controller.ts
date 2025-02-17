@@ -19,7 +19,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async GetAccount(filter: AccountFilter): Promise<ResponseData<AccountResponse>> {
-		let checkAccount = await this.user_repo.getUser(new UserDetail({id: filter.user_id}));
+		let checkAccount = await this.user_repo.getUser({id: filter.user_id, dontShowPassword: true});
 		return new ResponseData({
 			message: checkAccount.message,
 			status_code: checkAccount.status_code,

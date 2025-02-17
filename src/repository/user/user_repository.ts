@@ -34,7 +34,7 @@ export class UserRepository implements UserRepositoryI {
 
 	async getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>> {
 		const whereClause: any = {};
-
+		if (filter.id) whereClause.id = filter.id;
 		if (filter.username) whereClause.username = filter.username;
 		if (filter.email) whereClause.email = filter.email;
 		if (filter.phone) whereClause.phone = filter.phone;
@@ -54,16 +54,20 @@ export class UserRepository implements UserRepositoryI {
 					message: "user is not found",
 				}
 			}
+			let result = new UserDetail({
+				id: user.id,
+				username: user.username,
+				email: user.email,
+				phone: user.phone,
+				password: user.password,
+			})
+
+			if (filter.dontShowPassword) delete result.password;
+
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "user detail",
-				data: new UserDetail({
-					id: user.id,
-					username: user.username,
-					email: user.email,
-					phone: user.phone,
-					password: user.password,
-				})
+				data: result,
 			});
 		} catch (e) {
 			if (e instanceof Error) {

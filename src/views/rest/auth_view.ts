@@ -46,7 +46,33 @@ export default class AuthRestView implements AuthRestViewI {
 	}
 
 	async RefreshToken(req: Request, res: Response): Promise<void> {
-		res.json({message: 'patch token route router'});
+		try {
+			const refresh_response: ResponseData<LoginResponse> = await this.controller.RefreshToken({
+				access_token: req.body.access_token,
+				refresh_token: req.body.refresh_token
+			})
+			if (refresh_response.status_code != StatusCodes.OK) {
+				if (refresh_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+					console.log(refresh_response.message)
+					res.status(refresh_response.status_code).json({
+						"message": "internal server error",
+					})
+					return
+				}
+				res.status(refresh_response.status_code).json({
+					"message": refresh_response.message,
+				})
+				return
+			}
+			res.status(refresh_response.status_code).json({
+				"data": refresh_response.data,
+				"message": refresh_response.message
+			})
+			return
+		} catch (err) {
+			console.log(err)
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
+		}
 	}
 
 	async Register(req: Request, res: Response): Promise<void> {

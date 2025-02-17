@@ -27,7 +27,7 @@ export default function (): Router {
     {
         router_auth.post('/login', auth_rest_view.Login);
         router_auth.post('/register', auth_rest_view.Register);
-        router_auth.patch('/refresh-token', auth_rest_view.RefreshToken);
+        router_auth.post('/refresh-token', auth_rest_view.RefreshToken);
     }
 
     root_router.use("/account", router_account)

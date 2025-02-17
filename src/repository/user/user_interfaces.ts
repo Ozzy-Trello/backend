@@ -8,10 +8,12 @@ export interface UserRepositoryI {
 }
 
 export interface filterUserDetail {
+  id?: string;
   identify?: string;
   username?: string;
   email?: string;
   phone?: string;
+  dontShowPassword?: boolean;
 }
 
 export class UserDetail {
@@ -19,7 +21,7 @@ export class UserDetail {
   public username!: string;
   public email?: string;
   public phone?: string;
-  public password!: string;
+  public password?: string;
 
   constructor(payload: Partial<UserDetail>) {
     Object.assign(this, payload);
@@ -28,11 +30,11 @@ export class UserDetail {
   }
 
   public verifyPassword(plainPwd: string) : boolean {
-    return bcrypt.compareSync(plainPwd, this.password)
+    return bcrypt.compareSync(plainPwd, this.password!)
   }
 
   public getHashedPassword() : string {
     const saltRounds = 10;
-    return bcrypt.hashSync(this.password, saltRounds);
+    return bcrypt.hashSync(this.password!, saltRounds);
   }
 }
