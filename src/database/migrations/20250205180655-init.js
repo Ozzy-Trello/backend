@@ -306,7 +306,7 @@ module.exports = {
 
     await queryInterface.createTable('card_activity_action', {
       id: {
-        type: DataTypes.UUID,
+        type: DataTypes.UUID,   
         allowNull: false,
       },
       activity_id: {
@@ -316,7 +316,7 @@ module.exports = {
       action: {
         type: DataTypes.ENUM('move_card', 'assign_tag', 'unassign_tag'),
       },
-      move_list: {
+      source: {
         type: DataTypes.JSONB,
       },
       createdAt: {

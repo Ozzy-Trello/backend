@@ -1,13 +1,14 @@
 import {filterUserDetail, UserDetail, UserRepositoryI} from "@/repository/user/user_interfaces";
 import User from "@/database/schemas/user";
 import {Error, Op} from "sequelize";
-import {Response, ResponseData} from "@/utils/response_utils";
-import {ReasonPhrases, StatusCodes} from "http-status-codes";
+import {ResponseData} from "@/utils/response_utils";
+import {StatusCodes} from "http-status-codes";
+import {InternalServerError} from "@/utils/errors";
 
 export class UserRepository implements UserRepositoryI {
-	async createUser(data: UserDetail): Promise<Response> {
+	async createUser(data: UserDetail): Promise<ResponseData<UserDetail>> {
 		try {
-			await User.create({
+			let user = await User.create({
 				username: data.username,
 				email: data.email!,
 				phone: data.phone!,
@@ -16,18 +17,18 @@ export class UserRepository implements UserRepositoryI {
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create user success",
+				data: new UserDetail({
+					id: user.id,
+					email: user.email,
+					phone: user.phone,
+					password: data.password,
+				})
 			});
 		} catch (e) {
 			if (e instanceof Error) {
-				return new ResponseData({
-					status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-					message: e.message,
-				})
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
 			}
-			return new ResponseData({
-				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-				message: ReasonPhrases.INTERNAL_SERVER_ERROR,
-			})
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
 	}
 
@@ -66,15 +67,9 @@ export class UserRepository implements UserRepositoryI {
 			});
 		} catch (e) {
 			if (e instanceof Error) {
-				return new ResponseData({
-					status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-					message: e.message,
-				})
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
 			}
-			return {
-				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-				message: ReasonPhrases.INTERNAL_SERVER_ERROR,
-			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
 	}
 

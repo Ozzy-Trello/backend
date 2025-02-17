@@ -1,12 +1,9 @@
 /**
  * @swagger
- * tags:
- *   name: Auth
- *   description: The auth managing API
  * /v1/auth/login:
  *   post:
  *     summary: Login User
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -19,7 +16,7 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginModel'
+ *               $ref: '#/components/schemas/LoginResponseModel'
  *       500:
  *         description: Internal Server Error
  *
@@ -27,13 +24,10 @@
 
 /**
  * @swagger
- * tags:
- *   name: Auth
- *   description: The auth managing API
  * /v1/auth/register:
  *   post:
  *     summary: Register endpoint, only granted for admin
- *     tags: [Auth]
+ *     tags: [Authentication ]
  *     requestBody:
  *       required: true
  *       content:
@@ -46,7 +40,7 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/RegisterModel'
+ *               $ref: '#/components/schemas/RegisterResponseModel'
  *       500:
  *         description: Internal Server Error
  *
@@ -54,26 +48,23 @@
 
 /**
  * @swagger
- * tags:
- *   name: Auth
- *   description: The auth managing API
  * /v1/auth/refresh-token:
  *   post:
- *     summary: Get New Token
- *     tags: [Auth]
+ *     summary: Generate New Token
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/RegisterModel'
+ *             $ref: '#/components/schemas/LoginResponseModel'
  *     responses:
  *       200:
  *         token: "this token"
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/RegisterModel'
+ *               $ref: '#/components/schemas/LoginResponseModel'
  *       500:
  *         description: Internal Server Error
  *

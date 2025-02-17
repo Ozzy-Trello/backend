@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
-import {ResponseData, Response} from "@/utils/response_utils";
+import {ResponseData} from "@/utils/response_utils";
 
 export interface UserRepositoryI {
   getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>>;
-  createUser(data: UserDetail): Promise<Response>;
+  createUser(data: UserDetail): Promise<ResponseData<UserDetail>>;
   getUserList(filter: filterUserDetail): Promise<Array<UserDetail>>;
 }
 
