@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 
 
 export interface AccountRestViewI {
-    GetAccount(req: Request, res: Response): Promise<void>;
+    GetMyAccount(req: Request, res: Response): Promise<void>;
     GetAccountList(req: Request, res: Response): Promise<void>;
     UpdateAccount(req: Request, res: Response): Promise<void>;
     DeleteAccount(req: Request, res: Response):Promise <void>;

@@ -5,7 +5,7 @@ interface ActivityActionAttributes {
     id: string;
     activity_id: string;
     action: string;
-    move_list: string;
+    source: string;
 }
 
 interface TaskCreationAttributes extends ActivityActionAttributes {}
@@ -14,7 +14,7 @@ class ActivityAction extends Model<ActivityActionAttributes, TaskCreationAttribu
     public id! : string;
     public activity_id!: string;
     public action!: string;
-    public move_list!: string;
+    public source!: string;
 
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
@@ -33,7 +33,7 @@ ActivityAction.init(
         action: {
             type: DataTypes.ENUM('move_card', 'assign_tag', 'unassign_tag'),
         },
-        move_list: {
+        source: {
             type: DataTypes.JSONB,
             validate: {
                 isValidJson(value: { from: any; to: any; }) {

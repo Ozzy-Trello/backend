@@ -12,6 +12,7 @@ export default class AuthRestView implements AuthRestViewI {
 		this.controller = c;
 		this.Login = this.Login.bind(this);
 		this.Register = this.Register.bind(this);
+		this.RefreshToken = this.RefreshToken.bind(this);
 	}
 
 	async Login(req: Request, res: Response): Promise<void> {
@@ -21,6 +22,13 @@ export default class AuthRestView implements AuthRestViewI {
 				password: req.body.password
 			})
 			if (login_response.status_code != StatusCodes.OK) {
+				if (login_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+					console.log(login_response.message)
+					res.status(login_response.status_code).json({
+						"message": "internal server error",
+					})
+					return
+				}
 				res.status(login_response.status_code).json({
 					"message": login_response.message,
 				})
@@ -31,36 +39,67 @@ export default class AuthRestView implements AuthRestViewI {
 				"message": login_response.message
 			})
 			return
-		} catch {
+		} catch (err) {
+			console.log(err)
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
 		}
 	}
 
 	async RefreshToken(req: Request, res: Response): Promise<void> {
-		res.json({message: 'patch token route router'});
-	}
-
-	async Register(req: Request, res: Response): Promise<void> {
 		try {
-			const register_response: ResponseData<RegisterResponse> = await this.controller.Register({
-				email: req.body.email,
-				username: req.body.username,
-				phone: req.body.phone,
-				password: req.body.password,
+			const refresh_response: ResponseData<LoginResponse> = await this.controller.RefreshToken({
+				access_token: req.body.access_token,
+				refresh_token: req.body.refresh_token
 			})
-			if (register_response.status_code != StatusCodes.NO_CONTENT) {
-				res.status(register_response.status_code).json({
-					"message": register_response.message,
+			if (refresh_response.status_code != StatusCodes.OK) {
+				if (refresh_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+					console.log(refresh_response.message)
+					res.status(refresh_response.status_code).json({
+						"message": "internal server error",
+					})
+					return
+				}
+				res.status(refresh_response.status_code).json({
+					"message": refresh_response.message,
 				})
 				return
 			}
-			res.status(register_response.status_code).json({
-				"data": register_response.data,
-				"message": register_response.message
+			res.status(refresh_response.status_code).json({
+				"data": refresh_response.data,
+				"message": refresh_response.message
 			})
 			return
-		} catch {
+		} catch (err) {
+			console.log(err)
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
 		}
 	}
+
+	async Register(req: Request, res: Response): Promise<void> {
+		const controllerRes: ResponseData<RegisterResponse> = await this.controller.Register({
+			email: req.body.email,
+			username: req.body.username,
+			phone: req.body.phone,
+			password: req.body.password,
+		})
+		if (controllerRes.status_code != StatusCodes.OK) {
+			if (controllerRes.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+				res.status(controllerRes.status_code).json({
+					"message": "internal server error",
+				})
+				return
+			}
+			res.status(controllerRes.status_code).json({
+				"message": controllerRes.message,
+			})
+			return
+		}
+		res.status(controllerRes.status_code).json({
+			"data": controllerRes.data,
+			"message": controllerRes.message
+		})
+		return
+	}
 }
+
+// custome field
