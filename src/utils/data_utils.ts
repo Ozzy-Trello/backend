@@ -1,7 +1,7 @@
 import { FindOptions, Model } from "sequelize";
 import { PaginateData } from "@/utils/response_utils";
 
-class Paginate extends PaginateData{
+export class Paginate extends PaginateData{
 	constructor(limit: number, page: number, total_data: number) {
 		super();
 		this.limit = limit > 1000 ? 1000 : limit <= 0 ? 10 : limit;
