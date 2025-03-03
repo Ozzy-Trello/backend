@@ -1,31 +1,25 @@
-import {filterUserDetail, UserDetail, UserDetailUpdate, UserRepositoryI} from "@/repository/user/user_interfaces";
-import User from "@/database/schemas/user";
+import Board from "@/database/schemas/board";
 import {Error, Op} from "sequelize";
 import {ResponseData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
+import {BoardDetail, BoardDetailUpdate, BoardRepositoryI, filterBoardDetail} from "@/repository/board/board_interfaces";
 
-export class UserRepository implements UserRepositoryI {
-	createFilter(filter: filterUserDetail) : any {
+export class BoardRepository implements BoardRepositoryI {
+	createFilter(filter: filterBoardDetail) : any {
 		const whereClause: any = {};
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.username) whereClause.username = filter.username;
-		if (filter.email) whereClause.email = filter.email;
-		if (filter.phone) whereClause.phone = filter.phone;
-		if (filter.identify) {
-			whereClause[Op.or] = [
-				{username: filter.identify},
-				{email: filter.identify},
-				{phone: filter.identify}
-			];
-		}
+		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
+		if (filter.name) whereClause.name = filter.name;
+		if (filter.description) whereClause.description = filter.description;
+		if (filter.background) whereClause.background = filter.background;
 		return whereClause
 	}
 
-	async deleteUser(filter: filterUserDetail): Promise<number> {
+	async deleteBoard(filter: filterBoardDetail): Promise<number> {
 		try {
-			const user = await User.destroy({where: this.createFilter(filter)});
-			if (user <= 0) {
+			const board = await Board.destroy({where: this.createFilter(filter)});
+			if (board <= 0) {
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT
@@ -37,22 +31,23 @@ export class UserRepository implements UserRepositoryI {
 		}
 	}
 
-	async createUser(data: UserDetail): Promise<ResponseData<UserDetail>> {
+	async createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>> {
 		try {
-			let user = await User.create({
-				username: data.username,
-				email: data.email!,
-				phone: data.phone!,
-				password: data.getHashedPassword()
+			let board = await Board.create({
+				workspace_id: data.workspace_id!,
+				name: data.name!,
+				description: data.description!,
+				background: data.background!,
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "create user success",
-				data: new UserDetail({
-					id: user.id,
-					email: user.email,
-					phone: user.phone,
-					password: data.password,
+				message: "create board success",
+				data: new BoardDetail({
+					id: board.id,
+					workspace_id: data.workspace_id!,
+					name: data.name!,
+					description: data.description!,
+					background: data.background!,
 				})
 			});
 		} catch (e) {
@@ -63,28 +58,26 @@ export class UserRepository implements UserRepositoryI {
 		}
 	}
 
-	async getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>> {
+	async getBoard(filter: filterBoardDetail): Promise<ResponseData<BoardDetail>> {
 		try {
-			const user = await User.findOne({where: this.createFilter(filter)});
-			if (!user) {
+			const board = await Board.findOne({where: this.createFilter(filter)});
+			if (!board) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
-					message: "user is not found",
+					message: "board is not found",
 				}
 			}
-			let result = new UserDetail({
-				id: user.id,
-				username: user.username,
-				email: user.email,
-				phone: user.phone,
-				password: user.password,
+			let result = new BoardDetail({
+				id: board.id,
+				workspace_id: board.workspace_id!,
+				name: board.name!,
+				description: board.description!,
+				background: board.background!,
 			})
-
-			if (filter.dontShowPassword) delete result.password;
 
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "user detail",
+				message: "board detail",
 				data: result,
 			});
 		} catch (e) {
@@ -95,14 +88,14 @@ export class UserRepository implements UserRepositoryI {
 		}
 	}
 
-	async getUserList(filter: filterUserDetail): Promise<Array<UserDetail>> {
-		const users = await User.findAll({where: this.createFilter(filter)});
-		return users.map(user => user.toJSON() as unknown as UserDetail);
+	async getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>> {
+		const boards = await Board.findAll({where: this.createFilter(filter)});
+		return boards.map(board => board.toJSON() as unknown as BoardDetail);
 	}
 
-	async updateUser(filter: filterUserDetail, data: UserDetailUpdate): Promise<number> {
+	async updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number> {
 		try {
-			await User.update(data.toObject(), {where: this.createFilter(filter)});
+			await Board.update(data.toObject(), {where: this.createFilter(filter)});
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

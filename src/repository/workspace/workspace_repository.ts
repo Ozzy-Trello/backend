@@ -1,25 +1,23 @@
-import Board from "@/database/schemas/board";
-import {Error, Op} from "sequelize";
+import Workspace from "@/database/schemas/workspace";
+import {Error} from "sequelize";
 import {ResponseData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {BoardDetail, BoardDetailUpdate, BoardRepositoryI, filterBoardDetail} from "@/repository/board/board_interfaces";
+import {WorkspaceDetail, WorkspaceDetailUpdate, WorkspaceRepositoryI, filterWorkspaceDetail} from "@/repository/workspace/workspace_interfaces";
 
-export class BoardRepository implements BoardRepositoryI {
-	createFilter(filter: filterBoardDetail) : any {
+export class WorkspaceRepository implements WorkspaceRepositoryI {
+	createFilter(filter: filterWorkspaceDetail) : any {
 		const whereClause: any = {};
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
 		if (filter.name) whereClause.name = filter.name;
 		if (filter.description) whereClause.description = filter.description;
-		if (filter.background) whereClause.background = filter.background;
 		return whereClause
 	}
 
-	async deleteBoard(filter: filterBoardDetail): Promise<number> {
+	async deleteWorkspace(filter: filterWorkspaceDetail): Promise<number> {
 		try {
-			const board = await Board.destroy({where: this.createFilter(filter)});
-			if (board <= 0) {
+			const workspace = await Workspace.destroy({where: this.createFilter(filter)});
+			if (workspace <= 0) {
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT
@@ -31,23 +29,19 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>> {
+	async createWorkspace(data: WorkspaceDetail): Promise<ResponseData<WorkspaceDetail>> {
 		try {
-			let board = await Board.create({
-				workspace_id: data.workspace_id!,
+			let workspace = await Workspace.create({
 				name: data.name!,
 				description: data.description!,
-				background: data.background!,
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "create board success",
-				data: new BoardDetail({
-					id: board.id,
-					workspace_id: data.workspace_id!,
+				message: "create workspace success",
+				data: new WorkspaceDetail({
+					id: workspace.id,
 					name: data.name!,
 					description: data.description!,
-					background: data.background!,
 				})
 			});
 		} catch (e) {
@@ -58,26 +52,24 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async getBoard(filter: filterBoardDetail): Promise<ResponseData<BoardDetail>> {
+	async getWorkspace(filter: filterWorkspaceDetail): Promise<ResponseData<WorkspaceDetail>> {
 		try {
-			const board = await Board.findOne({where: this.createFilter(filter)});
-			if (!board) {
+			const workspace = await Workspace.findOne({where: this.createFilter(filter)});
+			if (!workspace) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
-					message: "board is not found",
+					message: "workspace is not found",
 				}
 			}
-			let result = new BoardDetail({
-				id: board.id,
-				workspace_id: board.workspace_id!,
-				name: board.name!,
-				description: board.description!,
-				background: board.background!,
+			let result = new WorkspaceDetail({
+				id: workspace.id,
+				name: workspace.name!,
+				description: workspace.description!,
 			})
 
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "board detail",
+				message: "workspace detail",
 				data: result,
 			});
 		} catch (e) {
@@ -88,14 +80,14 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>> {
-		const boards = await Board.findAll({where: this.createFilter(filter)});
-		return boards.map(board => board.toJSON() as unknown as BoardDetail);
+	async getWorkspaceList(filter: filterWorkspaceDetail): Promise<Array<WorkspaceDetail>> {
+		const workspaces = await Workspace.findAll({where: this.createFilter(filter)});
+		return workspaces.map(workspace => workspace.toJSON() as unknown as WorkspaceDetail);
 	}
 
-	async updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number> {
+	async updateWorkspace(filter: filterWorkspaceDetail, data: WorkspaceDetailUpdate): Promise<number> {
 		try {
-			await Board.update(data.toObject(), {where: this.createFilter(filter)});
+			await Workspace.update(data.toObject(), {where: this.createFilter(filter)});
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

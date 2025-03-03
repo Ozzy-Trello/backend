@@ -5,6 +5,7 @@ export interface AccountRestViewI {
     GetMyAccount(req: Request, res: Response): Promise<void>;
     GetAccountList(req: Request, res: Response): Promise<void>;
     UpdateAccount(req: Request, res: Response): Promise<void>;
+    UpdateMyAccount(req: Request, res: Response): Promise<void>;
     DeleteAccount(req: Request, res: Response):Promise <void>;
 }
 

@@ -1,25 +1,24 @@
-import Board from "@/database/schemas/board";
-import {Error, Op} from "sequelize";
+import Card from "@/database/schemas/card";
+import {Error} from "sequelize";
 import {ResponseData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {BoardDetail, BoardDetailUpdate, BoardRepositoryI, filterBoardDetail} from "@/repository/board/board_interfaces";
+import {CardDetail, CardDetailUpdate, CardRepositoryI, filterCardDetail} from "@/repository/card/card_interfaces";
 
-export class BoardRepository implements BoardRepositoryI {
-	createFilter(filter: filterBoardDetail) : any {
+export class CardRepository implements CardRepositoryI {
+	createFilter(filter: filterCardDetail) : any {
 		const whereClause: any = {};
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
+		if (filter.list_id) whereClause.list_id = filter.list_id;
 		if (filter.name) whereClause.name = filter.name;
 		if (filter.description) whereClause.description = filter.description;
-		if (filter.background) whereClause.background = filter.background;
 		return whereClause
 	}
 
-	async deleteBoard(filter: filterBoardDetail): Promise<number> {
+	async deleteCard(filter: filterCardDetail): Promise<number> {
 		try {
-			const board = await Board.destroy({where: this.createFilter(filter)});
-			if (board <= 0) {
+			const card = await Card.destroy({where: this.createFilter(filter)});
+			if (card <= 0) {
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT
@@ -31,23 +30,21 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>> {
+	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
 		try {
-			let board = await Board.create({
-				workspace_id: data.workspace_id!,
+			let card = await Card.create({
+				list_id: data.list_id!,
 				name: data.name!,
 				description: data.description!,
-				background: data.background!,
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "create board success",
-				data: new BoardDetail({
-					id: board.id,
-					workspace_id: data.workspace_id!,
+				message: "create card success",
+				data: new CardDetail({
+					id: card.id,
+					list_id: data.list_id!,
 					name: data.name!,
 					description: data.description!,
-					background: data.background!,
 				})
 			});
 		} catch (e) {
@@ -58,26 +55,25 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async getBoard(filter: filterBoardDetail): Promise<ResponseData<BoardDetail>> {
+	async getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>> {
 		try {
-			const board = await Board.findOne({where: this.createFilter(filter)});
-			if (!board) {
+			const card = await Card.findOne({where: this.createFilter(filter)});
+			if (!card) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
-					message: "board is not found",
+					message: "card is not found",
 				}
 			}
-			let result = new BoardDetail({
-				id: board.id,
-				workspace_id: board.workspace_id!,
-				name: board.name!,
-				description: board.description!,
-				background: board.background!,
+			let result = new CardDetail({
+				id: card.id,
+				list_id: card.list_id!,
+				name: card.name!,
+				description: card.description!,
 			})
 
 			return new ResponseData({
 				status_code: StatusCodes.OK,
-				message: "board detail",
+				message: "card detail",
 				data: result,
 			});
 		} catch (e) {
@@ -88,14 +84,14 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>> {
-		const boards = await Board.findAll({where: this.createFilter(filter)});
-		return boards.map(board => board.toJSON() as unknown as BoardDetail);
+	async getCardList(filter: filterCardDetail): Promise<Array<CardDetail>> {
+		const cards = await Card.findAll({where: this.createFilter(filter)});
+		return cards.map(card => card.toJSON() as unknown as CardDetail);
 	}
 
-	async updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number> {
+	async updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number> {
 		try {
-			await Board.update(data.toObject(), {where: this.createFilter(filter)});
+			await Card.update(data.toObject(), {where: this.createFilter(filter)});
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

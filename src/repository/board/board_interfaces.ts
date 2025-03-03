@@ -1,62 +1,49 @@
-import bcrypt from "bcrypt";
 import {ResponseData} from "@/utils/response_utils";
 
-export interface UserRepositoryI {
-  getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>>;
-  createUser(data: UserDetail): Promise<ResponseData<UserDetail>>;
-  deleteUser(filter: filterUserDetail): Promise<number>;
-  updateUser(filter: filterUserDetail, data: UserDetailUpdate): Promise<number>;
-  getUserList(filter: filterUserDetail): Promise<Array<UserDetail>>;
+export interface BoardRepositoryI {
+  getBoard(filter: filterBoardDetail): Promise<ResponseData<BoardDetail>>;
+  createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>>;
+  deleteBoard(filter: filterBoardDetail): Promise<number>;
+  updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number>;
+  getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>>;
 }
 
-export interface filterUserDetail {
+export interface filterBoardDetail {
   id?: string;
-  identify?: string;
-  username?: string;
-  email?: string;
-  phone?: string;
-  dontShowPassword?: boolean;
+  workspace_id?: string;
+  name?: string;
+  description?: string;
+  background?: string;
 }
 
-export class UserDetailUpdate {
-  public username?: string;
-  public email?: string;
-  public phone?: string;
-  public password?: string;
+export class BoardDetailUpdate {
+  public workspace_id?: string;
+  public name?: string;
+  public description?: string;
+  public background?: string;
 
-  constructor(payload: Partial<UserDetailUpdate>) {
+  constructor(payload: Partial<BoardDetailUpdate>) {
     Object.assign(this, payload);
   }
 
   public toObject(): any {
     const data: any = {};
-    if (this.username) data.username = this.username;
-    if (this.email) data.email = this.email;
-    if (this.phone) data.phone = this.phone;
-    if (this.password) data.password = this.password;
+    if (this.workspace_id) data.workspace_id = this.workspace_id;
+    if (this.name) data.name = this.name;
+    if (this.description) data.description = this.description;
+    if (this.background) data.background = this.background;
     return data
   }
 }
 
-export class UserDetail {
+export class BoardDetail {
   public id?: string;
-  public username!: string;
-  public email?: string;
-  public phone?: string;
-  public password?: string;
+  public workspace_id?: string;
+  public name?: string;
+  public description?: string;
+  public background?: string;
 
-  constructor(payload: Partial<UserDetail>) {
+  constructor(payload: Partial<BoardDetail>) {
     Object.assign(this, payload);
-    this.verifyPassword = this.verifyPassword.bind(this)
-    this.getHashedPassword = this.getHashedPassword.bind(this)
-  }
-
-  public verifyPassword(plainPwd: string) : boolean {
-    return bcrypt.compareSync(plainPwd, this.password!)
-  }
-
-  public getHashedPassword() : string {
-    const saltRounds = 10;
-    return bcrypt.hashSync(this.password!, saltRounds);
   }
 }

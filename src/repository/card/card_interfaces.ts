@@ -1,49 +1,45 @@
 import {ResponseData} from "@/utils/response_utils";
 
-export interface BoardRepositoryI {
-  getBoard(filter: filterBoardDetail): Promise<ResponseData<BoardDetail>>;
-  createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>>;
-  deleteBoard(filter: filterBoardDetail): Promise<number>;
-  updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number>;
-  getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>>;
+export interface CardRepositoryI {
+  getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>>;
+  createCard(data: CardDetail): Promise<ResponseData<CardDetail>>;
+  deleteCard(filter: filterCardDetail): Promise<number>;
+  updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number>;
+  getCardList(filter: filterCardDetail): Promise<Array<CardDetail>>;
 }
 
-export interface filterBoardDetail {
+export interface filterCardDetail {
   id?: string;
-  workspace_id?: string;
+  list_id?: string;
   name?: string;
   description?: string;
-  background?: string;
 }
 
-export class BoardDetailUpdate {
-  public workspace_id?: string;
+export class CardDetailUpdate {
+  public list_id?: string;
   public name?: string;
   public description?: string;
-  public background?: string;
 
-  constructor(payload: Partial<BoardDetailUpdate>) {
+  constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
   }
 
   public toObject(): any {
     const data: any = {};
-    if (this.workspace_id) data.workspace_id = this.workspace_id;
+    if (this.list_id) data.list_id = this.list_id;
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
-    if (this.background) data.background = this.background;
     return data
   }
 }
 
-export class BoardDetail {
+export class CardDetail {
   public id?: string;
-  public workspace_id?: string;
+  public list_id?: string;
   public name?: string;
   public description?: string;
-  public background?: string;
 
-  constructor(payload: Partial<BoardDetail>) {
+  constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
   }
 }

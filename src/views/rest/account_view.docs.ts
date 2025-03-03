@@ -38,6 +38,18 @@
  *         description: ID of board
  *         schema:
  *           type: string
+ *       - name: name
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *          type: number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *          type: number
  *     responses:
  *       200:
  *         token: "this token"
