@@ -21,6 +21,8 @@ export default function (): Router {
     const router_account = Router();
     {
         router_account.get("/", restJwt, account_rest_view.GetMyAccount);
+        router_account.put("/", restJwt, account_rest_view.UpdateMyAccount);
+        router_account.get("/list", restJwt, account_rest_view.GetAccountList);
     }
 
     const router_auth = Router();

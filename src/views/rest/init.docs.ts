@@ -321,7 +321,6 @@
  *         description: Card for all list
  */
 
-
 /**
  * @swagger
  * components:
@@ -348,6 +347,24 @@
  *         activity_type: 1
  */
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CreateCardCommentModel:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         card_id:
+ *           type: string
+ *         text:
+ *           type: string
+ *       example:
+ *         id: 1
+ *         card_id: 1
+ *         text: 'Hello world!'
+ */
 
 /**
  * @swagger
@@ -375,30 +392,6 @@
  *         source: { tag_id: 1 }
  */
 
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     CardActivityCommentModel:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           description: The auto-generated id of the user identity
- *         activity_id:
- *           type: string
- *           description: The title of your phone
- *         text:
- *           type: string
- *           description: The title of your phone
- *       example:
- *         id: 1
- *         activity_id: 1
- *         text: 'Hello world!'
- */
-
-
 /**
  * @swagger
  * components:
@@ -416,7 +409,6 @@
  *         user_id: 1
  *         role_id: 1
  */
-
 
 /**
  * @swagger
@@ -580,6 +572,13 @@
  * tags:
  *   name: Card
  *   description: The card managing API
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: CardActivity
+ *   description: The card activity managing API
  */
 
 /**

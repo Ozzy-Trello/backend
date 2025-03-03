@@ -9,18 +9,18 @@ export class Response {
 
 export class ResponseData<Type> extends Response {
 	public data?: Type;
-	constructor(payload: Partial<ResponseData<any>>) {
+	constructor(payload: Partial<ResponseData<Type>>) {
 		super(payload);
 		Object.assign(this, payload);
 	}
 }
 
-export class ResponseListData extends ResponseData<any> {
-	constructor(payload: Partial<ResponseListData>) {
-		super(payload);
-		Object.assign(this, payload);
-	}
+export class ResponseListData<Type> extends ResponseData<Type> {
 	public paginate!: PaginateData
+	constructor(payload: Partial<ResponseData<Type>>, paginate: PaginateData) {
+		super(payload);
+		this.paginate = paginate;
+	}
 }
 
 export class PaginateData {

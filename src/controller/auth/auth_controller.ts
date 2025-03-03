@@ -59,13 +59,13 @@ export class AuthController implements AuthControllerI {
 			data: {
 				access_token: GenerateToken({user_id: account.data!.id}, Config.REST_SECRET_KEY, {expiresIn: '1d'}),
 				refresh_token: GenerateToken({user_id: account.data!.id}, Config.REST_REFRESH_KEY, {expiresIn: '400d'}),
-				user_id: account.data?.id
+				user_id: account.data?.id!
 			},
 		})
 	}
 
 	async Login(data: LoginData): Promise<ResponseData<LoginResponse>> {
-		let account = await this.user_repo.getUser({identify: data.identity});
+		let account = await this.user_repo.getUser({identify: data.identity, withPassword: true});
 		if (account.status_code != StatusCodes.OK) {
 			switch (account.status_code) {
 				case StatusCodes.NOT_FOUND : {
