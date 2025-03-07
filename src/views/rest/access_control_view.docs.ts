@@ -1,11 +1,11 @@
 /**
  * @swagger
- * /v1/board:
+ * /v1/access-control:
  *   post:
  *     x-beta: true
  *     x-internal: true
- *     summary: Create board
- *     tags: [ Board ]
+ *     summary: Create Access Control
+ *     tags: [ AccessControl ]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -13,14 +13,14 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateBoardModel'
+ *             $ref: '#/components/schemas/CreateAccessControlModel'
  *     responses:
  *       200:
  *         token: "this token"
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CreateBoardModel'
+ *               $ref: '#/components/schemas/CreateAccessControlModel'
  *       500:
  *         description: Internal Server Error
  *
@@ -28,10 +28,10 @@
 
 /**
  * @swagger
- * /v1/board:
+ * /v1/access-control:
  *   get:
- *     summary: Get board list
- *     tags: [ Board ]
+ *     summary: Get Access Control list
+ *     tags: [ AccessControl ]
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -48,7 +48,7 @@
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/GetBoardModel'
+ *                 $ref: '#/components/schemas/GetAccessControlModel'
  *       500:
  *         description: Internal Server Error
  *
@@ -56,17 +56,17 @@
 
 /**
  * @swagger
- * /v1/board/{id}:
+ * /v1/access-control/{id}:
  *   get:
- *     summary: Get board details
+ *     summary: Get Access Control details
  *     parameters:
  *       - name: id
  *         in: path
- *         description: ID of board to update
+ *         description: ID of Access Control to update
  *         required: true
  *         schema:
  *           type: string
- *     tags: [ Board ]
+ *     tags: [ AccessControl ]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -75,7 +75,7 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/GetBoardModel'
+ *               $ref: '#/components/schemas/GetAccessControlModel'
  *       500:
  *         description: Internal Server Error
  *
@@ -83,13 +83,13 @@
 
 /**
  * @swagger
- * /v1/board/{id}:
+ * /v1/access-control/{id}:
  *   put:
- *     summary: Update board details
+ *     summary: Update Access Control details
  *     parameters:
  *       - name: id
  *         in: path
- *         description: ID of board to update
+ *         description: ID of Access Control to update
  *         required: true
  *         schema:
  *           type: string
@@ -98,13 +98,13 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateBoardModel'
- *     tags: [ Board ]
+ *             $ref: '#/components/schemas/CreateAccessControlModel'
+ *     tags: [ AccessControl ]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       201:
- *         description: board updated successfully
+ *         description: Access Control updated successfully
  *       500:
  *         description: Internal Server Error
  *
@@ -113,22 +113,22 @@
 
 /**
  * @swagger
- * /v1/board/{id}:
+ * /v1/access-control/{id}:
  *   delete:
- *     summary: Delete a board
+ *     summary: Delete a Access Control
  *     parameters:
  *       - name: id
  *         in: path
- *         description: ID of board to delete
+ *         description: ID of Access Control to delete
  *         required: true
  *         schema:
  *           type: string
- *     tags: [ Board ]
+ *     tags: [ AccessControl ]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       201:
- *         description: board deleted successfully
+ *         description: Access Control deleted successfully
  *       500:
  *         description: Internal Server Error
  *
@@ -137,13 +137,13 @@
 
 /**
  * @swagger
- * /v1/board/{id}/member/{user-id}:
+ * /v1/access-control/{id}/member/{user-id}:
  *   post:
- *     summary: Add a member to a board
+ *     summary: Add a member to a Access Control
  *     parameters:
  *       - name: id
  *         in: path
- *         description: ID of board to update
+ *         description: ID of Access Control to update
  *         required: true
  *         schema:
  *           type: string
@@ -153,25 +153,25 @@
  *         required: true
  *         schema:
  *           type: string
- *     tags: [Board]
+ *     tags: [AccessControl]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       201:
- *         description: User added to Board successfully
+ *         description: User added to AccessControl successfully
  *       500:
  *         description: Internal Server Error
  */
 
 /**
  * @swagger
- * /v1/board/{id}/member/{user-id}:
+ * /v1/access-control/{id}/member/{user-id}:
  *   delete:
- *     summary: Remove a member from a board
+ *     summary: Remove a member from a Access Control
  *     parameters:
  *       - name: id
  *         in: path
- *         description: ID of board to update
+ *         description: ID of Access Control to update
  *         required: true
  *         schema:
  *           type: string
@@ -181,12 +181,12 @@
  *         required: true
  *         schema:
  *           type: string
- *     tags: [Board]
+ *     tags: [AccessControl]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       201:
- *         description: User removed from Board successfully
+ *         description: User removed from AccessControl successfully
  *       500:
  *         description: Internal Server Error
  */

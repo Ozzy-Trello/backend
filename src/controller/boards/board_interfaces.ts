@@ -94,7 +94,7 @@ export class BoardFilter {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined && this.background == undefined;
+		return this.id == undefined && this.name == undefined && this.description == undefined && this.background == undefined;
 	}
 }
 

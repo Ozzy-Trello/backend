@@ -269,7 +269,7 @@
  *         description: ID of workspace to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [Workspace]
  *     security:
  *       - BearerAuth: []

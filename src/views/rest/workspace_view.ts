@@ -74,7 +74,7 @@ export default class WorkspaceRestView implements WorkspaceRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
     }))
-    if (accResponse.status_code !== StatusCodes.OK) {
+    if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
           "message": "internal server error",
@@ -145,7 +145,7 @@ export default class WorkspaceRestView implements WorkspaceRestViewI {
     let updateResponse = await this.workspace_controller.UpdateWorkspace(new WorkspaceFilter({
       id: req.params.id?.toString(),
     }), new UpdateWorkspaceData({
-      name: req.body.email?.toString(),
+      name: req.body.name?.toString(),
       description: req.body.description?.toString(),
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {

@@ -11,6 +11,9 @@ import WorkspaceRestView from "@/views/rest/workspace_view";
 import { BoardRepository } from "@/repository/board/board_repository";
 import { BoardController } from "@/controller/boards/board_controller";
 import BoardRestView from "@/views/rest/board_view";
+import { RoleRepository } from "@/repository/role_access/role_repository";
+import { AccessControlController } from "@/controller/access_control/access_control_controller";
+import AccessControlRestView from "@/views/rest/access_control_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -18,16 +21,19 @@ export default function (): Router {
     const user_repo = new UserRepository();
     const workspace_repo = new WorkspaceRepository();
     const board_repo = new BoardRepository();
+    const role_repo = new RoleRepository();
 
     const account_controller = new AccountController(user_repo);
     const auth_controller = new AuthController(user_repo);
     const workspace_controller = new WorkspaceController(workspace_repo);
     const board_controller = new BoardController(board_repo, workspace_repo);
+    const access_control_controller = new AccessControlController(role_repo);
 
     const account_rest_view = new AccountRestView(account_controller);
     const auth_rest_view = new AuthRestView(auth_controller);
     const workspace_rest_view = new WorkspaceRestView(workspace_controller);
     const board_rest_view = new BoardRestView(board_controller);
+    const access_control_rest_view = new AccessControlRestView(access_control_controller);
 
     const router_account = Router();
     {
@@ -50,6 +56,7 @@ export default function (): Router {
         router_workspace.get("/default", restJwt, workspace_rest_view.GetDefaultWorkspace);
         router_workspace.put("/default", restJwt, workspace_rest_view.UpdateDefaultWorkspace);
         router_workspace.get("/:id", restJwt, workspace_rest_view.GetWorkspace);
+        router_workspace.put("/:id", restJwt, workspace_rest_view.UpdateWorkspace);
         router_workspace.delete("/:id", restJwt, workspace_rest_view.DeleteWorkspace);
     }
 
@@ -58,12 +65,23 @@ export default function (): Router {
         router_board.post("/", restJwt, board_rest_view.CreateBoard);
         router_board.get("/", restJwt, board_rest_view.GetBoardList);
         router_board.get("/:id", restJwt, board_rest_view.GetBoard);
+        router_board.put("/:id", restJwt, board_rest_view.UpdateBoard);
         router_board.delete("/:id", restJwt, board_rest_view.DeleteBoard);
+    }
+
+    const router_access_control = Router();
+    {
+        router_access_control.post("/", restJwt, access_control_rest_view.CreateAccessControl);
+        router_access_control.get("/", restJwt, access_control_rest_view.GetAccessControlList);
+        router_access_control.get("/:id", restJwt, access_control_rest_view.GetAccessControl);
+        router_access_control.put("/:id", restJwt, access_control_rest_view.UpdateAccessControl);
+        router_access_control.delete("/:id", restJwt, access_control_rest_view.DeleteAccessControl);
     }
 
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
     root_router.use("/board", router_board)
+    root_router.use("/access-control", router_access_control)
     return root_router
 }

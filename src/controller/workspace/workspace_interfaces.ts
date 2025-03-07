@@ -88,7 +88,7 @@ export class WorkspaceFilter {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined;
+		return this.id == undefined && this.name == undefined && this.description == undefined;
 	}
 }
 

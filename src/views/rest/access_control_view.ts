@@ -1,27 +1,26 @@
-import { BoardControllerI, BoardCreateData, BoardFilter, UpdateBoardData } from "@/controller/boards/board_interfaces";
+import { AccessControlControllerI, AccessControlCreateData, AccessControlFilter, UpdateAccessControlData } from "@/controller/access_control/access_control_interfaces";
 import { Paginate } from "@/utils/data_utils";
-import { BoardRestViewI } from "@/views/rest/interfaces";
+import { AccessControlRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 
-export default class BoardRestView implements BoardRestViewI {
-  private board_controller: BoardControllerI
+export default class AccessControlRestView implements AccessControlRestViewI {
+  private access_control_controller: AccessControlControllerI
 
-  constructor(board_controller: BoardControllerI) {
-    this.board_controller = board_controller;
-    this.CreateBoard = this.CreateBoard.bind(this)
-    this.GetBoard = this.GetBoard.bind(this)
-    this.GetBoardList = this.GetBoardList.bind(this)
-    this.UpdateBoard = this.UpdateBoard.bind(this)
-    this.DeleteBoard = this.DeleteBoard.bind(this)
+  constructor(access_control_controller: AccessControlControllerI) {
+    this.access_control_controller = access_control_controller;
+    this.CreateAccessControl = this.CreateAccessControl.bind(this)
+    this.GetAccessControl = this.GetAccessControl.bind(this)
+    this.GetAccessControlList = this.GetAccessControlList.bind(this)
+    this.UpdateAccessControl = this.UpdateAccessControl.bind(this)
+    this.DeleteAccessControl = this.DeleteAccessControl.bind(this)
   }
 
-  async CreateBoard(req: Request, res: Response): Promise<void> {
-    let accResponse = await this.board_controller.CreateBoard(req.auth!.user_id, new BoardCreateData({ 
+  async CreateAccessControl(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.access_control_controller.CreateAccessControl(req.auth!.user_id, new AccessControlCreateData({ 
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
-      background: req.body.background?.toString(),
-      workspace_id: req.body.workspace_id?.toString(),
+      permissions: req.body.permissions?.toString(),
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -42,8 +41,8 @@ export default class BoardRestView implements BoardRestViewI {
     return
   }
 
-  async GetBoard(req: Request, res: Response): Promise<void> {
-    let accResponse = await this.board_controller.GetBoard(new BoardFilter({
+  async GetAccessControl(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.access_control_controller.GetAccessControl(new AccessControlFilter({
       id: req.params.id?.toString(),
     }))
     if (accResponse.status_code !== StatusCodes.OK) {
@@ -65,12 +64,14 @@ export default class BoardRestView implements BoardRestViewI {
     return
   }
 
-  async GetBoardList(req: Request, res: Response): Promise<void> {
+  async GetAccessControlList(req: Request, res: Response): Promise<void> {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
-    let accResponse = await this.board_controller.GetBoardList(new BoardFilter({
-      workspace_id: req.query['workspace-id']?.toString()
+    let accResponse = await this.access_control_controller.GetAccessControlList(new AccessControlFilter({
+      id : req.query.id?.toString(),
+      name: req.query.name?.toString(),
+      description: req.query.description?.toString(),
     }), paginate)
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -92,13 +93,12 @@ export default class BoardRestView implements BoardRestViewI {
     return
   }
 
-  async UpdateBoard(req: Request, res: Response): Promise<void> {
-    let updateResponse = await this.board_controller.UpdateBoard(new BoardFilter({
+  async UpdateAccessControl(req: Request, res: Response): Promise<void> {
+    let updateResponse = await this.access_control_controller.UpdateAccessControl(new AccessControlFilter({
       id: req.params.id?.toString(),
-    }), new UpdateBoardData({
+    }), new UpdateAccessControlData({
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
-      background: req.body.background?.toString()
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -119,8 +119,8 @@ export default class BoardRestView implements BoardRestViewI {
     return
   }
 
-  async DeleteBoard(req: Request, res: Response): Promise<void> {
-    let delResponse = await this.board_controller.DeleteBoard(new BoardFilter({
+  async DeleteAccessControl(req: Request, res: Response): Promise<void> {
+    let delResponse = await this.access_control_controller.DeleteAccessControl(new AccessControlFilter({
       id: req.params.id?.toString(),
     }));
     if (delResponse.status_code !== StatusCodes.OK) {

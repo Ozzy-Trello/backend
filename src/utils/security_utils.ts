@@ -22,3 +22,9 @@ export function ExtractToken(token: string, key: string): TokenDataI {
 		iat: result.iat,
 	}
 }
+
+export interface PermissionStructure {
+  board: { create: boolean; read: boolean; update: boolean; delete: boolean };
+  list: { create: boolean; read: boolean; update: boolean; delete: boolean };
+  card: { create: boolean; read: boolean; update: boolean; delete: boolean };
+}
