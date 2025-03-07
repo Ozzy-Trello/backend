@@ -69,7 +69,9 @@ export default class BoardRestView implements BoardRestViewI {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
-    let accResponse = await this.board_controller.GetBoardList(new BoardFilter({}), paginate)
+    let accResponse = await this.board_controller.GetBoardList(new BoardFilter({
+      workspace_id: req.query['workspace-id']?.toString()
+    }), paginate)
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -94,7 +96,7 @@ export default class BoardRestView implements BoardRestViewI {
     let updateResponse = await this.board_controller.UpdateBoard(new BoardFilter({
       id: req.params.id?.toString(),
     }), new UpdateBoardData({
-      name: req.body.email?.toString(),
+      name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       background: req.body.background?.toString()
     }))

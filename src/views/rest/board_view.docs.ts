@@ -33,6 +33,7 @@
  *     summary: Get board list
  *     tags: [ Board ]
  *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: workspace-id
  *         in: query
@@ -121,7 +122,7 @@
  *         description: ID of board to delete
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ Board ]
  *     security:
  *       - BearerAuth: []

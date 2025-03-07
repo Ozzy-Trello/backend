@@ -50,6 +50,7 @@ export default function (): Router {
         router_workspace.get("/default", restJwt, workspace_rest_view.GetDefaultWorkspace);
         router_workspace.put("/default", restJwt, workspace_rest_view.UpdateDefaultWorkspace);
         router_workspace.get("/:id", restJwt, workspace_rest_view.GetWorkspace);
+        router_workspace.put("/:id", restJwt, workspace_rest_view.UpdateWorkspace);
         router_workspace.delete("/:id", restJwt, workspace_rest_view.DeleteWorkspace);
     }
 
@@ -58,6 +59,7 @@ export default function (): Router {
         router_board.post("/", restJwt, board_rest_view.CreateBoard);
         router_board.get("/", restJwt, board_rest_view.GetBoardList);
         router_board.get("/:id", restJwt, board_rest_view.GetBoard);
+        router_board.put("/:id", restJwt, board_rest_view.UpdateBoard);
         router_board.delete("/:id", restJwt, board_rest_view.DeleteBoard);
     }
 
