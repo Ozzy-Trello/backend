@@ -1,18 +1,40 @@
+import {filterBoardDetail, BoardDetail, BoardDetailUpdate, BoardRepositoryI} from "@/repository/board/board_interfaces";
 import Board from "@/database/schemas/board";
 import {Error, Op} from "sequelize";
-import {ResponseData} from "@/utils/response_utils";
+import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {BoardDetail, BoardDetailUpdate, BoardRepositoryI, filterBoardDetail} from "@/repository/board/board_interfaces";
+import {Paginate} from "@/utils/data_utils";
+import BoardMember from "@/database/schemas/board_member";
 
 export class BoardRepository implements BoardRepositoryI {
-	createFilter(filter: filterBoardDetail) : any {
+	createFilter(filter: filterBoardDetail): any {
 		const whereClause: any = {};
+		const orConditions: any[] = [];
+		const notConditions: any[] = [];
+
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
 		if (filter.name) whereClause.name = filter.name;
-		if (filter.description) whereClause.description = filter.description;
-		if (filter.background) whereClause.background = filter.background;
+		if (filter.description) whereClause.email = filter.description;
+		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
+	
+		if (filter.__orId) orConditions.push({ id: filter.__orId });
+		if (filter.__orName) orConditions.push({ name: filter.__orName });
+		if (filter.__orDescription) orConditions.push({ email: filter.__orDescription });
+		if (filter.__orWorkspaceId) orConditions.push({ email: filter.__orWorkspaceId });
+
+		if (filter.__notId) notConditions.push({ id: filter.__notId });
+		if (filter.__notName) notConditions.push({ name: filter.__notName });
+		if (filter.__notDescription) notConditions.push({ email: filter.__notDescription });
+		if (filter.__notWorkspaceId) notConditions.push({ email: filter.__notWorkspaceId });
+
+		if (notConditions.length > 0) {
+			whereClause[Op.not] = notConditions;
+		}
+
+		if (orConditions.length > 0) {
+			whereClause[Op.or] = orConditions;
+		}
 		return whereClause
 	}
 
@@ -33,23 +55,69 @@ export class BoardRepository implements BoardRepositoryI {
 
 	async createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>> {
 		try {
-			let board = await Board.create({
-				workspace_id: data.workspace_id!,
+			const board = await Board.create({
 				name: data.name!,
 				description: data.description!,
 				background: data.background!,
+				workspace_id: data.workspace_id
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create board success",
 				data: new BoardDetail({
 					id: board.id,
-					workspace_id: data.workspace_id!,
-					name: data.name!,
-					description: data.description!,
-					background: data.background!,
+					name: board.name,
+					description: board.description,
+					background: board.background,
+					workspace_id: board.workspace_id,
 				})
 			});
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async addMember(id: string, user_id: string, role_id: string): Promise<number> {
+		try {
+			const board = await BoardMember.create({
+				board_id: id,
+				user_id: user_id,
+				role_id: role_id,
+			});
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async removeMember(id: string, user_id: string): Promise<number> {
+		try {
+			const board = await BoardMember.destroy({where: {user_id, board_id: id}});
+			if (board <= 0) {
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async isMember(id: string, user_id: string): Promise<number> {
+		try {
+			const total = await BoardMember.count({where: {user_id, board_id: id}});
+			if (total <= 0) {
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {
 				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
@@ -69,10 +137,10 @@ export class BoardRepository implements BoardRepositoryI {
 			}
 			let result = new BoardDetail({
 				id: board.id,
-				workspace_id: board.workspace_id!,
-				name: board.name!,
-				description: board.description!,
-				background: board.background!,
+				name: board.name,
+				description: board.description,
+				background: board.background,
+				workspace_id: board.workspace_id,
 			})
 
 			return new ResponseData({
@@ -88,14 +156,35 @@ export class BoardRepository implements BoardRepositoryI {
 		}
 	}
 
-	async getBoardList(filter: filterBoardDetail): Promise<Array<BoardDetail>> {
-		const boards = await Board.findAll({where: this.createFilter(filter)});
-		return boards.map(board => board.toJSON() as unknown as BoardDetail);
+	async getBoardList(filter: filterBoardDetail, paginate: Paginate): Promise<ResponseListData<Array<BoardDetail>>> {
+		let result: Array<BoardDetail> = [];
+		paginate.setTotal(await Board.count({where: this.createFilter(filter)}))
+		const boards = await Board.findAll({
+			where: this.createFilter(filter),
+			offset: paginate.getOffset(),
+			limit: paginate.limit,
+		});
+		for (const board of boards) {
+			result.push(new BoardDetail({
+				id: board.id,
+				name: board.name,
+				description: board.description,
+				background: board.background, 
+			}))
+		}
+		return new ResponseListData({
+			status_code: StatusCodes.OK,
+			message: "list board",
+			data: result,
+		}, paginate)
 	}
 
 	async updateBoard(filter: filterBoardDetail, data: BoardDetailUpdate): Promise<number> {
 		try {
-			await Board.update(data.toObject(), {where: this.createFilter(filter)});
+			const effected= await Board.update(data.toObject(), {where: this.createFilter(filter)});
+			if (effected[0] ==0 ){
+				return StatusCodes.NOT_FOUND
+			}
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

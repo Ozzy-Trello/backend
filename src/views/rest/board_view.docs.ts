@@ -33,6 +33,11 @@
  *     summary: Get board list
  *     tags: [ Board ]
  *     security:
+ *     parameters:
+ *       - name: workspace-id
+ *         in: query
+ *         schema:
+ *           type: string
  *       - BearerAuth: []
  *     responses:
  *       200:
@@ -59,7 +64,7 @@
  *         description: ID of board to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ Board ]
  *     security:
  *       - BearerAuth: []
@@ -86,7 +91,7 @@
  *         description: ID of board to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:

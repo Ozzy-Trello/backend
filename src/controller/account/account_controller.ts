@@ -21,7 +21,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async GetAccount(filter: AccountFilter): Promise<ResponseData<AccountResponse>> {
-		let checkAccount = await this.user_repo.getUser({id: filter.user_id});
+		let checkAccount = await this.user_repo.getUser(filter.toFilterUserDetail());
 		return new ResponseData({
 			message: checkAccount.message,
 			status_code: checkAccount.status_code,
@@ -30,7 +30,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async GetAccountList(filter: AccountFilter, paginate: Paginate): Promise<ResponseListData<Array<AccountResponse>>> {
-		let accounts = await this.user_repo.getUserList({id: filter.user_id}, paginate);
+		let accounts = await this.user_repo.getUserList(filter.toFilterUserDetail(), paginate);
 		return new ResponseListData({
 			message: "account list",
 			status_code: StatusCodes.OK,
@@ -69,29 +69,28 @@ export class AccountController implements AccountControllerI {
     if (filter.user_id){
       let currentAccount = await this.user_repo.getUser({id: filter.user_id});
       if (currentAccount.status_code == StatusCodes.NOT_FOUND){
-        return new ResponseData({
-          message: "Account is not found",
-          status_code: StatusCodes.NOT_FOUND,
-        })
+				return new ResponseData({
+					message: "Account is not found",
+					status_code: StatusCodes.NOT_FOUND,
+				})
       }
 
-			let checkAccount = await this.user_repo.getUser({__notId: filter.user_id, __orEmail:data.email, __orUsername: data.username, __orPhone:data.phone});
-			if (checkAccount.status_code == StatusCodes.OK){
-        let msg = "this email already taken by others";
-        if (!(data.email && currentAccount.data?.email == data.email)){
-          msg = "this username already taken by others";
-        }else if (!(data.username && currentAccount.data?.username == data.username)){
-          msg = "this usename already taken by others";
-        }else if (!(data.phone && currentAccount.data?.phone == data.phone)){
-          msg = "this phone already taken by others";
-        }
+      let checkAccount = await this.user_repo.getUser({__notId: filter.user_id, __orEmail:data.email, __orUsername: data.username, __orPhone:data.phone});
+      if (checkAccount.status_code == StatusCodes.OK){
+				let msg = "this email already taken by others";
+				if (!(data.email && currentAccount.data?.email == data.email)){
+					msg = "this username already taken by others";
+				} else if (!(data.username && currentAccount.data?.username == data.username)){
+					msg = "this usename already taken by others";
+				} else if (!(data.phone && currentAccount.data?.phone == data.phone)){
+					msg = "this phone already taken by others";
+				}
 				return new ResponseData({
 					message: msg,
 					status_code: StatusCodes.NOT_FOUND,
 				})
 			}
-		}
-
+		};
 
 		const updateResponse = await this.user_repo.updateUser(filter.toFilterUserDetail(), data.toUserDetailUpdate());
 		if (updateResponse == StatusCodes.NOT_FOUND) {
@@ -104,7 +103,5 @@ export class AccountController implements AccountControllerI {
 			message: "Account is deleted successful",
 			status_code: StatusCodes.NO_CONTENT,
 		})
-	}
-
-
+	};
 }

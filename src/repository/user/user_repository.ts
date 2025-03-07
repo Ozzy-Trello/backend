@@ -1,6 +1,6 @@
 import {filterUserDetail, UserDetail, UserDetailUpdate, UserRepositoryI} from "@/repository/user/user_interfaces";
 import User from "@/database/schemas/user";
-import {Error, Op} from "sequelize";
+import {Error, Op, where} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
