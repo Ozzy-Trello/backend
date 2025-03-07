@@ -186,11 +186,18 @@
  *       required:
  *         - name
  *         - description
+ *         - workspace_id
  *       properties:
  *         name:
  *           type: string
  *           description: The auto-generated id of the user identity
  *         description:
+ *           type: string
+ *           description: The title of your phone
+ *         background:
+ *           type: string
+ *           description: The title of your phone
+ *         workspace_id:
  *           type: string
  *           description: The title of your phone
  *       example:

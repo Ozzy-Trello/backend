@@ -32,6 +32,7 @@ Board.init(
         },
         workspace_id: {
             type: DataTypes.UUID,
+            allowNull: false,
         },
         name: {
             type: new DataTypes.STRING(128),

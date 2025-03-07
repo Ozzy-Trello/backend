@@ -5,3 +5,6 @@ install:
 
 clean-db:
 	npm run sequelize -- db:migrate:undo:all
+
+migrate-db:
+	npm run sequelize -- db:migrate

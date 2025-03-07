@@ -74,6 +74,12 @@ module.exports = {
       user_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       role_id: {
         type: DataTypes.UUID,
@@ -82,6 +88,12 @@ module.exports = {
       workspace_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'workspace',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       createdAt: {
         type: new DataTypes.TIME,
@@ -101,6 +113,13 @@ module.exports = {
       },
       workspace_id: {
         type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'workspace',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       name: {
         type: new DataTypes.STRING(128),
@@ -133,6 +152,12 @@ module.exports = {
       user_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       role_id: {
         type: DataTypes.UUID,
@@ -156,6 +181,13 @@ module.exports = {
       },
       board_id: {
         type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'board',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       order: {
         type: DataTypes.INTEGER,
@@ -188,6 +220,12 @@ module.exports = {
       list_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'list',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       name: {
         type: new DataTypes.STRING(128),
@@ -235,10 +273,22 @@ module.exports = {
       tag_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'tag',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       card_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'card',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       color: {
         type: DataTypes.STRING(8),
@@ -332,13 +382,19 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    /**
-     * Add reverting commands here.
-     *
-     * Example:
-     * await queryInterface.dropTable('users');
-     */
-
+    // await queryInterface.removeConstraint('workspace_member', 'workspace_member_user_id_fkey')
+    // await queryInterface.removeConstraint('workspace_member', 'workspace_member_workspace_id_fkey')
+    // await queryInterface.removeConstraint('board', 'board_workspace_id_fkey')
+    // await queryInterface.removeConstraint('board_member', 'board_member_user_id_fkey')
+    // await queryInterface.removeConstraint('list', 'list_board_id_fkey')
+    // await queryInterface.removeConstraint('card', 'card_list_id_fkey')
+    // await queryInterface.removeConstraint('card_tag', 'card_tag_tag_id_fkey')
+    // await queryInterface.removeConstraint('card_tag', 'card_tag_card_id_fkey')
+    // await queryInterface.removeConstraint('card_activity', 'card_activity_card_id_fkey')
+    // await queryInterface.removeConstraint('card_activity', 'card_activity_user_id_fkey')
+    // await queryInterface.removeConstraint('card_activity_text', 'card_activity_text_card_activity_id_fkey')
+    // await queryInterface.removeConstraint('card_activity_action', 'card_activity_action_card_activity_id_fkey')
+    
     await queryInterface.dropTable('user')
     await queryInterface.dropTable('workspace')
     await queryInterface.dropTable('workspace_member')

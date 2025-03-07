@@ -1,5 +1,4 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
 
 interface WorkspaceMemberAttributes {
@@ -24,6 +23,7 @@ WorkspaceMember.init(
         user_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            primaryKey: true,
         },
         role_id: {
             type: DataTypes.UUID,
@@ -32,11 +32,15 @@ WorkspaceMember.init(
         workspace_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            primaryKey: true,
         },
     },
     {
-        tableName: 'workspace',
+        tableName: 'workspace_member',
         sequelize,
+        defaultScope: {
+            attributes: {exclude: ['id']}
+        },
     }
 )
 

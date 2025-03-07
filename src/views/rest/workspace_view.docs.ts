@@ -34,6 +34,41 @@
  *     tags: [Workspace]
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - name: name
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *          type: number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *          type: number
+ *     responses:
+ *       200:
+ *         token: "this token"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GetWorkspaceModel'
+ *       500:
+ *         description: Internal Server Error
+ *
+ */
+
+/**
+ * @swagger
+ * /v1/workspace/default:
+ *   get:
+ *     summary: Get workspace list
+ *     tags: [Workspace]
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         token: "this token"
@@ -59,7 +94,7 @@
  *         description: ID of workspace to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [Workspace]
  *     security:
  *       - BearerAuth: []
@@ -86,7 +121,29 @@
  *         description: ID of workspace to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateWorkspaceModel'
+ *     tags: [Workspace]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Workspace updated successfully
+ *       500:
+ *         description: Internal Server Error
+ *
+ */
+
+/**
+ * @swagger
+ * /v1/workspace/default:
+ *   put:
+ *     summary: Update workspace details
  *     requestBody:
  *       required: true
  *       content:

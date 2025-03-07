@@ -23,10 +23,12 @@ BoardMember.init(
         board_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            primaryKey: true,
         },
         user_id: {
             type: DataTypes.UUID,
             allowNull: false,
+            primaryKey: true,
         },
         role_id: {
             type: DataTypes.UUID,

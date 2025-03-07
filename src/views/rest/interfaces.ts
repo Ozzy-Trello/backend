@@ -17,8 +17,17 @@ export interface AuthRestViewI {
 
 export interface WorkspaceRestViewI {
     GetWorkspace(req: Request, res: Response): Promise<void>;
+    CreateWorkspace(req: Request, res: Response): Promise<void>;
     GetWorkspaceList(req: Request, res: Response): Promise<void>;
+    GetDefaultWorkspace(req: Request, res: Response): Promise<void>;
     UpdateWorkspace(req: Request, res: Response): Promise<void>;
+    UpdateDefaultWorkspace(req: Request, res: Response): Promise<void>;
     DeleteWorkspace(req: Request, res: Response): Promise<void>;
 }
 
+export interface BoardRestViewI {
+    CreateBoard(req: Request, res: Response): Promise<void>;
+    GetBoard(req: Request, res: Response): Promise<void>;
+    UpdateBoard(req: Request, res: Response): Promise<void>;
+    DeleteBoard(req: Request, res: Response): Promise<void>;
+}

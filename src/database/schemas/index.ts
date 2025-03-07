@@ -1,31 +1,25 @@
-import fs from 'fs';
-import path from 'path';
-import { Sequelize, DataTypes } from 'sequelize';
+import { Sequelize } from 'sequelize';
 import sequelize from '@/database/connections';
 
-const basename = path.basename(__filename);
-const db: { [key: string]: any } = {};
+import User from "@/database/schemas/user";
+import Workspace from "@/database/schemas/workspace";
+import WorkspaceMember from "@/database/schemas/workspace_member";
 
-fs
-  .readdirSync(__dirname)
-  .filter(file => {
-    return (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.ts' &&
-      file.indexOf('.test.ts') === -1
-    );
-  })
-  .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, DataTypes);
-    db[model.name] = model;
-  });
-
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
+User.belongsToMany(Workspace, { 
+  through: WorkspaceMember,
+  foreignKey: "user_id",
+  otherKey: "workspace_id"
 });
+Workspace.belongsToMany(User, { 
+  through: WorkspaceMember,
+  foreignKey: "workspace_id",
+  otherKey: "user_id"
+});
+
+const db: { [key: string]: any } = {};
+db[User.name] = User;
+db[Workspace.name] = Workspace;
+db[WorkspaceMember.name] = WorkspaceMember;
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
