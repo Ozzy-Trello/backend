@@ -379,6 +379,43 @@ module.exports = {
       }
     })
 
+    await queryInterface.createTable('role', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING(128),
+        allowNull: false,
+        unique: true,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      permissions: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+      },
+      default: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+    });
+
   },
 
   async down (queryInterface, Sequelize) {
@@ -407,5 +444,6 @@ module.exports = {
     await queryInterface.dropTable('card_activity')
     await queryInterface.dropTable('card_activity_text')
     await queryInterface.dropTable('card_activity_action')
+    await queryInterface.dropTable('role')
   }
 };

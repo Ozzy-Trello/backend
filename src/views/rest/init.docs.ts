@@ -176,6 +176,7 @@
  *         role: admin
  */
 
+// ==================================== start board ====================================
 
 /**
  * @swagger
@@ -247,6 +248,110 @@
  * @swagger
  * components:
  *   schemas:
+ *     GetListModel:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CreateBoardModel'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *       example:
+ *         id: "E7656DE4-6E7B-4C27-8589-E4227EE05C00"
+ *         name: default 
+ *         description: board for all workspaces
+ */
+
+// ==================================== end board ====================================
+
+// ==================================== start board ====================================
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CreateAccessControlModel:
+ *       type: object
+ *       required:
+ *         - name
+ *         - description
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: The auto-generated id of the user identity
+ *         description:
+ *           type: string
+ *           description: The title of your phone
+ *         permissions:
+ *           type: string
+ *           description: The title of your phone
+ *       example:
+ *         name: default 
+ *         description: board for all workspaces
+ *         permissions: aaaaa
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     GetAccessControlModel:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CreateAccessControlModel'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *       example:
+ *         id: "E7656DE4-6E7B-4C27-8589-E4227EE05C00"
+ *         name: default 
+ *         description: board for all workspaces
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     AccessControlMemberModel:
+ *       type: object
+ *       required:
+ *         - user_id
+ *         - role
+ *       properties:
+ *         user_id:
+ *           type: string
+ *           description: The auto-generated id of the user identity
+ *         role:
+ *           type: string
+ *           description: The title of your phone
+ *       example:
+ *         user_id: 1
+ *         role: admin
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     GetListModel:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CreateAccessControlModel'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *       example:
+ *         id: "E7656DE4-6E7B-4C27-8589-E4227EE05C00"
+ *         name: default 
+ *         description: board for all workspaces
+ */
+
+// ==================================== end board ====================================
+
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
  *     CreateListModel:
  *       type: object
  *       required:
@@ -269,25 +374,8 @@
  *         board_id: "659cd528-1a9e-4ff4-a772-ce7aee2cbcb9"
  *         order: 1
  *         name: default 
- *         description: list for all boards
+ *         description: list for all List
  *         background: #ffffff
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     GetListModel:
- *       allOf:
- *         - $ref: '#/components/schemas/CreateBoardModel'
- *         - type: object
- *           properties:
- *             id:
- *               type: string
- *       example:
- *         id: "E7656DE4-6E7B-4C27-8589-E4227EE05C00"
- *         name: default 
- *         description: board for all workspaces
  */
 
 /**
@@ -600,4 +688,11 @@
  * tags:
  *   name: File
  *   description: The file managing API
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Access Control
+ *   description: The access control managing API
  */

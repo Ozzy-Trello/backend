@@ -31,3 +31,10 @@ export interface BoardRestViewI {
     UpdateBoard(req: Request, res: Response): Promise<void>;
     DeleteBoard(req: Request, res: Response): Promise<void>;
 }
+
+export interface AccessControlRestViewI {
+    CreateAccessControl(req: Request, res: Response): Promise<void>;
+    GetAccessControl(req: Request, res: Response): Promise<void>;
+    UpdateAccessControl(req: Request, res: Response): Promise<void>;
+    DeleteAccessControl(req: Request, res: Response): Promise<void>;
+}

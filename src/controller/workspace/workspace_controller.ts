@@ -45,7 +45,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let addMemberResponse = await this.workspace_repo.addMember(createResponse.data!.id!, user_id, "0");
+    let addMemberResponse = await this.workspace_repo.addMember(createResponse.data!.id!, user_id, "1c351187-97a9-4052-9823-8466849cd3bb");
     if (addMemberResponse != StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: "error to sign user as workspace owner",
