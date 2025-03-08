@@ -29,6 +29,12 @@ export interface PermissionStructure {
   card: { create: boolean; read: boolean; update: boolean; delete: boolean };
 }
 
+export const defaultPermission = {
+	board: { create: true, read: true, update: true, delete: true },
+  list: { create: true, read: true, update: true, delete: true },
+  card: { create: true, read: true, update: true, delete: true },
+}
+
 export function isPermissionStructure(obj:any) {
   const expectedKeys = ["board", "list", "card"];
   const expectedStructure = { create: false, read: true, update: false, delete: false };

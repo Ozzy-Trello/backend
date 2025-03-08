@@ -5,6 +5,7 @@ import { InternalServerError } from "@/utils/errors";
 import { Paginate } from "@/utils/data_utils";
 import Role from "@/database/schemas/role";
 import { filterRoleDetail, RoleDetail, RoleDetailUpdate, RoleRepositoryI } from "@/repository/role_access/role_interfaces";
+import { defaultPermission } from "@/utils/security_utils";
 
 export class RoleRepository implements RoleRepositoryI {
 	createFilter(filter: filterRoleDetail): any {
@@ -14,18 +15,18 @@ export class RoleRepository implements RoleRepositoryI {
 
 		if (filter.id) whereClause.id = filter.id;
 		if (filter.name) whereClause.name = filter.name;
-		if (filter.description) whereClause.email = filter.description;
-		if (filter.default) whereClause.email = filter.default;
+		if (filter.description) whereClause.description = filter.description;
+		if (filter.default) whereClause.default = filter.default;
 	
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
-		if (filter.__orDescription) orConditions.push({ email: filter.__orDescription });
-		if (filter.__orDefault) orConditions.push({ email: filter.__orDefault });
+		if (filter.__orDescription) orConditions.push({ description: filter.__orDescription });
+		if (filter.__orDefault) orConditions.push({ default: filter.__orDefault });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
-		if (filter.__notDescription) notConditions.push({ email: filter.__notDescription });
-		if (filter.__notDefault) notConditions.push({ email: filter.__notDefault });
+		if (filter.__notDescription) notConditions.push({ description: filter.__notDescription });
+		if (filter.__notDefault) notConditions.push({ default: filter.__notDefault });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
@@ -79,12 +80,29 @@ export class RoleRepository implements RoleRepositoryI {
 
 	async getRole(filter: filterRoleDetail): Promise<ResponseData<RoleDetail>> {
 		try {
-			const role = await Role.findOne({where: this.createFilter(filter)});
+			let role: Role | null;
+			let statusCode = StatusCodes.OK;
+			if (filter.createWhenNone && filter.name == undefined && filter.description == undefined){
+				return new ResponseData({
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "you need to put name and desc to use create when no data opration",
+				});
+			}
+			role = await Role.findOne({where: this.createFilter(filter)});
 			if (!role) {
-				return {
-					status_code: StatusCodes.NOT_FOUND,
-					message: "role is not found",
+				if (!filter.createWhenNone) {
+					return {
+						status_code: StatusCodes.NOT_FOUND,
+						message: "role is not found",
+					}
 				}
+				role = await Role.create({
+					description: filter.description!,
+					default: filter.default,
+					name: filter.name!,
+					permissions: defaultPermission
+				});
+				statusCode = StatusCodes.CREATED
 			}
 			let result = new RoleDetail({
 				id: role.id,
@@ -95,7 +113,7 @@ export class RoleRepository implements RoleRepositoryI {
 			})
 
 			return new ResponseData({
-				status_code: StatusCodes.OK,
+				status_code: statusCode,
 				message: "role detail",
 				data: result,
 			});

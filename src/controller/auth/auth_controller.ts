@@ -8,15 +8,21 @@ import {
 import { UserDetail, UserRepositoryI } from "@/repository/user/user_interfaces";
 import { ResponseData } from "@/utils/response_utils";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
-import {ExtractToken, GenerateToken} from "@/utils/security_utils";
+import { ExtractToken, GenerateToken } from "@/utils/security_utils";
 import { Config } from '@/config';
 import { InternalServerError } from "@/utils/errors";
+import { WorkspaceRepositoryI } from "@/repository/workspace/workspace_interfaces";
+import { RoleRepositoryI } from "@/repository/role_access/role_interfaces";
 
 export class AuthController implements AuthControllerI {
 	private user_repo: UserRepositoryI
+	private workspace_repo: WorkspaceRepositoryI
+	private role_access_repo: RoleRepositoryI;
 
-	constructor(user_repo: UserRepositoryI) {
+	constructor(user_repo: UserRepositoryI, workspace_repo: WorkspaceRepositoryI, role_access_repo: RoleRepositoryI) {
 		this.user_repo = user_repo;
+		this.workspace_repo = workspace_repo;
+		this.role_access_repo = role_access_repo;
 		this.Login = this.Login.bind(this);
 		this.Register = this.Register.bind(this);
 		this.RefreshToken = this.RefreshToken.bind(this);
@@ -53,6 +59,46 @@ export class AuthController implements AuthControllerI {
 			phone: data.phone,
 			email: data.email,
 		}));
+		if (account.status_code != StatusCodes.CREATED) {
+			return new ResponseData({
+				status_code: account.status_code,
+				message: account.message,
+			})		
+		}
+
+		let workspaceResponse = await this.workspace_repo.createWorkspace({
+			description: `${data.username}'s Default Workspace`,
+			name: data.username,
+			slug: data.username,
+		})
+		if (workspaceResponse.status_code != StatusCodes.CREATED) {
+			return new ResponseData({
+				status_code: account.status_code,
+				message: account.message,
+			})
+		}
+
+		let defaultRole = await this.role_access_repo.getRole({
+      default: true, 
+      createWhenNone: true, 
+      name: "default", 
+      description: "default workspace",
+    });
+    if (!(defaultRole.status_code == StatusCodes.OK || defaultRole.status_code == StatusCodes.CREATED)) {
+      return new ResponseData({
+        message: defaultRole.message,
+        status_code: defaultRole.status_code,
+      })
+    }
+
+		let workspaceMemberResponse = await this.workspace_repo.addMember(workspaceResponse.data?.id!, account.data?.id!, defaultRole.data?.id!)
+		if (workspaceMemberResponse != StatusCodes.NO_CONTENT) {
+			return new ResponseData({
+				status_code: account.status_code,
+				message: account.message,
+			})
+		}
+
 		return new ResponseData({
 			status_code: account.status_code,
 			message: "Create user is success",

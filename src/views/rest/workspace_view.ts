@@ -73,6 +73,7 @@ export default class WorkspaceRestView implements WorkspaceRestViewI {
     let accResponse = await this.workspace_controller.CreateWorkspace(req.auth!.user_id, new WorkspaceCreateData({ 
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
+      slug: req.body.slug?.toString()
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
