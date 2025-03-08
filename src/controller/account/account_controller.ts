@@ -22,6 +22,12 @@ export class AccountController implements AccountControllerI {
 
 	async GetAccount(filter: AccountFilter): Promise<ResponseData<AccountResponse>> {
 		let checkAccount = await this.user_repo.getUser(filter.toFilterUserDetail());
+		if (checkAccount.status_code != StatusCodes.OK){
+			return new ResponseData({
+				message: checkAccount.message,
+				status_code: checkAccount.status_code,
+			})
+		}
 		return new ResponseData({
 			message: checkAccount.message,
 			status_code: checkAccount.status_code,

@@ -280,3 +280,20 @@
  *         description: Internal Server Error
  *
  */
+
+// =====
+
+/**
+ WorkspaceResponse:
+ *       type: object
+ *       properties:
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/GetWorkspaceModel'
+ *         message:
+ *           type: string
+ *           example: "workspace list"
+ *         paginate:
+ *           $ref: '#/components/schemas/Pagination'
+ */

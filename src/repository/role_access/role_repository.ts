@@ -91,6 +91,7 @@ export class RoleRepository implements RoleRepositoryI {
 				name: role.name,
 				description: role.description,
 				permissions: role.permissions,
+				default: role.default,
 			})
 
 			return new ResponseData({
@@ -119,6 +120,7 @@ export class RoleRepository implements RoleRepositoryI {
 				id: role.id,
 				name: role.name,
 				description: role.description,
+				permissions: role.permissions
 			}))
 		}
 		return new ResponseListData({

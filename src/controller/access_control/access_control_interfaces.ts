@@ -1,7 +1,7 @@
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import {RoleDetail, RoleDetailUpdate, filterRoleDetail} from "@/repository/role_access/role_interfaces";
-import { PermissionStructure } from "@/utils/security_utils";
+import { isPermissionStructure, PermissionStructure } from "@/utils/security_utils";
 
 export interface AccessControlControllerI {
 	CreateAccessControl(user_id: string, data: AccessControlCreateData): Promise<ResponseData<CreateAccessControlResponse>>
@@ -56,6 +56,7 @@ export class UpdateAccessControlData {
 		Object.assign(this, payload)
 		this.toRoleDetailUpdate = this.toRoleDetailUpdate.bind(this)
 		this.isEmpty = this.isEmpty.bind(this)
+		this.getErrorField = this.getErrorField.bind(this)
 	}
 
 	isEmpty(): boolean{
@@ -68,6 +69,15 @@ export class UpdateAccessControlData {
 			description: this.description,
 			permissions: this.permissions,
 		})
+	}
+
+	getErrorField(): string | null {
+		if (this.permissions) {
+			if (!isPermissionStructure(this.permissions)){
+				return "permission is not valid format"
+			}
+		}
+		return null
 	}
 }
 
@@ -107,6 +117,7 @@ export class AccessControlCreateData {
 		Object.assign(this, payload)
 		this.toRoleDetail = this.toRoleDetail.bind(this);
 		this.isEmpty = this.isEmpty.bind(this);
+		this.getErrorField = this.getErrorField.bind(this);
 	}
 
 	toRoleDetail(): RoleDetail {
@@ -119,5 +130,14 @@ export class AccessControlCreateData {
 
 	isEmpty(): boolean{
 		return this.name == undefined && this.description == undefined && this.permissions == undefined;
+	}
+
+	getErrorField(): string | null {
+		if (this.permissions) {
+			if (!isPermissionStructure(this.permissions)){
+				return "permission is not valid format"
+			}
+		}
+		return null
 	}
 }

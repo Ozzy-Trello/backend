@@ -5,7 +5,7 @@
  *     x-beta: true
  *     x-internal: true
  *     summary: Create Access Control
- *     tags: [ AccessControl ]
+ *     tags: [ Access Control ]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -31,7 +31,7 @@
  * /v1/access-control:
  *   get:
  *     summary: Get Access Control list
- *     tags: [ AccessControl ]
+ *     tags: [ Access Control ]
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -66,7 +66,7 @@
  *         required: true
  *         schema:
  *           type: string
- *     tags: [ AccessControl ]
+ *     tags: [ Access Control ]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -99,7 +99,7 @@
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/CreateAccessControlModel'
- *     tags: [ AccessControl ]
+ *     tags: [ Access Control ]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -123,7 +123,7 @@
  *         required: true
  *         schema:
  *           type: string
- *     tags: [ AccessControl ]
+ *     tags: [ Access Control ]
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -132,61 +132,4 @@
  *       500:
  *         description: Internal Server Error
  *
- */
-
-
-/**
- * @swagger
- * /v1/access-control/{id}/member/{user-id}:
- *   post:
- *     summary: Add a member to a Access Control
- *     parameters:
- *       - name: id
- *         in: path
- *         description: ID of Access Control to update
- *         required: true
- *         schema:
- *           type: string
- *       - name: user-id
- *         in: path
- *         description: ID of user to add
- *         required: true
- *         schema:
- *           type: string
- *     tags: [AccessControl]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       201:
- *         description: User added to AccessControl successfully
- *       500:
- *         description: Internal Server Error
- */
-
-/**
- * @swagger
- * /v1/access-control/{id}/member/{user-id}:
- *   delete:
- *     summary: Remove a member from a Access Control
- *     parameters:
- *       - name: id
- *         in: path
- *         description: ID of Access Control to update
- *         required: true
- *         schema:
- *           type: string
- *       - name: user-id
- *         in: path
- *         description: ID of user to add
- *         required: true
- *         schema:
- *           type: string
- *     tags: [AccessControl]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       201:
- *         description: User removed from AccessControl successfully
- *       500:
- *         description: Internal Server Error
  */
