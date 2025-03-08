@@ -28,3 +28,22 @@ export interface PermissionStructure {
   list: { create: boolean; read: boolean; update: boolean; delete: boolean };
   card: { create: boolean; read: boolean; update: boolean; delete: boolean };
 }
+
+export function isPermissionStructure(obj:any) {
+  const expectedKeys = ["board", "list", "card"];
+  const expectedStructure = { create: false, read: true, update: false, delete: false };
+
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+    return false;
+  }
+
+  return expectedKeys.every((key) => 
+    obj.hasOwnProperty(key) &&
+    typeof obj[key] === "object" &&
+    !Array.isArray(obj[key]) &&
+    Object.keys(obj[key]).length === 4 &&
+    ["create", "read", "update", "delete"].every(
+      (perm) => obj[key].hasOwnProperty(perm) && typeof obj[key][perm] === "boolean"
+    )
+  );
+}

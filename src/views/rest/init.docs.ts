@@ -75,24 +75,6 @@
  * @swagger
  * components:
  *   schemas:
- *     RegisterResponseModel:
- *       type: object
- *       allOf:
- *         - $ref: '#/components/schemas/CreateWorkspaceModel'
- *         - type: object
- *           properties:
- *             user_id:
- *               type: string
- *       example:
- *         user_id: 0e41e5fe-6c52-461e-9624-e34633468e3a
- *         access_token: "xxxx"
- *         refresh_token: "xxxx"
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
  *     AccountModel:
  *       type: object
  *       required:
@@ -115,6 +97,23 @@
  *         phone: 102902901902
  */
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     RegisterResponseModel:
+ *       type: object
+ *       allOf:
+ *         - $ref: '#/components/schemas/CreateWorkspaceModel'
+ *         - type: object
+ *           properties:
+ *             user_id:
+ *               type: string
+ *       example:
+ *         user_id: 0e41e5fe-6c52-461e-9624-e34633468e3a
+ *         access_token: "xxxx"
+ *         refresh_token: "xxxx"
+ */
 
 /**
  * @swagger
@@ -632,6 +631,35 @@
  *         size_unit: 'KB '
  */
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Pagination:
+ *       type: object
+ *       properties:
+ *         limit:
+ *           type: integer
+ *           example: 10
+ *         page:
+ *           type: integer
+ *           example: 1
+ *         total_data:
+ *           type: integer
+ *           example: 1
+ *         total_page:
+ *           type: integer
+ *           example: 1
+ *         next_page:
+ *           type: integer
+ *           nullable: true
+ *           example: null
+ *         prev_page:
+ *           type: integer
+ *           nullable: true
+ *           example: null
+ */
+
 // =======  tags  =======
 
 /**
@@ -639,6 +667,13 @@
  * tags:
  *   name: Authentication
  *   description: The authentication managing API
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Access Control
+ *   description: The access control managing API
  */
 
 /**
@@ -690,9 +725,3 @@
  *   description: The file managing API
  */
 
-/**
- * @swagger
- * tags:
- *   name: Access Control
- *   description: The access control managing API
- */

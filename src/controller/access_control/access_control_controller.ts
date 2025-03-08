@@ -18,9 +18,17 @@ export class AccessControlController implements AccessControlControllerI {
   }
 
   async CreateAccessControl(user_id: string, data: AccessControlCreateData): Promise<ResponseData<CreateAccessControlResponse>> {
+    let errorField = data.getErrorField()
     if (data.isEmpty()) {
       return new ResponseData({
         message: "you need data to create",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    if (errorField) {
+      return new ResponseData({
+        message: errorField,
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
@@ -75,20 +83,34 @@ export class AccessControlController implements AccessControlControllerI {
   }
 
   async DeleteAccessControl(filter: AccessControlFilter): Promise<ResponseData<null>> {
+    let checkAccessControl = await this.access_control_repo.getRole(filter.toFilterRoleDetail());
+    if (checkAccessControl.status_code == StatusCodes.NOT_FOUND){
+      return new ResponseData({
+        message: checkAccessControl.message,
+        status_code: checkAccessControl.status_code,
+      })
+    }
+    if (checkAccessControl.data?.default){
+      return new ResponseData({
+        message: "Can't update default role",
+        status_code: StatusCodes.FORBIDDEN,
+      })  
+    }
     const deleteResponse = await this.access_control_repo.deleteRole(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
-        message: "AccessControl is not found",
+        message: "Role is not found",
         status_code: StatusCodes.NOT_FOUND,
       })
     }
     return new ResponseData({
-      message: "AccessControl is deleted successful",
+      message: "Role is deleted successful",
       status_code: StatusCodes.NO_CONTENT,
     })
   }
 
   async UpdateAccessControl(filter: AccessControlFilter, data: UpdateAccessControlData): Promise<ResponseData<null>> {
+    let errorField = data.getErrorField()
     if (filter.isEmpty()) {
       return new ResponseData({
         message: "you need filter to update",
@@ -97,8 +119,14 @@ export class AccessControlController implements AccessControlControllerI {
     }
     if (data.isEmpty()) {
       return new ResponseData({
-        message: "you need data to update",
-        status_code: StatusCodes.NOT_FOUND,
+        message: "you need data to create",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (errorField) {
+      return new ResponseData({
+        message: errorField,
+        status_code: StatusCodes.BAD_REQUEST,
       })
     }
 

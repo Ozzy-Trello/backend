@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '@/database/connections';
-import { PermissionStructure } from '@/utils/security_utils';
+import { isPermissionStructure, PermissionStructure } from '@/utils/security_utils';
 
 interface RoleAttributes {
   id: string;
@@ -42,6 +42,7 @@ Role.init(
     default: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+      defaultValue: false,
     },
     permissions: {
       type: DataTypes.JSONB,
@@ -51,6 +52,13 @@ Role.init(
         list: { create: false, read: true, update: false, delete: false },
         card: { create: false, read: true, update: false, delete: false },
       },
+      validate: {
+        isEven(value:any) {
+          if (!isPermissionStructure(value)) {
+            throw new Error('is not valid permission object!');
+          }
+        }
+      }
     },
   },
   {
