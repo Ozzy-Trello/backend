@@ -700,6 +700,13 @@
 /**
  * @swagger
  * tags:
+ *   name: List
+ *   description: The list managing API
+ */
+
+/**
+ * @swagger
+ * tags:
  *   name: Card
  *   description: The card managing API
  */
@@ -709,13 +716,6 @@
  * tags:
  *   name: CardActivity
  *   description: The card activity managing API
- */
-
-/**
- * @swagger
- * tags:
- *   name: List
- *   description: The list managing API
  */
 
 /**

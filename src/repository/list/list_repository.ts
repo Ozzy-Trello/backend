@@ -1,19 +1,36 @@
+import {filterListDetail, ListDetail, ListDetailUpdate, ListRepositoryI} from "@/repository/list/list_interfaces";
 import List from "@/database/schemas/list";
-import {Error, where} from "sequelize";
-import {ResponseData} from "@/utils/response_utils";
+import {Error, Op} from "sequelize";
+import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {filterListDetail, ListDetail, ListDetailUpdate, ListRepositoryI} from "@/repository/list/list_interfaces";
 import {Paginate} from "@/utils/data_utils";
 
 export class ListRepository implements ListRepositoryI {
 	createFilter(filter: filterListDetail): any {
 		const whereClause: any = {};
+		const orConditions: any[] = [];
+		const notConditions: any[] = [];
+
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.board_id) whereClause.board_id = filter.board_id;
-		if (filter.order) whereClause.order = filter.order;
 		if (filter.name) whereClause.name = filter.name;
-		if (filter.background) whereClause.background = filter.background;
+		if (filter.board_id) whereClause.board_id = filter.board_id;
+	
+		if (filter.__orId) orConditions.push({ id: filter.__orId });
+		if (filter.__orName) orConditions.push({ name: filter.__orName });
+		if (filter.__orBoardId) orConditions.push({ board_id: filter.__orBoardId });
+
+		if (filter.__notId) notConditions.push({ id: filter.__notId });
+		if (filter.__notName) notConditions.push({ name: filter.__notName });
+		if (filter.__notBoardId) notConditions.push({ board_id: filter.__notBoardId });
+
+		if (notConditions.length > 0) {
+			whereClause[Op.not] = notConditions;
+		}
+
+		if (orConditions.length > 0) {
+			whereClause[Op.or] = orConditions;
+		}
 		return whereClause
 	}
 
@@ -34,20 +51,19 @@ export class ListRepository implements ListRepositoryI {
 
 	async createList(data: ListDetail): Promise<ResponseData<ListDetail>> {
 		try {
-			let list = await List.create({
-				board_id: data.board_id!,
-				order: data.order!,
+			const list = await List.create({
 				name: data.name!,
 				background: data.background!,
+				board_id: data.board_id!,
+				order: data.order
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create list success",
 				data: new ListDetail({
 					id: list.id,
-					board_id: data.board_id!,
-					name: data.name!,
-					background: data.background!,
+					name: list.name,
+					background: list.background,
 				})
 			});
 		} catch (e) {
@@ -69,9 +85,9 @@ export class ListRepository implements ListRepositoryI {
 			}
 			let result = new ListDetail({
 				id: list.id,
-				board_id: list.board_id!,
-				name: list.name!,
-				background: list.background!,
+				name: list.name,
+				background: list.background,
+				board_id: list.board_id,
 			})
 
 			return new ResponseData({
@@ -87,20 +103,33 @@ export class ListRepository implements ListRepositoryI {
 		}
 	}
 
-	async getListList(filter: filterListDetail, paginate: Paginate): Promise<Array<ListDetail>> {
+	async getListList(filter: filterListDetail, paginate: Paginate): Promise<ResponseListData<Array<ListDetail>>> {
+		let result: Array<ListDetail> = [];
 		paginate.setTotal(await List.count({where: this.createFilter(filter)}))
 		const lists = await List.findAll({
 			where: this.createFilter(filter),
 			offset: paginate.getOffset(),
 			limit: paginate.limit,
 		});
-		return lists.map(list => list.toJSON() as unknown as ListDetail);
+		for (const list of lists) {
+			result.push(new ListDetail({
+				id: list.id,
+				name: list.name,
+				background: list.background, 
+				board_id: list.board_id,
+			}))
+		}
+		return new ResponseListData({
+			status_code: StatusCodes.OK,
+			message: "list list",
+			data: result,
+		}, paginate)
 	}
 
 	async updateList(filter: filterListDetail, data: ListDetailUpdate): Promise<number> {
 		try {
-			const total = await List.update(data.toObject(), {where: this.createFilter(filter)});
-			if (total.length <= 0) {
+			const effected= await List.update(data.toObject(), {where: this.createFilter(filter)});
+			if (effected[0] ==0 ){
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT
