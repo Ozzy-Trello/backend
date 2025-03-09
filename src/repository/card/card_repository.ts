@@ -1,17 +1,36 @@
+import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI} from "@/repository/card/card_interfaces";
 import Card from "@/database/schemas/card";
-import {Error} from "sequelize";
-import {ResponseData} from "@/utils/response_utils";
+import {Error, Op} from "sequelize";
+import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {CardDetail, CardDetailUpdate, CardRepositoryI, filterCardDetail} from "@/repository/card/card_interfaces";
+import {Paginate} from "@/utils/data_utils";
 
 export class CardRepository implements CardRepositoryI {
-	createFilter(filter: filterCardDetail) : any {
+	createFilter(filter: filterCardDetail): any {
 		const whereClause: any = {};
+		const orConditions: any[] = [];
+		const notConditions: any[] = [];
+
 		if (filter.id) whereClause.id = filter.id;
-		if (filter.list_id) whereClause.list_id = filter.list_id;
 		if (filter.name) whereClause.name = filter.name;
-		if (filter.description) whereClause.description = filter.description;
+		if (filter.list_id) whereClause.list_id = filter.list_id;
+	
+		if (filter.__orId) orConditions.push({ id: filter.__orId });
+		if (filter.__orName) orConditions.push({ name: filter.__orName });
+		if (filter.__orListId) orConditions.push({ list_id: filter.__orListId });
+
+		if (filter.__notId) notConditions.push({ id: filter.__notId });
+		if (filter.__notName) notConditions.push({ name: filter.__notName });
+		if (filter.__notListId) notConditions.push({ list_id: filter.__notListId });
+
+		if (notConditions.length > 0) {
+			whereClause[Op.not] = notConditions;
+		}
+
+		if (orConditions.length > 0) {
+			whereClause[Op.or] = orConditions;
+		}
 		return whereClause
 	}
 
@@ -32,19 +51,20 @@ export class CardRepository implements CardRepositoryI {
 
 	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
 		try {
-			let card = await Card.create({
-				list_id: data.list_id!,
+			const card = await Card.create({
 				name: data.name!,
-				description: data.description!,
+				list_id: data.list_id!,
+				description: data.list_id,
+				order: data.order!
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create card success",
 				data: new CardDetail({
 					id: card.id,
-					list_id: data.list_id!,
-					name: data.name!,
-					description: data.description!,
+					name: card.name,
+					description: card.description,
+					order: card.order
 				})
 			});
 		} catch (e) {
@@ -66,9 +86,10 @@ export class CardRepository implements CardRepositoryI {
 			}
 			let result = new CardDetail({
 				id: card.id,
-				list_id: card.list_id!,
-				name: card.name!,
-				description: card.description!,
+				name: card.name,
+				description: card.description,
+				order: card.order,
+				list_id: card.list_id,
 			})
 
 			return new ResponseData({
@@ -84,14 +105,36 @@ export class CardRepository implements CardRepositoryI {
 		}
 	}
 
-	async getCardList(filter: filterCardDetail): Promise<Array<CardDetail>> {
-		const cards = await Card.findAll({where: this.createFilter(filter)});
-		return cards.map(card => card.toJSON() as unknown as CardDetail);
+	async getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>> {
+		let result: Array<CardDetail> = [];
+		paginate.setTotal(await Card.count({where: this.createFilter(filter)}))
+		const lists = await Card.findAll({
+			where: this.createFilter(filter),
+			offset: paginate.getOffset(),
+			limit: paginate.limit,
+		});
+		for (const card of lists) {
+			result.push(new CardDetail({
+				id: card.id,
+				name: card.name,
+				description: card.description, 
+				order: card.order, 
+				list_id: card.list_id,
+			}))
+		}
+		return new ResponseListData({
+			status_code: StatusCodes.OK,
+			message: "card card",
+			data: result,
+		}, paginate)
 	}
 
 	async updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number> {
 		try {
-			await Card.update(data.toObject(), {where: this.createFilter(filter)});
+			const effected= await Card.update(data.toObject(), {where: this.createFilter(filter)});
+			if (effected[0] ==0 ){
+				return StatusCodes.NOT_FOUND
+			}
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

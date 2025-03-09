@@ -17,6 +17,9 @@ import AccessControlRestView from "@/views/rest/access_control_view";
 import { ListRepository } from "@/repository/list/list_repository";
 import { ListController } from "@/controller/list/list_controller";
 import ListRestView from "@/views/rest/list_view";
+import { CardRepository } from "@/repository/card/card_repository";
+import { CardController } from "@/controller/card/card_controller";
+import CardRestView from "@/views/rest/card_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -26,6 +29,7 @@ export default function (): Router {
     const workspace_repo = new WorkspaceRepository();
     const board_repo = new BoardRepository();
     const list_repo = new ListRepository();
+    const card_repo = new CardRepository();
 
     const account_controller = new AccountController(user_repo);
     const access_control_controller = new AccessControlController(role_repo);
@@ -33,6 +37,7 @@ export default function (): Router {
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo);
     const list_controller = new ListController(list_repo, board_repo);
+    const card_controller = new CardController(card_repo, list_repo);
 
     const account_rest_view = new AccountRestView(account_controller);
     const access_control_rest_view = new AccessControlRestView(access_control_controller);
@@ -40,6 +45,7 @@ export default function (): Router {
     const workspace_rest_view = new WorkspaceRestView(workspace_controller);
     const board_rest_view = new BoardRestView(board_controller);
     const list_rest_view = new ListRestView(list_controller);
+    const card_rest_view = new CardRestView(card_controller);
 
     const router_account = Router();
     {
@@ -69,7 +75,7 @@ export default function (): Router {
     const router_board = Router();
     {
         router_board.post("/", restJwt, board_rest_view.CreateBoard);
-        router_board.get("/", restJwt, board_rest_view.GetBoardList);
+        router_board.get("/", restJwt, board_rest_view.GetListBoard);
         router_board.get("/:id", restJwt, board_rest_view.GetBoard);
         router_board.put("/:id", restJwt, board_rest_view.UpdateBoard);
         router_board.delete("/:id", restJwt, board_rest_view.DeleteBoard);
@@ -93,11 +99,21 @@ export default function (): Router {
         router_list_control.delete("/:id", restJwt, list_rest_view.DeleteList);
     }
 
+    const router_card_control = Router();
+    {
+        router_card_control.post("/", restJwt, card_rest_view.CreateCard);
+        router_card_control.get("/", restJwt, card_rest_view.GetListCard);
+        router_card_control.get("/:id", restJwt, card_rest_view.GetCard);
+        router_card_control.put("/:id", restJwt, card_rest_view.UpdateCard);
+        router_card_control.delete("/:id", restJwt, card_rest_view.DeleteCard);
+    }
+
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
     root_router.use("/board", router_board)
     root_router.use("/access-control", router_access_control)
     root_router.use("/list", router_list_control)
+    root_router.use("/card", router_card_control)
     return root_router
 }

@@ -30,8 +30,6 @@ export interface filterListDetail {
 export class ListDetailUpdate {
   public name?: string;
   public background?: string;
-  public workspace_id?: string;
-  public board_id?: string;
 
   constructor(payload: Partial<ListDetailUpdate>) {
     Object.assign(this, payload);
@@ -41,8 +39,6 @@ export class ListDetailUpdate {
     const data: any = {};
     if (this.name) data.name = this.name;
     if (this.background) data.background = this.background;
-    if (this.workspace_id) data.workspace_id = this.workspace_id;
-    if (this.board_id) data.board_id = this.workspace_id;
     return data
   }
 }

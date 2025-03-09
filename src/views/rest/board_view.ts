@@ -11,7 +11,7 @@ export default class BoardRestView implements BoardRestViewI {
     this.board_controller = board_controller;
     this.CreateBoard = this.CreateBoard.bind(this)
     this.GetBoard = this.GetBoard.bind(this)
-    this.GetBoardList = this.GetBoardList.bind(this)
+    this.GetListBoard = this.GetListBoard.bind(this)
     this.UpdateBoard = this.UpdateBoard.bind(this)
     this.DeleteBoard = this.DeleteBoard.bind(this)
   }
@@ -67,11 +67,11 @@ export default class BoardRestView implements BoardRestViewI {
     return
   }
 
-  async GetBoardList(req: Request, res: Response): Promise<void> {
+  async GetListBoard(req: Request, res: Response): Promise<void> {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
-    let accResponse = await this.board_controller.GetBoardList(new BoardFilter({
+    let accResponse = await this.board_controller.GetListBoard(new BoardFilter({
       workspace_id: req.header('workspace-id')?.toString(),
       workspace_user_id_owner: req.header('my-default') ? req.auth?.user_id! : undefined
     }), paginate)

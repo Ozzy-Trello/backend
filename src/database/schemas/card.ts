@@ -2,20 +2,22 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
 
-interface TaskAttributes {
+interface CardAttributes {
     id : string;
     list_id: string;
     name: string;
     description : string;
+    order : number;
 }
 
-interface TaskCreationAttributes extends Optional<TaskAttributes, 'id'> {}
+interface CardCreationAttributes extends Optional<CardAttributes, 'id'> {}
 
-class Card extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
+class Card extends Model<CardAttributes, CardCreationAttributes> implements CardAttributes {
     public id! : string;
     public list_id!: string;
     public name!: string;
     public description! : string;
+    public order! : number;
 
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
@@ -40,9 +42,13 @@ Card.init(
             type: new DataTypes.TEXT,
             allowNull: false,
         },
+        order: {
+            type: new DataTypes.NUMBER,
+            allowNull: false,
+        },
     },
     {
-        tableName: 'board',
+        tableName: 'card',
         sequelize,
     }
 )
