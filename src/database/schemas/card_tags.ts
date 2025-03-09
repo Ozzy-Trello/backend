@@ -40,3 +40,8 @@ CardTag.init(
 )
 
 export default CardTag
+
+
+// assign member to to Card
+// move card to done
+// calculate done card
