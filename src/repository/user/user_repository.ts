@@ -67,7 +67,7 @@ export class UserRepository implements UserRepositoryI {
 				password: data.getHashedPassword()
 			});
 			return new ResponseData({
-				status_code: StatusCodes.OK,
+				status_code: StatusCodes.CREATED,
 				message: "create user success",
 				data: new UserDetail({
 					id: user.id,

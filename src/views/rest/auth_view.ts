@@ -82,7 +82,7 @@ export default class AuthRestView implements AuthRestViewI {
 			phone: req.body.phone,
 			password: req.body.password,
 		})
-		if (controllerRes.status_code != StatusCodes.OK) {
+		if (controllerRes.status_code != StatusCodes.CREATED) {
 			if (controllerRes.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
 				res.status(controllerRes.status_code).json({
 					"message": "internal server error",
@@ -93,6 +93,7 @@ export default class AuthRestView implements AuthRestViewI {
 				"message": controllerRes.message,
 			})
 			return
+			
 		}
 		res.status(controllerRes.status_code).json({
 			"data": controllerRes.data,

@@ -56,6 +56,11 @@ module.exports = {
         type: new DataTypes.STRING(128),
         allowNull: false,
       },
+      slug: {
+        type: new DataTypes.TEXT,
+        allowNull: false,
+        unique: true
+      },
       description: {
         type: new DataTypes.TEXT,
         allowNull: false,
@@ -415,18 +420,17 @@ module.exports = {
         defaultValue: DataTypes.NOW,
       },
     });
-
   },
 
   async down (queryInterface, Sequelize) {
-    // await queryInterface.removeConstraint('workspace_member', 'workspace_member_user_id_fkey')
-    // await queryInterface.removeConstraint('workspace_member', 'workspace_member_workspace_id_fkey')
-    // await queryInterface.removeConstraint('board', 'board_workspace_id_fkey')
-    // await queryInterface.removeConstraint('board_member', 'board_member_user_id_fkey')
-    // await queryInterface.removeConstraint('list', 'list_board_id_fkey')
-    // await queryInterface.removeConstraint('card', 'card_list_id_fkey')
-    // await queryInterface.removeConstraint('card_tag', 'card_tag_tag_id_fkey')
-    // await queryInterface.removeConstraint('card_tag', 'card_tag_card_id_fkey')
+    await queryInterface.removeConstraint('workspace_member', 'workspace_member_user_id_fkey')
+    await queryInterface.removeConstraint('workspace_member', 'workspace_member_workspace_id_fkey')
+    await queryInterface.removeConstraint('board', 'board_workspace_id_fkey')
+    await queryInterface.removeConstraint('board_member', 'board_member_user_id_fkey')
+    await queryInterface.removeConstraint('list', 'list_board_id_fkey')
+    await queryInterface.removeConstraint('card', 'card_list_id_fkey')
+    await queryInterface.removeConstraint('card_tag', 'card_tag_tag_id_fkey')
+    await queryInterface.removeConstraint('card_tag', 'card_tag_card_id_fkey')
     // await queryInterface.removeConstraint('card_activity', 'card_activity_card_id_fkey')
     // await queryInterface.removeConstraint('card_activity', 'card_activity_user_id_fkey')
     // await queryInterface.removeConstraint('card_activity_text', 'card_activity_text_card_activity_id_fkey')

@@ -8,3 +8,7 @@ clean-db:
 
 migrate-db:
 	npm run sequelize -- db:migrate
+
+re-migrate:
+	npm run sequelize -- db:migrate:undo:all
+	npm run sequelize -- db:migrate

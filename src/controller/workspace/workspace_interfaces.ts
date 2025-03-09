@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import {filterWorkspaceDetail, WorkspaceDetail, WorkspaceDetailUpdate} from "@/repository/workspace/workspace_interfaces";
@@ -22,6 +24,7 @@ export class WorkspaceResponse {
 	id!: string;
 	name?: string;
 	description?: string;
+	slug?: string
 
 	constructor(payload: Partial<WorkspaceResponse>) {
 		Object.assign(this, payload)
@@ -33,6 +36,7 @@ export function fromWorkspaceDetailToWorkspaceResponse(data: WorkspaceDetail): W
 		id: data.id,
 		name: data.name!,
 		description: data.description,
+		slug: data.slug!,
 	})
 }
 
@@ -47,6 +51,7 @@ export function fromWorkspaceDetailToWorkspaceResponseList(data: Array<Workspace
 export class UpdateWorkspaceData {
 	name?: string;
 	description?: string;
+	slug?: string;
 
 	constructor(payload: Partial<UpdateWorkspaceData>) {
 		Object.assign(this, payload)
@@ -62,6 +67,7 @@ export class UpdateWorkspaceData {
 		return new WorkspaceDetailUpdate({
 			name: this.name,
 			description: this.description,
+			slug: this.slug,
 		})
 	}
 }
@@ -69,12 +75,14 @@ export class UpdateWorkspaceData {
 export class WorkspaceFilter {
 	id ?: string;
 	name?: string;
+	slug?: string;
 	description?: string;
 	user_id_owner?: string;
 
 	constructor(payload: Partial<WorkspaceFilter>) {
 		Object.assign(this, payload);
 		this.isEmpty = this.isEmpty.bind(this)
+		this.getErrorField = this.getErrorField.bind(this)
 		this.toFilterWorkspaceDetail = this.toFilterWorkspaceDetail.bind(this)
 	}
 
@@ -82,13 +90,21 @@ export class WorkspaceFilter {
 		return new filterWorkspaceDetail({
 			id: this.id,
 			name: this.name,
+			slug: this.slug,
 			description: this.description,
 			user_id_owner: this.user_id_owner,
 		})
 	}
 
+	getErrorField(): string | null {
+		if(this.id && !isValidUUID(this.id)) {
+			return "id is not vaild uuid"
+		}
+		return null
+	}
+
 	isEmpty(): boolean{
-		return this.id == undefined && this.name == undefined && this.description == undefined;
+		return this.id == undefined && this.name == undefined && this.slug == undefined && this.description == undefined && this.user_id_owner == undefined;
 	}
 }
 
@@ -96,6 +112,7 @@ export class WorkspaceFilter {
 export class WorkspaceCreateData {
 	name!: string;
 	description?: string;
+	slug?: string;
 
 	constructor(payload: Partial<WorkspaceCreateData>) {
 		Object.assign(this, payload)
@@ -107,10 +124,11 @@ export class WorkspaceCreateData {
 		return new WorkspaceDetail({
 			name: this.name,
 			description: this.description,
+			slug: this.slug
 		})
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined;
+		return this.name == undefined && this.slug == undefined && this.description == undefined;
 	}
 }

@@ -75,6 +75,7 @@ export class BoardFilter {
 	name?: string;
 	description?: string;
 	workspace_id?: string;
+	workspace_user_id_owner?: string;
 	background?: string;
 
 	constructor(payload: Partial<BoardFilter>) {
@@ -90,6 +91,7 @@ export class BoardFilter {
 			description: this.description,
 			workspace_id: this.workspace_id,
 			background: this.background,
+			
 		}
 	}
 

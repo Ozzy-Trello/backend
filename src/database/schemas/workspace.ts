@@ -5,6 +5,7 @@ import sequelize from '@/database/connections';
 interface WorkspaceAttributes {
   id: string;
   name: string;
+  slug: string;
   description: string;
 }
 
@@ -14,6 +15,7 @@ interface WorkspaceCreationAttributes extends Optional<WorkspaceAttributes, 'id'
 class Workspace extends Model<WorkspaceAttributes, WorkspaceCreationAttributes> implements WorkspaceAttributes {
   public id!: string;
   public name!: string;
+  public slug!: string;
   public description!: string;
 
   public readonly createdAt!: Date;
@@ -30,6 +32,11 @@ Workspace.init(
     name: {
       type: new DataTypes.STRING(128),
       allowNull: false,
+    },
+    slug: {
+      type: new DataTypes.TEXT,
+      allowNull: false,
+      unique: true
     },
     description: {
       type: new DataTypes.TEXT,

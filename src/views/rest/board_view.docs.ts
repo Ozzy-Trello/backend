@@ -35,11 +35,14 @@
  *     security:
  *       - BearerAuth: []
  *     parameters:
- *       - name: workspace-id
- *         in: query
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
  *         schema:
  *           type: string
- *       - BearerAuth: []
  *     responses:
  *       200:
  *         token: "this token"
@@ -60,6 +63,14 @@
  *   get:
  *     summary: Get board details
  *     parameters:
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
+ *         schema:
+ *           type: string
  *       - name: id
  *         in: path
  *         description: ID of board to update
@@ -87,6 +98,14 @@
  *   put:
  *     summary: Update board details
  *     parameters:
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
+ *         schema:
+ *           type: string
  *       - name: id
  *         in: path
  *         description: ID of board to update
@@ -117,6 +136,14 @@
  *   delete:
  *     summary: Delete a board
  *     parameters:
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
+ *         schema:
+ *           type: string
  *       - name: id
  *         in: path
  *         description: ID of board to delete
@@ -141,6 +168,14 @@
  *   post:
  *     summary: Add a member to a board
  *     parameters:
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
+ *         schema:
+ *           type: string
  *       - name: id
  *         in: path
  *         description: ID of board to update
@@ -169,6 +204,14 @@
  *   delete:
  *     summary: Remove a member from a board
  *     parameters:
+ *       - in: header
+ *         name: my-default
+ *         schema:
+ *           type: boolean
+ *       - in: header
+ *         name: workspace-id
+ *         schema:
+ *           type: string
  *       - name: id
  *         in: path
  *         description: ID of board to update

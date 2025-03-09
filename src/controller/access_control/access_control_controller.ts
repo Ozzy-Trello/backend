@@ -36,7 +36,7 @@ export class AccessControlController implements AccessControlControllerI {
     let checkAccessControl = await this.access_control_repo.getRole({ name: data.name });
     if (checkAccessControl.status_code == StatusCodes.OK) {
       return new ResponseData({
-        message: "you already name already taken by others",
+        message: "the name already taken by others",
         status_code: StatusCodes.CONFLICT,
       })
     }
@@ -50,7 +50,7 @@ export class AccessControlController implements AccessControlControllerI {
     }
 
     return new ResponseData({
-      message: "AccessControl created successfully",
+      message: "Role created successfully",
       status_code: StatusCodes.CREATED,
       data: new CreateAccessControlResponse({
         id: createResponse.data?.id,

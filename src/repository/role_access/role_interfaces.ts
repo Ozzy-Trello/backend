@@ -17,6 +17,8 @@ export interface filterRoleDetail {
   permissions?: PermissionStructure;
   default?: boolean;
 
+  createDefaultWhenNone?: boolean;
+
   __orId?: string;
   __orName?: string;
   __orDescription?: string;
