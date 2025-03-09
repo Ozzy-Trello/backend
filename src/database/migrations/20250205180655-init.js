@@ -240,6 +240,10 @@ module.exports = {
         type: new DataTypes.TEXT,
         allowNull: false,
       },
+      order: {
+        type: new DataTypes.INTEGER,
+        allowNull: false,
+      },
       createdAt: {
         type: new DataTypes.TIME,
         allowNull: false,

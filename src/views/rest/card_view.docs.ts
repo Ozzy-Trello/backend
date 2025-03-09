@@ -124,7 +124,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/card/{id}/tag:
  *   get:
  *     summary: Get a card's tags
@@ -148,7 +148,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/card/{id}/tag/{tag-id}:
  *   post:
  *     summary: add a tag to a card
@@ -176,7 +176,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/card/{id}/tag/{tag-id}:
  *   delete:
  *     summary: Remove a tag from a card
