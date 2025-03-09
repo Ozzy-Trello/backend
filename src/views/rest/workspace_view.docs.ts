@@ -162,7 +162,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/workspace/{id}/member/{user-id}:
  *   post:
  *     summary: Add a member to a workspace
@@ -191,7 +191,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/workspace/{id}/member/{user-id}:
  *   delete:
  *     summary: Remove a member from a workspace
@@ -220,7 +220,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/workspace/{id}/member/{user-id}/role:
  *   put:
  *     summary: Update a member's role in a workspace

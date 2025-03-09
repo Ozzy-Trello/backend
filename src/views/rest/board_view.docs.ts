@@ -163,7 +163,7 @@
 
 
 /**
- * @swagger
+ * @!swagger
  * /v1/board/{id}/member/{user-id}:
  *   post:
  *     summary: Add a member to a board
@@ -199,7 +199,7 @@
  */
 
 /**
- * @swagger
+ * @!swagger
  * /v1/board/{id}/member/{user-id}:
  *   delete:
  *     summary: Remove a member from a board
