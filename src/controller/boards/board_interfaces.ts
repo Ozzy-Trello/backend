@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { BoardDetail, BoardDetailUpdate, filterBoardDetail } from "@/repository/board/board_interfaces";
@@ -111,6 +113,7 @@ export class BoardCreateData {
 		Object.assign(this, payload)
 		this.toBoardDetail = this.toBoardDetail.bind(this);
 		this.checkRequired = this.checkRequired.bind(this);
+		this.getErrorField = this.getErrorField.bind(this);
 	}
 
 	toBoardDetail(): BoardDetail {
@@ -126,4 +129,11 @@ export class BoardCreateData {
 		if (this.workspace_id == undefined ) return 'workspace_id'
 		return null
 	} 
+
+	getErrorField(): string | null {
+		if (this.workspace_id && isValidUUID(this.workspace_id!)) {
+			return "'workspace_id' is not valid uuid"
+		}
+		return null
+	}
 }
