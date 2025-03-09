@@ -38,3 +38,10 @@ export interface AccessControlRestViewI {
     UpdateAccessControl(req: Request, res: Response): Promise<void>;
     DeleteAccessControl(req: Request, res: Response): Promise<void>;
 }
+
+export interface ListRestViewI {
+    CreateList(req: Request, res: Response): Promise<void>;
+    GetList(req: Request, res: Response): Promise<void>;
+    UpdateList(req: Request, res: Response): Promise<void>;
+    DeleteList(req: Request, res: Response): Promise<void>;
+}

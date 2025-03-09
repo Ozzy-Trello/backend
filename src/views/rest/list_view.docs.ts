@@ -32,7 +32,6 @@
  *       - name: board-id
  *         in: header
  *         description: ID of board
- *         required: true
  *         schema:
  *           type: string
  *     tags: [ List ]
@@ -62,7 +61,7 @@
  *         description: ID of list to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ List ]
  *     security:
  *       - BearerAuth: []
@@ -89,13 +88,13 @@
  *         description: ID of list to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateListModel'
+ *             $ref: '#/components/schemas/GetListModel'
  *     tags: [ List ]
  *     security:
  *       - BearerAuth: []
@@ -119,7 +118,7 @@
  *         description: ID of list to delete
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ List ]
  *     security:
  *       - BearerAuth: []

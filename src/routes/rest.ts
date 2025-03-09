@@ -14,26 +14,32 @@ import BoardRestView from "@/views/rest/board_view";
 import { RoleRepository } from "@/repository/role_access/role_repository";
 import { AccessControlController } from "@/controller/access_control/access_control_controller";
 import AccessControlRestView from "@/views/rest/access_control_view";
+import { ListRepository } from "@/repository/list/list_repository";
+import { ListController } from "@/controller/list/list_controller";
+import ListRestView from "@/views/rest/list_view";
 
 export default function (): Router {
     const root_router = Router();
 
     const user_repo = new UserRepository();
+    const role_repo = new RoleRepository();
     const workspace_repo = new WorkspaceRepository();
     const board_repo = new BoardRepository();
-    const role_repo = new RoleRepository();
+    const list_repo = new ListRepository();
 
     const account_controller = new AccountController(user_repo);
+    const access_control_controller = new AccessControlController(role_repo);
     const auth_controller = new AuthController(user_repo, workspace_repo, role_repo);
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo);
-    const access_control_controller = new AccessControlController(role_repo);
+    const list_controller = new ListController(list_repo, board_repo);
 
     const account_rest_view = new AccountRestView(account_controller);
+    const access_control_rest_view = new AccessControlRestView(access_control_controller);
     const auth_rest_view = new AuthRestView(auth_controller);
     const workspace_rest_view = new WorkspaceRestView(workspace_controller);
     const board_rest_view = new BoardRestView(board_controller);
-    const access_control_rest_view = new AccessControlRestView(access_control_controller);
+    const list_rest_view = new ListRestView(list_controller);
 
     const router_account = Router();
     {
@@ -78,10 +84,20 @@ export default function (): Router {
         router_access_control.delete("/:id", restJwt, access_control_rest_view.DeleteAccessControl);
     }
 
+    const router_list_control = Router();
+    {
+        router_list_control.post("/", restJwt, list_rest_view.CreateList);
+        router_list_control.get("/", restJwt, list_rest_view.GetListList);
+        router_list_control.get("/:id", restJwt, list_rest_view.GetList);
+        router_list_control.put("/:id", restJwt, list_rest_view.UpdateList);
+        router_list_control.delete("/:id", restJwt, list_rest_view.DeleteList);
+    }
+
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
     root_router.use("/board", router_board)
     root_router.use("/access-control", router_access_control)
+    root_router.use("/list", router_list_control)
     return root_router
 }

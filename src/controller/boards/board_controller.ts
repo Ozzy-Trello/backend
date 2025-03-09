@@ -48,10 +48,10 @@ export class BoardController implements BoardControllerI {
       })
     }
 
-    let checkBoard = await this.board_repo.getBoard({ name: data.name });
+    let checkBoard = await this.board_repo.getBoard({ workspace_id: workspace.data?.id!, name: data.name });
     if (checkBoard.status_code == StatusCodes.OK) {
       return new ResponseData({
-        message: "you already name already taken by others",
+        message: "board name already exist in your workspace",
         status_code: StatusCodes.CONFLICT,
       })
     }
@@ -294,7 +294,7 @@ export class BoardController implements BoardControllerI {
       })
     }
     return new ResponseData({
-      message: "Board is deleted successful",
+      message: "Board is updated successful",
       status_code: StatusCodes.NO_CONTENT,
     })
   }

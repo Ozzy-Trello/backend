@@ -131,7 +131,7 @@ export class BoardCreateData {
 	} 
 
 	getErrorField(): string | null {
-		if (this.workspace_id && isValidUUID(this.workspace_id!)) {
+		if (this.workspace_id && !isValidUUID(this.workspace_id!)) {
 			return "'workspace_id' is not valid uuid"
 		}
 		return null

@@ -14,15 +14,15 @@ export class ListRepository implements ListRepositoryI {
 
 		if (filter.id) whereClause.id = filter.id;
 		if (filter.name) whereClause.name = filter.name;
-		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
+		if (filter.board_id) whereClause.board_id = filter.board_id;
 	
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
-		if (filter.__orWorkspaceId) orConditions.push({ workspace_id: filter.__orWorkspaceId });
+		if (filter.__orBoardId) orConditions.push({ board_id: filter.__orBoardId });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
-		if (filter.__notWorkspaceId) notConditions.push({ workspace_id: filter.__notWorkspaceId });
+		if (filter.__notBoardId) notConditions.push({ board_id: filter.__notBoardId });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
