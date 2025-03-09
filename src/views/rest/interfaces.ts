@@ -15,6 +15,13 @@ export interface AuthRestViewI {
     RefreshToken(req: Request, res: Response): Promise<void>;
 }
 
+export interface AccessControlRestViewI {
+    CreateAccessControl(req: Request, res: Response): Promise<void>;
+    GetAccessControl(req: Request, res: Response): Promise<void>;
+    UpdateAccessControl(req: Request, res: Response): Promise<void>;
+    DeleteAccessControl(req: Request, res: Response): Promise<void>;
+}
+
 export interface WorkspaceRestViewI {
     GetWorkspace(req: Request, res: Response): Promise<void>;
     CreateWorkspace(req: Request, res: Response): Promise<void>;
@@ -28,20 +35,23 @@ export interface WorkspaceRestViewI {
 export interface BoardRestViewI {
     CreateBoard(req: Request, res: Response): Promise<void>;
     GetBoard(req: Request, res: Response): Promise<void>;
+    GetListBoard(req: Request, res: Response): Promise<void>
     UpdateBoard(req: Request, res: Response): Promise<void>;
     DeleteBoard(req: Request, res: Response): Promise<void>;
-}
-
-export interface AccessControlRestViewI {
-    CreateAccessControl(req: Request, res: Response): Promise<void>;
-    GetAccessControl(req: Request, res: Response): Promise<void>;
-    UpdateAccessControl(req: Request, res: Response): Promise<void>;
-    DeleteAccessControl(req: Request, res: Response): Promise<void>;
 }
 
 export interface ListRestViewI {
     CreateList(req: Request, res: Response): Promise<void>;
     GetList(req: Request, res: Response): Promise<void>;
+    GetListList(req: Request, res: Response): Promise<void>
     UpdateList(req: Request, res: Response): Promise<void>;
     DeleteList(req: Request, res: Response): Promise<void>;
+}
+
+export interface CardRestViewI {
+    CreateCard(req: Request, res: Response): Promise<void>;
+    GetCard(req: Request, res: Response): Promise<void>;
+    GetListCard(req: Request, res: Response): Promise<void>
+    UpdateCard(req: Request, res: Response): Promise<void>;
+    DeleteCard(req: Request, res: Response): Promise<void>;
 }

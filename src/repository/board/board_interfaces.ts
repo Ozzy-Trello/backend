@@ -33,8 +33,7 @@ export interface filterBoardDetail {
 export class BoardDetailUpdate {
   public name?: string;
   public description?: string;
-  public background?: string;
-  public workspace_id?: string;
+  public background?: string;;
 
   constructor(payload: Partial<BoardDetailUpdate>) {
     Object.assign(this, payload);
@@ -45,7 +44,6 @@ export class BoardDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.background) data.background = this.background;
-    if (this.workspace_id) data.workspace_id = this.workspace_id;
     return data
   }
 }

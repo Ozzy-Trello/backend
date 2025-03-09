@@ -29,7 +29,6 @@ export interface filterCardDetail {
 export class CardDetailUpdate {
   public name?: string;
   public description?: string;
-  public list_id?: string;
   public order?: number;
 
   constructor(payload: Partial<CardDetailUpdate>) {
@@ -40,7 +39,6 @@ export class CardDetailUpdate {
     const data: any = {};
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
-    if (this.list_id) data.list_id = this.list_id;
     if (this.order) data.order = this.order;
     return data
   }
