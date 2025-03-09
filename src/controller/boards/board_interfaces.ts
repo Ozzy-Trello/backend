@@ -7,7 +7,7 @@ import { BoardDetail, BoardDetailUpdate, filterBoardDetail } from "@/repository/
 export interface BoardControllerI {
 	CreateBoard(user_id: string, data: BoardCreateData): Promise<ResponseData<CreateBoardResponse>>
 	GetBoard(filter: BoardFilter): Promise<ResponseData<BoardResponse>>
-	GetBoardList(filter: BoardFilter, paginate: Paginate): Promise<ResponseListData<Array<BoardResponse>>>
+	GetListBoard(filter: BoardFilter, paginate: Paginate): Promise<ResponseListData<Array<BoardResponse>>>
 	DeleteBoard(filter: BoardFilter): Promise<ResponseData<null>>
 	UpdateBoard(filter: BoardFilter, data: UpdateBoardData): Promise<ResponseData<null>>
 }

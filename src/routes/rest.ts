@@ -75,7 +75,7 @@ export default function (): Router {
     const router_board = Router();
     {
         router_board.post("/", restJwt, board_rest_view.CreateBoard);
-        router_board.get("/", restJwt, board_rest_view.GetBoardList);
+        router_board.get("/", restJwt, board_rest_view.GetListBoard);
         router_board.get("/:id", restJwt, board_rest_view.GetBoard);
         router_board.put("/:id", restJwt, board_rest_view.UpdateBoard);
         router_board.delete("/:id", restJwt, board_rest_view.DeleteBoard);

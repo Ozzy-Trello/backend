@@ -15,7 +15,7 @@ export class BoardController implements BoardControllerI {
     this.board_repo = board_repo;
     this.workspace_repo = workspace_repo;
     this.GetBoard = this.GetBoard.bind(this);
-    this.GetBoardList = this.GetBoardList.bind(this);
+    this.GetListBoard = this.GetListBoard.bind(this);
     this.DeleteBoard = this.DeleteBoard.bind(this);
     this.UpdateBoard = this.UpdateBoard.bind(this);
     this.CreateBoard = this.CreateBoard.bind(this);
@@ -128,7 +128,7 @@ export class BoardController implements BoardControllerI {
     })
   }
 
-  async GetBoardList(filter: BoardFilter, paginate: Paginate): Promise<ResponseListData<Array<BoardResponse>>> {
+  async GetListBoard(filter: BoardFilter, paginate: Paginate): Promise<ResponseListData<Array<BoardResponse>>> {
     if (filter.workspace_id && filter.workspace_user_id_owner){
       return new ResponseListData({
         message: "you cant use filter `worksace-id` while using `my-default` filter",
