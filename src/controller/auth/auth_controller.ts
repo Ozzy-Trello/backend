@@ -80,9 +80,7 @@ export class AuthController implements AuthControllerI {
 
 		let defaultRole = await this.role_access_repo.getRole({
       default: true, 
-      createWhenNone: true, 
-      name: "default", 
-      description: "default workspace",
+      createDefaultWhenNone: true
     });
     if (!(defaultRole.status_code == StatusCodes.OK || defaultRole.status_code == StatusCodes.CREATED)) {
       return new ResponseData({

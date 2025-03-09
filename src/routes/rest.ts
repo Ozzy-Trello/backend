@@ -25,7 +25,7 @@ export default function (): Router {
 
     const account_controller = new AccountController(user_repo);
     const auth_controller = new AuthController(user_repo, workspace_repo, role_repo);
-    const workspace_controller = new WorkspaceController(workspace_repo, role_repo);
+    const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo);
     const access_control_controller = new AccessControlController(role_repo);
 

@@ -82,24 +82,18 @@ export class RoleRepository implements RoleRepositoryI {
 		try {
 			let role: Role | null;
 			let statusCode = StatusCodes.OK;
-			if (filter.createWhenNone && filter.name == undefined && filter.description == undefined){
-				return new ResponseData({
-					status_code: StatusCodes.BAD_REQUEST,
-					message: "you need to put name and desc to use create when no data opration",
-				});
-			}
 			role = await Role.findOne({where: this.createFilter(filter)});
 			if (!role) {
-				if (!filter.createWhenNone) {
+				if (!filter.createDefaultWhenNone) {
 					return {
 						status_code: StatusCodes.NOT_FOUND,
 						message: "role is not found",
 					}
 				}
 				role = await Role.create({
-					description: filter.description!,
-					default: filter.default,
-					name: filter.name!,
+					description: "default workspace",
+					default: true,
+					name: "default",
 					permissions: defaultPermission
 				});
 				statusCode = StatusCodes.CREATED

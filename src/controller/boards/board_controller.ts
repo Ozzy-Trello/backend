@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
@@ -27,8 +29,14 @@ export class BoardController implements BoardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
+    
+    let workspaceFilter = new filterWorkspaceDetail({id: data.workspace_id})
+    if (!isValidUUID(workspaceFilter.id!)) {
+      delete workspaceFilter.id;
+      workspaceFilter.slug = data.workspace_id;
+    }
 
-    let workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
+    let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
     if (workspace.status_code != StatusCodes.OK) {
       let msg = "internal server error"
       if (workspace.status_code == StatusCodes.NOT_FOUND){
@@ -74,6 +82,38 @@ export class BoardController implements BoardControllerI {
   }
 
   async GetBoard(filter: BoardFilter): Promise<ResponseData<BoardResponse>> {
+    if (filter.workspace_id && filter.workspace_user_id_owner){
+      return new ResponseData({
+        message: "you cant use filter `worksace-id` while using `my-default` filter",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (filter.workspace_id){
+      let workspaceFilter = new filterWorkspaceDetail({id: filter.workspace_id})
+      if (!isValidUUID(workspaceFilter.id!)) {
+        delete workspaceFilter.id;
+        workspaceFilter.slug = filter.workspace_id;
+        delete filter.workspace_id;
+      }
+      if (filter.workspace_user_id_owner && isValidUUID(filter.workspace_user_id_owner!)) {
+        workspaceFilter.user_id_owner = filter.workspace_user_id_owner;
+        delete filter.workspace_user_id_owner;
+      }
+
+      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
+      if (workspace.status_code != StatusCodes.OK) {
+        let msg = "internal server error"
+        if (workspace.status_code == StatusCodes.NOT_FOUND){
+          msg = "workspace is not found"
+        }
+        return new ResponseData({
+          message: msg,
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+      filter.workspace_id = workspace.data?.id!
+    }
+
     let checkBoard = await this.board_repo.getBoard(filter.toFilterBoardDetail());
     if (checkBoard.status_code == StatusCodes.NOT_FOUND){
       return new ResponseData({
@@ -89,6 +129,40 @@ export class BoardController implements BoardControllerI {
   }
 
   async GetBoardList(filter: BoardFilter, paginate: Paginate): Promise<ResponseListData<Array<BoardResponse>>> {
+    if (filter.workspace_id && filter.workspace_user_id_owner){
+      return new ResponseListData({
+        message: "you cant use filter `worksace-id` while using `my-default` filter",
+        status_code: StatusCodes.BAD_REQUEST,
+        data: [],
+      }, paginate)
+    }
+    if (filter.workspace_id || filter.workspace_user_id_owner){
+      let workspaceFilter = new filterWorkspaceDetail({id: filter.workspace_id, user_id_owner: filter.workspace_user_id_owner})
+      if (workspaceFilter.id && !isValidUUID(workspaceFilter.id!)) {
+        delete workspaceFilter.id;
+        workspaceFilter.slug = filter.workspace_id;
+        delete filter.workspace_id;
+      }
+      if (filter.workspace_user_id_owner && isValidUUID(filter.workspace_user_id_owner!)) {
+        workspaceFilter.user_id_owner = filter.workspace_user_id_owner;
+        delete filter.workspace_user_id_owner;
+      }
+
+      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
+      if (workspace.status_code != StatusCodes.OK) {
+        let msg = "internal server error"
+        if (workspace.status_code == StatusCodes.NOT_FOUND){
+          msg = "workspace is not found"
+        }
+        return new ResponseListData({
+          message: msg,
+          status_code: StatusCodes.BAD_REQUEST,
+          data: [],
+        }, paginate)
+      }
+      filter.workspace_id = workspace.data?.id!
+    }
+
     let boards = await this.board_repo.getBoardList(filter.toFilterBoardDetail(), paginate);
     return new ResponseListData({
       message: "board list",
@@ -98,6 +172,43 @@ export class BoardController implements BoardControllerI {
   }
 
   async DeleteBoard(filter: BoardFilter): Promise<ResponseData<null>> {
+    if (filter.isEmpty()) {
+      return new ResponseData({
+        message: "you need filter to delete",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    if (filter.workspace_id && filter.workspace_user_id_owner){
+      return new ResponseData({
+        message: "you cant use filter `worksace-id` while using `my-default` filter",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (filter.workspace_id){
+      let workspaceFilter = new filterWorkspaceDetail({id: filter.workspace_id})
+      if (!isValidUUID(workspaceFilter.id!)) {
+        delete workspaceFilter.id;
+        workspaceFilter.slug = filter.workspace_id;
+        delete filter.workspace_id;
+      }
+      if (filter.workspace_user_id_owner && isValidUUID(filter.workspace_user_id_owner!)) {
+        workspaceFilter.user_id_owner = filter.workspace_user_id_owner;
+        delete filter.workspace_user_id_owner;
+      }
+
+      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
+      if (workspace.status_code != StatusCodes.OK) {
+        let msg = "internal server error"
+        if (workspace.status_code == StatusCodes.NOT_FOUND){
+          msg = "workspace is not found"
+        }
+        return new ResponseData({
+          message: msg,
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+      filter.workspace_id = workspace.data?.id!
+    }
     const deleteResponse = await this.board_repo.deleteBoard(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
@@ -123,6 +234,38 @@ export class BoardController implements BoardControllerI {
         message: "you need data to update",
         status_code: StatusCodes.NOT_FOUND,
       })
+    }
+    if (filter.workspace_id && filter.workspace_user_id_owner){
+      return new ResponseData({
+        message: "you cant use filter `worksace-id` while using `my-default` filter",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    if (filter.workspace_id){
+      let workspaceFilter = new filterWorkspaceDetail({id: filter.workspace_id})
+      if (!isValidUUID(workspaceFilter.id!)) {
+        delete workspaceFilter.id;
+        workspaceFilter.slug = filter.workspace_id;
+        delete filter.workspace_id;
+      }
+      if (filter.workspace_user_id_owner && isValidUUID(filter.workspace_user_id_owner!)) {
+        workspaceFilter.user_id_owner = filter.workspace_user_id_owner;
+        delete filter.workspace_user_id_owner;
+      }
+
+      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
+      if (workspace.status_code != StatusCodes.OK) {
+        let msg = "internal server error"
+        if (workspace.status_code == StatusCodes.NOT_FOUND){
+          msg = "workspace is not found"
+        }
+        return new ResponseData({
+          message: msg,
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+      filter.workspace_id = workspace.data?.id!
     }
 
     if (filter.id) {

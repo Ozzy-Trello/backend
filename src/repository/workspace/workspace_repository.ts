@@ -18,13 +18,16 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 		if (filter.id) whereClause.id = filter.id;
 		if (filter.name) whereClause.name = filter.name;
 		if (filter.description) whereClause.description = filter.description;
+		if (filter.slug) whereClause.slug = filter.slug;
 	
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
+		if (filter.__orSlug) orConditions.push({ slug: filter.__orSlug });
 		if (filter.__orDescription) orConditions.push({ description: filter.__orDescription });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
+		if (filter.__notSlug) notConditions.push({ slug: filter.__notSlug });
 		if (filter.__notDescription) notConditions.push({ description: filter.__notDescription });
 
 		if (notConditions.length > 0) {

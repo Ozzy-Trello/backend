@@ -45,6 +45,8 @@ export default class BoardRestView implements BoardRestViewI {
   async GetBoard(req: Request, res: Response): Promise<void> {
     let accResponse = await this.board_controller.GetBoard(new BoardFilter({
       id: req.params.id?.toString(),
+      workspace_id: req.header('workspace-id')?.toString(),
+      workspace_user_id_owner: req.header('my-default') ? req.auth?.user_id! : undefined
     }))
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -70,7 +72,8 @@ export default class BoardRestView implements BoardRestViewI {
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
     let accResponse = await this.board_controller.GetBoardList(new BoardFilter({
-      workspace_id: req.query['workspace-id']?.toString()
+      workspace_id: req.header('workspace-id')?.toString(),
+      workspace_user_id_owner: req.header('my-default') ? req.auth?.user_id! : undefined
     }), paginate)
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -94,7 +97,9 @@ export default class BoardRestView implements BoardRestViewI {
 
   async UpdateBoard(req: Request, res: Response): Promise<void> {
     let updateResponse = await this.board_controller.UpdateBoard(new BoardFilter({
+      workspace_id: req.header('workspace-id')?.toString(),
       id: req.params.id?.toString(),
+      workspace_user_id_owner: req.header('my-default') ? req.auth?.user_id! : undefined
     }), new UpdateBoardData({
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
@@ -122,6 +127,8 @@ export default class BoardRestView implements BoardRestViewI {
   async DeleteBoard(req: Request, res: Response): Promise<void> {
     let delResponse = await this.board_controller.DeleteBoard(new BoardFilter({
       id: req.params.id?.toString(),
+      workspace_id: req.header('workspace-id')?.toString(),
+      workspace_user_id_owner: req.header('my-default') ? req.auth?.user_id! : undefined
     }));
     if (delResponse.status_code !== StatusCodes.OK) {
       if (delResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
