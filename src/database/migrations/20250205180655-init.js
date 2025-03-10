@@ -449,7 +449,7 @@ module.exports = {
         type: new DataTypes.TEXT,
         allowNull: false,
       },
-      field_type: {
+      source: {
         type: new DataTypes.ENUM('product', 'user'),
         allowNull: false,
       },

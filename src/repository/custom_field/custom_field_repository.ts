@@ -19,12 +19,12 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
 		if (filter.__orWorkspaceId) orConditions.push({ workspace_id: filter.__orWorkspaceId });
-		if (filter.__orFieldType) orConditions.push({ field_type: filter.__orFieldType });
+		if (filter.__orSource) orConditions.push({ source: filter.__orSource });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
 		if (filter.__notWorkspaceId) notConditions.push({ workspace_id: filter.__notWorkspaceId });
-		if (filter.__notFieldType) orConditions.push({ field_type: filter.__notFieldType });
+		if (filter.__notSource) orConditions.push({ source: filter.__notSource });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
@@ -57,8 +57,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				name: data.name!,
 				workspace_id: data.workspace_id!,
 				description: data.workspace_id,
-				order: data.order!,
-				field_type: data.field_type
+				source: data.source
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
@@ -67,7 +66,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					id: custom_field.id,
 					name: custom_field.name,
 					description: custom_field.description,
-					order: custom_field.order
+					source: custom_field.source,
 				})
 			});
 		} catch (e) {
@@ -91,8 +90,8 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				id: custom_field.id,
 				name: custom_field.name,
 				description: custom_field.description,
-				order: custom_field.order,
 				workspace_id: custom_field.workspace_id,
+				source: custom_field.source,
 			})
 			return new ResponseData({
 				status_code: StatusCodes.OK,
@@ -119,9 +118,9 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			result.push(new CustomFieldDetail({
 				id: custom_field.id,
 				name: custom_field.name,
-				description: custom_field.description, 
-				order: custom_field.order, 
+				description: custom_field.description,
 				workspace_id: custom_field.workspace_id,
+				source: custom_field.source,
 			}))
 		}
 		return new ResponseListData({

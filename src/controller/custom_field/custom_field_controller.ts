@@ -42,7 +42,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     if (workspace.status_code != StatusCodes.OK) {
       let msg = "internal server error"
       if (workspace.status_code == StatusCodes.NOT_FOUND){
-        msg = "list is not found"
+        msg = "workspace is not found"
       }
       return new ResponseData({
         message: msg,
@@ -78,7 +78,7 @@ export class CustomFieldController implements CustomFieldControllerI {
   async GetCustomField(filter: CustomFieldFilter): Promise<ResponseData<CustomFieldResponse>> {
     if (filter.isEmpty()){
       return new ResponseData({
-        message: "you need to put filter to get list data",
+        message: "you need to put filter to get workspace data",
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
@@ -136,7 +136,7 @@ export class CustomFieldController implements CustomFieldControllerI {
 
     let custom_fields = await this.custom_field_repo.getListCustomField(filter.toFilterCustomFieldDetail(), paginate);
     return new ResponseListData({
-      message: "CustomField list",
+      message: "CustomField workspace",
       status_code: StatusCodes.OK,
       data: fromCustomFieldDetailToCustomFieldResponseCustomField(custom_fields.data!),
     }, custom_fields.paginate)
@@ -228,7 +228,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       let checkList = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
       if (checkList.status_code == StatusCodes.OK) {
         return new ResponseData({
-          message: "this list name already taken by others",
+          message: "this workspace name already taken by others",
           status_code: StatusCodes.NOT_FOUND,
         })
       }

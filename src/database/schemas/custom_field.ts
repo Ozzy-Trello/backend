@@ -1,15 +1,14 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
-import { FieldType } from '@/types/custom_field';
+import { SourceType } from '@/types/custom_field';
 
 interface CustomFieldAttributes {
   id: string;
   name: string;
   description: string;
   workspace_id: string;
-  order: number;
-  field_type: FieldType;
+  source: SourceType;
 }
 
 interface CustomFieldCreationAttributes extends Optional<CustomFieldAttributes, 'id'> { }
@@ -19,8 +18,7 @@ class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttrib
   public name!: string;
   public description!: string;
   public workspace_id!: string;
-  public order!: number;
-  public field_type!: FieldType;
+  public source!: SourceType;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -51,12 +49,8 @@ CustomField.init(
       type: new DataTypes.TEXT,
       allowNull: false,
     },
-    order: {
-      type: new DataTypes.INTEGER,
-      allowNull: false,
-    },
-    field_type: {
-      type: new DataTypes.ENUM(FieldType.Product, FieldType.User),
+    source: {
+      type: new DataTypes.ENUM(SourceType.Product, SourceType.User),
       allowNull: false,
     },
   },

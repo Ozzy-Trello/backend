@@ -3,7 +3,7 @@ import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CustomFieldDetail, CustomFieldDetailUpdate, filterCustomFieldDetail } from "@/repository/custom_field/custom_field_interfaces";
-import { FieldType } from '@/types/custom_field';
+import { SourceType } from '@/types/custom_field';
 
 export interface CustomFieldControllerI {
 	CreateCustomField(user_id: string, data: CustomFieldCreateData): Promise<ResponseData<CreateCustomFieldResponse>>
@@ -25,6 +25,7 @@ export class CustomFieldResponse {
 	id!: string;
 	name?: string;
 	description?: string;
+	source?: SourceType;
 
 	constructor(payload: Partial<CustomFieldResponse>) {
 		Object.assign(this, payload)
@@ -36,6 +37,7 @@ export function fromCustomFieldDetailToCustomFieldResponse(data: CustomFieldDeta
 		id: data.id,
 		name: data.name!,
 		description: data.description,
+		source: data.source,
 	})
 }
 
@@ -82,7 +84,7 @@ export class CustomFieldFilter {
 	name?: string;
 	workspace_id?: string
 	description?: string;
-	field_type?: FieldType
+	source?: SourceType
 
 	constructor(payload: Partial<CustomFieldFilter>) {
 		Object.assign(this, payload);
@@ -96,7 +98,7 @@ export class CustomFieldFilter {
 			id: this.id,
 			name: this.name,
 			workspace_id: this.workspace_id,
-			field_type: this.field_type,
+			source: this.source,
 			description: this.description,
 		}
 	}
@@ -105,7 +107,7 @@ export class CustomFieldFilter {
 		return this.id == undefined && 
 		this.name == undefined && 
 		this.workspace_id == undefined && 
-		this.field_type == undefined && 
+		this.source == undefined && 
 		this.description == undefined;
 	}
 
@@ -125,6 +127,7 @@ export class CustomFieldCreateData {
 	name!: string;
 	description?: string;
 	workspace_id!: string;
+	source!: SourceType;
 
 	constructor(payload: Partial<CustomFieldCreateData>) {
 		Object.assign(this, payload)
@@ -137,13 +140,15 @@ export class CustomFieldCreateData {
 		return new CustomFieldDetail({
 			name: this.name,
 			description: this.description,
-			workspace_id: this.workspace_id
+			workspace_id: this.workspace_id,
+			source: this.source,
 		})
 	}
 
 	checkRequired(): string | null{
 		if (this.workspace_id == undefined ) return 'workspace_id'
 		if (this.name == undefined ) return 'name'
+		if (this.source == undefined ) return 'source'
 		return null
 	} 
 

@@ -1,4 +1,4 @@
-export enum FieldType {
+export enum SourceType {
   User = 'user',
   Product = 'product'
 }

@@ -21,6 +21,7 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       workspace_id: req.body.workspace_id?.toString(),
+      source: req.body.source?.toString(),
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -99,7 +100,7 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
     }), new UpdateCustomFieldData({
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
-      workspace_id: req.body.workspace_id?.toString()
+      workspace_id: req.body.workspace_id?.toString(),
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

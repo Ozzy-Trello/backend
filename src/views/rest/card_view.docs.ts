@@ -55,7 +55,7 @@
  *         description: ID of card to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ Card ]
  *     security:
  *       - BearerAuth: []
@@ -82,7 +82,7 @@
  *         description: ID of card to update
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -111,7 +111,7 @@
  *         description: ID of card to delete
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     tags: [ Card ]
  *     security:
  *       - BearerAuth: []

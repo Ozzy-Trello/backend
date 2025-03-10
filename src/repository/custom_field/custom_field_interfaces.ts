@@ -1,6 +1,6 @@
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { FieldType } from "@/types/custom_field";
+import { SourceType } from "@/types/custom_field";
 
 export interface CustomFieldRepositoryI {
   getCustomField(filter: filterCustomFieldDetail): Promise<ResponseData<CustomFieldDetail>>;
@@ -15,20 +15,20 @@ export interface filterCustomFieldDetail {
   name?: string;
   description?: string;
   workspace_id?: string;
-  field_type?: FieldType;
+  source?: SourceType;
   order?: number;
 
   __orId?: string;
   __orName?: string;
   __orDescription?: string;
   __orWorkspaceId?: string;
-  __orFieldType?: string;
+  __orSource?: string;
 
   __notId?: string;
   __notName?: string;
   __notDescription?: string;
   __notWorkspaceId?: string;
-  __notFieldType?: string;
+  __notSource?: string;
 }
 
 export class CustomFieldDetailUpdate {
@@ -55,7 +55,7 @@ export class CustomFieldDetail {
   public description!: string;
   public workspace_id!: string;
   public order!: number;
-  public field_type!:  FieldType
+  public source!:  SourceType
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);
