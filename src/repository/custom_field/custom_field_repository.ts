@@ -78,11 +78,11 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
 	async updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number> {
 		try {
-			const effected = await CardCustomField.update(value.toObject(), {where: {
-				custom_field_id: id,
-				card_id: card_id,
-			}});
-			if (effected[0] <= 0 ){
+			let qry = await db.updateTable("card_custom_field").
+			set(value.toObject()).
+			where("card_custom_field.custom_field_id", "=", id).
+			where("card_custom_field.card_id", "=", card_id).executeTakeFirst();
+			if (qry.numChangedRows! <= 0 ){
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT

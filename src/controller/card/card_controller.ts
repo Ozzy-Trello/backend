@@ -6,24 +6,35 @@ import { Paginate } from "@/utils/data_utils";
 import { CardRepositoryI } from '@/repository/card/card_interfaces';
 import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
-import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
+import { CustomFieldCardDetail, CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
+import { SourceType } from '@/types/custom_field';
+import { UserRepositoryI } from '@/repository/user/user_interfaces';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
   private list_repo: ListRepositoryI
   private custom_field_repo: CustomFieldRepositoryI
+  private user_repo: UserRepositoryI
 
-  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI) {
+  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI, user_repo: UserRepositoryI) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
+    this.user_repo = user_repo;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
     this.UpdateCard = this.UpdateCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
+    
+    this.UpdateCustomField = this.UpdateCustomField.bind(this);
+    this.AddCustomField = this.AddCustomField.bind(this);
+    this.RemoveCustomField = this.RemoveCustomField.bind(this);
+    this.GetListCustomField = this.GetListCustomField.bind(this);
   }
-  async UpdateCustomField(card_id: string, custom_field_id: string, value: string): Promise<ResponseData<null>> {
+
+  async UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>> {
+    let data = new CustomFieldCardDetail({})
     if (!isValidUUID(card_id)){
       return new ResponseData({
         message: "'card_id' is not valid uuid",
@@ -50,10 +61,45 @@ export class CardController implements CardControllerI {
       return new ResponseData({
         message: checkCustomField.message,
         status_code: checkCustomField.status_code,
+      })
+    }
+
+    if(checkCustomField.data?.source == SourceType.User) {
+      if (!(typeof value == "string" && isValidUUID(String(value)))) {
+        return new ResponseData({
+          message: "'value' is not valid uuid",
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+      let checkUser =  await this.user_repo.getUser({id: value.toString()})
+      if(checkUser.status_code != StatusCodes.OK){
+        return new ResponseData({
+          message: checkUser.message,
+          status_code: checkUser.status_code
+        })
+      }
+      data.value_user_id = value.toString()
+    }else {
+      return new ResponseData({
+        message: "'value' is not support data",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let assignCustomFieldRes = await this.custom_field_repo.updateAssignedCard(
+      custom_field_id, card_id, data
+    );
+    if (assignCustomFieldRes != StatusCodes.NO_CONTENT){
+      return new ResponseData({
+        message: "internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR
       })  
     }
 
-    throw new Error('Method not implemented.');
+    return new ResponseData({
+      message: "Success",
+      status_code: StatusCodes.NO_CONTENT,
+    })
   }
 
   async AddCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>> {
