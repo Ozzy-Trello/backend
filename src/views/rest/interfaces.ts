@@ -55,3 +55,11 @@ export interface CardRestViewI {
     UpdateCard(req: Request, res: Response): Promise<void>;
     DeleteCard(req: Request, res: Response): Promise<void>;
 }
+
+export interface CustomFieldRestViewI {
+    CreateCustomField(req: Request, res: Response): Promise<void>;
+    GetCustomField(req: Request, res: Response): Promise<void>;
+    GetListCustomField(req: Request, res: Response): Promise<void>
+    UpdateCustomField(req: Request, res: Response): Promise<void>;
+    DeleteCustomField(req: Request, res: Response): Promise<void>;
+}

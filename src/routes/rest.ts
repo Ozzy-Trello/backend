@@ -20,6 +20,9 @@ import ListRestView from "@/views/rest/list_view";
 import { CardRepository } from "@/repository/card/card_repository";
 import { CardController } from "@/controller/card/card_controller";
 import CardRestView from "@/views/rest/card_view";
+import { CustomFieldRepository } from "@/repository/custom_field/custom_field_repository";
+import { CustomFieldController } from "@/controller/custom_field/custom_field_controller";
+import CustomFieldRestView from "@/views/rest/custom_field_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -30,6 +33,7 @@ export default function (): Router {
     const board_repo = new BoardRepository();
     const list_repo = new ListRepository();
     const card_repo = new CardRepository();
+    const custom_field_repo = new CustomFieldRepository();
 
     const account_controller = new AccountController(user_repo);
     const access_control_controller = new AccessControlController(role_repo);
@@ -38,6 +42,7 @@ export default function (): Router {
     const board_controller = new BoardController(board_repo, workspace_repo);
     const list_controller = new ListController(list_repo, board_repo);
     const card_controller = new CardController(card_repo, list_repo);
+    const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);
 
     const account_rest_view = new AccountRestView(account_controller);
     const access_control_rest_view = new AccessControlRestView(access_control_controller);
@@ -46,6 +51,7 @@ export default function (): Router {
     const board_rest_view = new BoardRestView(board_controller);
     const list_rest_view = new ListRestView(list_controller);
     const card_rest_view = new CardRestView(card_controller);
+    const custom_field_rest_view = new CustomFieldRestView(custom_field_controller);
 
     const router_account = Router();
     {
@@ -90,22 +96,31 @@ export default function (): Router {
         router_access_control.delete("/:id", restJwt, access_control_rest_view.DeleteAccessControl);
     }
 
-    const router_list_control = Router();
+    const router_list = Router();
     {
-        router_list_control.post("/", restJwt, list_rest_view.CreateList);
-        router_list_control.get("/", restJwt, list_rest_view.GetListList);
-        router_list_control.get("/:id", restJwt, list_rest_view.GetList);
-        router_list_control.put("/:id", restJwt, list_rest_view.UpdateList);
-        router_list_control.delete("/:id", restJwt, list_rest_view.DeleteList);
+        router_list.post("/", restJwt, list_rest_view.CreateList);
+        router_list.get("/", restJwt, list_rest_view.GetListList);
+        router_list.get("/:id", restJwt, list_rest_view.GetList);
+        router_list.put("/:id", restJwt, list_rest_view.UpdateList);
+        router_list.delete("/:id", restJwt, list_rest_view.DeleteList);
     }
 
-    const router_card_control = Router();
+    const router_card = Router();
     {
-        router_card_control.post("/", restJwt, card_rest_view.CreateCard);
-        router_card_control.get("/", restJwt, card_rest_view.GetListCard);
-        router_card_control.get("/:id", restJwt, card_rest_view.GetCard);
-        router_card_control.put("/:id", restJwt, card_rest_view.UpdateCard);
-        router_card_control.delete("/:id", restJwt, card_rest_view.DeleteCard);
+        router_card.post("/", restJwt, card_rest_view.CreateCard);
+        router_card.get("/", restJwt, card_rest_view.GetListCard);
+        router_card.get("/:id", restJwt, card_rest_view.GetCard);
+        router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
+        router_card.delete("/:id", restJwt, card_rest_view.DeleteCard);
+    }
+
+    const router_custom_field = Router();
+    {
+        router_custom_field.post("/", restJwt, custom_field_rest_view.CreateCustomField);
+        router_custom_field.get("/", restJwt, custom_field_rest_view.GetListCustomField);
+        router_custom_field.get("/:id", restJwt, custom_field_rest_view.GetCustomField);
+        router_custom_field.put("/:id", restJwt, custom_field_rest_view.UpdateCustomField);
+        router_custom_field.delete("/:id", restJwt, custom_field_rest_view.DeleteCustomField);
     }
 
     root_router.use("/auth", router_auth)
@@ -113,7 +128,8 @@ export default function (): Router {
     root_router.use("/workspace", router_workspace)
     root_router.use("/board", router_board)
     root_router.use("/access-control", router_access_control)
-    root_router.use("/list", router_list_control)
-    root_router.use("/card", router_card_control)
+    root_router.use("/list", router_list)
+    root_router.use("/card", router_card)
+    root_router.use("/custom-field", router_custom_field)
     return root_router
 }

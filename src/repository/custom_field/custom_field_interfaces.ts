@@ -15,17 +15,20 @@ export interface filterCustomFieldDetail {
   name?: string;
   description?: string;
   workspace_id?: string;
+  field_type?: FieldType;
   order?: number;
 
   __orId?: string;
   __orName?: string;
   __orDescription?: string;
   __orWorkspaceId?: string;
+  __orFieldType?: string;
 
   __notId?: string;
   __notName?: string;
   __notDescription?: string;
   __notWorkspaceId?: string;
+  __notFieldType?: string;
 }
 
 export class CustomFieldDetailUpdate {

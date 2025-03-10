@@ -19,10 +19,12 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
 		if (filter.__orWorkspaceId) orConditions.push({ workspace_id: filter.__orWorkspaceId });
+		if (filter.__orFieldType) orConditions.push({ field_type: filter.__orFieldType });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
 		if (filter.__notWorkspaceId) notConditions.push({ workspace_id: filter.__notWorkspaceId });
+		if (filter.__notFieldType) orConditions.push({ field_type: filter.__notFieldType });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
@@ -92,7 +94,6 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				order: custom_field.order,
 				workspace_id: custom_field.workspace_id,
 			})
-
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "custom_field detail",
