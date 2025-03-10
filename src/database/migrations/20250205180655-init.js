@@ -12,6 +12,43 @@ module.exports = {
      * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
      */
 
+    await queryInterface.createTable('role', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING(128),
+        allowNull: false,
+        unique: true,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      permissions: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+      },
+      default: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+    });
+
     await queryInterface.createTable('user', {
       id: {
         type: DataTypes.UUID,
@@ -401,43 +438,6 @@ module.exports = {
         type: new DataTypes.TIME,
       }
     })
-
-    await queryInterface.createTable('role', {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        allowNull: false,
-        primaryKey: true,
-      },
-      name: {
-        type: DataTypes.STRING(128),
-        allowNull: false,
-        unique: true,
-      },
-      description: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      permissions: {
-        type: DataTypes.JSONB,
-        allowNull: false,
-      },
-      default: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      },
-      createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
-    });
 
     await queryInterface.createTable('custom_field', {
       id: {
