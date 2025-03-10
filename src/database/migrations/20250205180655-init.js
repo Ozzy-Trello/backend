@@ -153,6 +153,13 @@ module.exports = {
       board_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        primaryKey: true,
+        references: {
+          model: 'board',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       user_id: {
         type: DataTypes.UUID,
@@ -167,6 +174,13 @@ module.exports = {
       role_id: {
         type: DataTypes.UUID,
         allowNull: false,
+        primaryKey: true,
+        references: {
+          model: 'role',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       createdAt: {
         type: new DataTypes.TIME,

@@ -8,7 +8,7 @@ import swaggerUi from "swagger-ui-express";
 
 import { options as swaggerOption } from "@/views/rest/swagger";
 
-import db from "@/database/connections";
+import db from "@/database";
 import { Config } from "@/config";
 
 import rest from "@/routes/rest";
@@ -22,7 +22,7 @@ export class Server {
 
 	public async checkDependencies() {
 		try {
-			await db.authenticate();
+			await db.selectFrom('user').limit(1).execute()
 			console.log('Database connection has been established successfully.');
 		} catch (error) {
 			throw new Error(`Unable to connect to the database: ${error}`);

@@ -6,6 +6,7 @@ import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import CardCustomField from "@/database/schemas/card_custom_field";
+import db from "@/database";
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
 	createFilter(filter: filterCustomFieldDetail): any {
@@ -39,24 +40,35 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
 	async getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>> {
 		let result: Array<AssignCardDetail> = [];
-		let whereData = {card_id: card_id}
-		paginate.setTotal(await CardCustomField.count({where: whereData}))
-		const lists = await CardCustomField.findAll({
-			where: whereData,
-			offset: paginate.getOffset(),
-			limit: paginate.limit,
-		});
-		for (const custom_field of lists) {
+		let qry = db.selectFrom("card_custom_field").
+		innerJoin("custom_field", "card_custom_field.custom_field_id", "custom_field.id").
+		where("card_custom_field.card_id", "=", card_id);
+		let total = await qry.select(({ fn }) => fn.count<number>("card_custom_field.card_id").as('total')).executeTakeFirst();
+		paginate.setTotal(total?.total!)
+		
+		let qryResult = await qry.select([
+			"custom_field.id",
+			"custom_field.name",
+			"custom_field.source",
+			"card_custom_field.order",
+			"card_custom_field.value_number",
+			"card_custom_field.value_string",
+			"card_custom_field.value_user_id"
+		]).offset(paginate.getOffset()).limit(paginate.limit).execute();
+		qryResult.map((raw) => {
 			result.push(new AssignCardDetail({
-				order: custom_field.order,
+				id: raw.id,
+				name: raw.name,
+				source: raw.source,
+				order: raw.order,
 				value: function(): undefined | string | number {
-					if (custom_field.value_user_id) return custom_field.value_user_id
-					if (custom_field.value_string) return custom_field.value_string
-					if (custom_field.value_number) return custom_field.value_number
+					if (raw.value_user_id) return raw.value_user_id
+					if (raw.value_string) return raw.value_string
+					if (raw.value_number) return raw.value_number
 					return undefined
 				}()
 			}))
-		}
+		})
 		return new ResponseListData({
 			status_code: StatusCodes.OK,
 			message: "custom_field custom_field",

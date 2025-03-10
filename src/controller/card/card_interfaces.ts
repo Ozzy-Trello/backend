@@ -4,6 +4,7 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail } from '@/repository/custom_field/custom_field_interfaces';
+import { SourceType } from '@/types/custom_field';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -36,10 +37,12 @@ export class CardResponse {
 }
 
 export class AssignCardResponse {
-	// id!: string;
-	// name!: string;
+	id!: string;
+	name!: string;
+	description?: string;
 	value?: null | string | number;
 	order!: number;
+	source!: SourceType;
 
 	constructor(payload: Partial<AssignCardResponse>) {
 		Object.assign(this, payload)
@@ -66,7 +69,10 @@ export function fromCustomFieldDetailToCustomFieldResponseCard(data: Array<Assig
 	let result: Array<AssignCardResponse> = [];
 	for (const datum of data) {
 		result.push(new AssignCardResponse({
+			id: datum.id,
+			name: datum.name,
 			order: datum.order,
+			source:  datum.source,
 			value: datum.value,
 		}))
 	}

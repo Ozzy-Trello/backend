@@ -55,6 +55,7 @@ export class CardController implements CardControllerI {
 
     throw new Error('Method not implemented.');
   }
+
   async AddCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)){
       return new ResponseData({
@@ -98,6 +99,7 @@ export class CardController implements CardControllerI {
       status_code: StatusCodes.NO_CONTENT,
     })
   }
+
   async RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)){
       return new ResponseData({
@@ -141,6 +143,7 @@ export class CardController implements CardControllerI {
       status_code: StatusCodes.NO_CONTENT,
     })
   }
+
   async GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>> {
     if (!isValidUUID(card_id)){
       return new ResponseListData({
@@ -169,8 +172,7 @@ export class CardController implements CardControllerI {
       message: "list of custom field on this card",
       status_code: StatusCodes.OK,
       data: fromCustomFieldDetailToCustomFieldResponseCard(res.data!)
-    }, paginate)  
-
+    }, paginate)
   }
 
   async CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>> {

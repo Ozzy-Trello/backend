@@ -69,8 +69,11 @@ export class CustomFieldDetail {
 }
 
 export class AssignCardDetail {
+  public id!: string;
+  public name!: string;
   public order?: number;
   public value?: string | number;
+  public source!:  SourceType
 
   constructor(payload: Partial<AssignCardDetail>) {
     Object.assign(this, payload);
