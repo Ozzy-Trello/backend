@@ -1,0 +1,249 @@
+import { validate as isValidUUID } from 'uuid';
+
+import { ResponseData, ResponseListData } from "@/utils/response_utils";
+import { StatusCodes } from "http-status-codes";
+import { Paginate } from "@/utils/data_utils";
+import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
+import { CreateCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponseCustomField, CustomFieldControllerI, CustomFieldCreateData, CustomFieldFilter, CustomFieldResponse, UpdateCustomFieldData } from '@/controller/custom_field/custom_field_interfaces';
+import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
+
+export class CustomFieldController implements CustomFieldControllerI {
+  private custom_field_repo: CustomFieldRepositoryI
+  private workspace_repo: WorkspaceRepositoryI
+
+  constructor(custom_field_repo: CustomFieldRepositoryI, workspace_repo: WorkspaceRepositoryI) {
+    this.custom_field_repo = custom_field_repo;
+    this.workspace_repo = workspace_repo;
+    this.GetCustomField = this.GetCustomField.bind(this);
+    this.GetListCustomField = this.GetListCustomField.bind(this);
+    this.DeleteCustomField = this.DeleteCustomField.bind(this);
+    this.UpdateCustomField = this.UpdateCustomField.bind(this);
+    this.CreateCustomField = this.CreateCustomField.bind(this);
+  }
+
+  async CreateCustomField(user_id: string, data: CustomFieldCreateData): Promise<ResponseData<CreateCustomFieldResponse>> {
+    let paylodCheck = data.checkRequired();
+    if (paylodCheck) {
+      return new ResponseData({
+        message: `you need to put '${paylodCheck}'`,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let errorField = data.getErrorField();
+    if (errorField) {
+      return new ResponseData({
+        message: errorField,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    
+    let workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail(({id: data.workspace_id})));
+    if (workspace.status_code != StatusCodes.OK) {
+      let msg = "internal server error"
+      if (workspace.status_code == StatusCodes.NOT_FOUND){
+        msg = "workspace is not found"
+      }
+      return new ResponseData({
+        message: msg,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let checkList = await this.custom_field_repo.getCustomField({ workspace_id: data.workspace_id, name: data.name });
+    if (checkList.status_code == StatusCodes.OK) {
+      return new ResponseData({
+        message: "custom_field name already exist on your board",
+        status_code: StatusCodes.CONFLICT,
+      })
+    }
+
+    let createResponse = await this.custom_field_repo.createCustomField(data.toCustomFieldDetail());
+    if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
+      return new ResponseData({
+        message: "internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+      })
+    }
+
+    return new ResponseData({
+      message: "CustomField created successfully",
+      status_code: StatusCodes.CREATED,
+      data: new CreateCustomFieldResponse({
+        id: createResponse.data?.id,
+      }),
+    })
+  }
+
+  async GetCustomField(filter: CustomFieldFilter): Promise<ResponseData<CustomFieldResponse>> {
+    if (filter.isEmpty()){
+      return new ResponseData({
+        message: "you need to put filter to get workspace data",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    let errorFiled =  filter.getErrorfield();
+    if (errorFiled){
+      return new ResponseData({
+        message: errorFiled,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    if(filter.workspace_id){
+      let checkList = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail(({id: filter.workspace_id})));
+      if (checkList.status_code == StatusCodes.NOT_FOUND){
+        return new ResponseData({
+          message: checkList.message,
+          status_code: checkList.status_code,
+        })  
+      }
+    }
+
+    let checkList = await this.custom_field_repo.getCustomField(filter.toFilterCustomFieldDetail());
+      if (checkList.status_code != StatusCodes.OK){
+        return new ResponseData({
+          message: checkList.message,
+          status_code: checkList.status_code,
+        })  
+      }
+
+    return new ResponseData({
+      message: checkList.message,
+      status_code: checkList.status_code,
+      data: fromCustomFieldDetailToCustomFieldResponse(checkList.data!),
+    })
+  }
+
+  async GetListCustomField(filter: CustomFieldFilter, paginate: Paginate): Promise<ResponseListData<Array<CustomFieldResponse>>> {
+    let errorFiled =  filter.getErrorfield();
+    if (errorFiled){
+      return new ResponseListData({
+        message: errorFiled,
+        status_code: StatusCodes.BAD_REQUEST
+      }, paginate)
+    }
+
+    if(filter.workspace_id){
+      let checkList = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail(({id: filter.workspace_id})));
+      if (checkList.status_code != StatusCodes.OK){
+        return new ResponseListData({
+          message: checkList.message,
+          status_code: StatusCodes.BAD_REQUEST
+        }, paginate)
+      }
+    }
+
+    let custom_fields = await this.custom_field_repo.getListCustomField(filter.toFilterCustomFieldDetail(), paginate);
+    return new ResponseListData({
+      message: "CustomField workspace",
+      status_code: StatusCodes.OK,
+      data: fromCustomFieldDetailToCustomFieldResponseCustomField(custom_fields.data!),
+    }, custom_fields.paginate)
+  }
+
+  async DeleteCustomField(filter: CustomFieldFilter): Promise<ResponseData<null>> {
+    if (filter.isEmpty()) {
+      return new ResponseData({
+        message: "you need filter to delete",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    let errorFiled = filter.getErrorfield();
+    if (errorFiled){
+      return new ResponseData({
+        message: errorFiled,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if(filter.workspace_id){
+      let checkList = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail(({id: filter.workspace_id})));
+      if (checkList.status_code != StatusCodes.OK){
+        return new ResponseData({
+          message: checkList.message,
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+    }
+    const deleteResponse = await this.custom_field_repo.deleteCustomField(filter);
+    if (deleteResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "CustomField is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    return new ResponseData({
+      message: "CustomField is deleted successful",
+      status_code: StatusCodes.NO_CONTENT,
+    })
+  }
+
+  async UpdateCustomField(filter: CustomFieldFilter, data: UpdateCustomFieldData): Promise<ResponseData<null>> {
+    if (filter.isEmpty()) {
+      return new ResponseData({
+        message: "you need filter to update",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    if (data.isEmpty()) {
+      return new ResponseData({
+        message: "you need data to update",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    let errorFiled = filter.getErrorfield();
+    if (errorFiled){
+      return new ResponseData({
+        message: errorFiled,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    errorFiled = data.getErrorfield();
+    if (errorFiled){
+      return new ResponseData({
+        message: errorFiled,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    if(filter.workspace_id){
+      let checkList = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: filter.workspace_id}));
+      if (checkList.status_code != StatusCodes.OK){
+        return new ResponseData({
+          message: checkList.message,
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
+    }
+
+    if (filter.id) {
+      let currentBoard = await this.custom_field_repo.getCustomField({ id: filter.id });
+      if (currentBoard.status_code == StatusCodes.NOT_FOUND) {
+        return new ResponseData({
+          message: "CustomField is not found",
+          status_code: StatusCodes.NOT_FOUND,
+        })
+      }
+
+      let checkList = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
+      if (checkList.status_code == StatusCodes.OK) {
+        return new ResponseData({
+          message: "this workspace name already taken by others",
+          status_code: StatusCodes.NOT_FOUND,
+        })
+      }
+    }
+
+    const updateResponse = await this.custom_field_repo.updateCustomField(filter.toFilterCustomFieldDetail(), data.toCustomFieldDetailUpdate());
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "CustomField is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
+    return new ResponseData({
+      message: "CustomField is updated successful",
+      status_code: StatusCodes.NO_CONTENT,
+    })
+  }
+}

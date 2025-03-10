@@ -262,7 +262,7 @@
 
 // ==================================== end board ====================================
 
-// ==================================== start board ====================================
+// ==================================== start Access Control ====================================
 
 /**
  * @swagger
@@ -344,7 +344,7 @@
  *         description: board for all workspaces
  */
 
-// ==================================== end board ====================================
+// ==================================== end Access Control ====================================
 
 
 /**
@@ -716,6 +716,13 @@
  * tags:
  *   name: CardActivity
  *   description: The card activity managing API
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Custom Field
+ *   description: The custom card managing API
  */
 
 /**

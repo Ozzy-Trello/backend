@@ -424,6 +424,86 @@ module.exports = {
         defaultValue: DataTypes.NOW,
       },
     });
+
+    await queryInterface.createTable('custom_field', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: uuidv4,
+        primaryKey: true,
+      },
+      name: {
+        type: new DataTypes.STRING(128),
+        allowNull: false,
+      },
+      workspace_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'workspace',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      description: {
+        type: new DataTypes.TEXT,
+        allowNull: false,
+      },
+      source: {
+        type: new DataTypes.ENUM('product', 'user'),
+        allowNull: false,
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
+    })
+
+    await queryInterface.createTable('card_custom_field', {
+      custom_field_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'custom_field',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      order: {
+        type: new DataTypes.INTEGER,
+        allowNull: false,
+      },
+      card_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'card',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      value_user_id: {
+        type: DataTypes.UUID,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      value_number: {
+        type: DataTypes.INTEGER,
+      },
+      value_string: {
+        type: DataTypes.STRING(255),
+      }
+    })
   },
 
   async down (queryInterface, Sequelize) {
@@ -435,6 +515,9 @@ module.exports = {
     await queryInterface.removeConstraint('card', 'card_list_id_fkey')
     await queryInterface.removeConstraint('card_tag', 'card_tag_tag_id_fkey')
     await queryInterface.removeConstraint('card_tag', 'card_tag_card_id_fkey')
+    await queryInterface.removeConstraint('custom_field', 'custom_field_workspace_id_fkey')
+    await queryInterface.removeConstraint('card_custom_field', 'card_custom_field_value_user_id_fkey')
+    await queryInterface.removeConstraint('card_custom_field', 'card_custom_field_card_id_fkey')
     // await queryInterface.removeConstraint('card_activity', 'card_activity_card_id_fkey')
     // await queryInterface.removeConstraint('card_activity', 'card_activity_user_id_fkey')
     // await queryInterface.removeConstraint('card_activity_text', 'card_activity_text_card_activity_id_fkey')
@@ -453,5 +536,7 @@ module.exports = {
     await queryInterface.dropTable('card_activity_text')
     await queryInterface.dropTable('card_activity_action')
     await queryInterface.dropTable('role')
+    await queryInterface.dropTable('card_custom_field')
+    await queryInterface.dropTable('custom_field')
   }
 };
