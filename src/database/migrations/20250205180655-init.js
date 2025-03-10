@@ -533,6 +533,7 @@ module.exports = {
     await queryInterface.removeConstraint('workspace_member', 'workspace_member_workspace_id_fkey')
     await queryInterface.removeConstraint('board', 'board_workspace_id_fkey')
     await queryInterface.removeConstraint('board_member', 'board_member_user_id_fkey')
+    await queryInterface.removeConstraint('board_member', 'board_member_board_id_fkey')
     await queryInterface.removeConstraint('list', 'list_board_id_fkey')
     await queryInterface.removeConstraint('card', 'card_list_id_fkey')
     await queryInterface.removeConstraint('card_tag', 'card_tag_tag_id_fkey')
