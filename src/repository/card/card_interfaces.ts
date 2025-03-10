@@ -49,7 +49,7 @@ export class CardDetail {
   public name?: string;
   public description!: string;
   public list_id!: string;
-  public order!: number;
+  public order?: number;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

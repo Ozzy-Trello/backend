@@ -233,6 +233,30 @@
  *
  */
 
+
+/**
+ * @swagger
+ * /v1/card/{id}/custom-field:
+ *   get:
+ *     summary: get custom fields
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card
+ *         required: true
+ *         schema:
+ *           type: string
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       201:
+ *         description: card updated successfully
+ *       500:
+ *         description: Internal Server Error
+ *
+ */
+
 /**
  * @swagger
  * /v1/card/{id}/custom-field/{custom-field-id}:

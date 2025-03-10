@@ -1,10 +1,11 @@
-import {filterCustomFieldDetail, CustomFieldDetail, CustomFieldDetailUpdate, CustomFieldRepositoryI} from "@/repository/custom_field/custom_field_interfaces";
+import {filterCustomFieldDetail, CustomFieldDetail, CustomFieldDetailUpdate, CustomFieldRepositoryI, CustomFieldCardDetail, AssignCardDetail} from "@/repository/custom_field/custom_field_interfaces";
 import CustomField from "@/database/schemas/custom_field";
 import {Error, Op} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
+import CardCustomField from "@/database/schemas/card_custom_field";
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
 	createFilter(filter: filterCustomFieldDetail): any {
@@ -34,6 +35,90 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			whereClause[Op.or] = orConditions;
 		}
 		return whereClause
+	}
+
+	async getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>> {
+		let result: Array<AssignCardDetail> = [];
+		let whereData = {card_id: card_id}
+		paginate.setTotal(await CardCustomField.count({where: whereData}))
+		const lists = await CardCustomField.findAll({
+			where: whereData,
+			offset: paginate.getOffset(),
+			limit: paginate.limit,
+		});
+		for (const custom_field of lists) {
+			result.push(new AssignCardDetail({
+				order: custom_field.order,
+				value: function(): undefined | string | number {
+					if (custom_field.value_user_id) return custom_field.value_user_id
+					if (custom_field.value_string) return custom_field.value_string
+					if (custom_field.value_number) return custom_field.value_number
+					return undefined
+				}()
+			}))
+		}
+		return new ResponseListData({
+			status_code: StatusCodes.OK,
+			message: "custom_field custom_field",
+			data: result,
+		}, paginate)
+	}	
+
+	async updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number> {
+		try {
+			const effected = await CardCustomField.update(value.toObject(), {where: {
+				custom_field_id: id,
+				card_id: card_id,
+			}});
+			if (effected[0] <= 0 ){
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async assignToCard(id: string, card_id: string): Promise<number> {
+		try {
+			let data = {
+				card_id: card_id,
+				custom_field_id: id,
+				order: 1,
+			}
+			const checkCustomField = await CardCustomField.findOne({where: data});
+			if (checkCustomField){
+				return StatusCodes.CONFLICT
+			}
+			await CardCustomField.create(data);
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async unAssignFromCard(id: string, card_id: string): Promise<number> {
+		try {
+			const effected = await CardCustomField.destroy({where: {
+				card_id: card_id,
+				custom_field_id: id,
+			}});
+			if (effected <= 0 ){
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
 	}
 
 	async deleteCustomField(filter: filterCustomFieldDetail): Promise<number> {
@@ -133,7 +218,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 	async updateCustomField(filter: filterCustomFieldDetail, data: CustomFieldDetailUpdate): Promise<number> {
 		try {
 			const effected= await CustomField.update(data.toObject(), {where: this.createFilter(filter)});
-			if (effected[0] ==0 ){
+			if (effected[0] <= 0 ){
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT

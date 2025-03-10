@@ -41,7 +41,7 @@ export default function (): Router {
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo);
     const list_controller = new ListController(list_repo, board_repo);
-    const card_controller = new CardController(card_repo, list_repo);
+    const card_controller = new CardController(card_repo, list_repo, custom_field_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);
 
     const account_rest_view = new AccountRestView(account_controller);
@@ -112,6 +112,10 @@ export default function (): Router {
         router_card.get("/:id", restJwt, card_rest_view.GetCard);
         router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
         router_card.delete("/:id", restJwt, card_rest_view.DeleteCard);
+        router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);
+        router_card.put("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.UpdateCard);
+        router_card.delete("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.RemoveCustomField);
+        router_card.get("/:id/custom-field", restJwt, card_rest_view.GetCustomField);
     }
 
     const router_custom_field = Router();

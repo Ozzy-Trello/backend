@@ -502,6 +502,14 @@ module.exports = {
       },
       value_string: {
         type: DataTypes.STRING(255),
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
       }
     })
   },
