@@ -381,115 +381,6 @@
  * @swagger
  * components:
  *   schemas:
- *     CreateCardModel:
- *       type: object
- *       required:
- *         - name
- *         - description
- *       properties:
- *         name:
- *           type: string
- *           description: The auto-generated id of the user identity
- *         description:
- *           type: string
- *           description: The title of your phone
- *       example:
- *         name: default 
- *         description: Card for all list
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     GetCardModel:
- *       allOf:
- *         - $ref: '#/components/schemas/CreateCardModel'
- *         - type: object
- *           properties:
- *             id:
- *               type: string
- *       example:
- *         id: "E7656DE4-6E7B-4C27-8589-E4227EE05C00"
- *         name: default 
- *         description: Card for all list
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     CardActivityModel:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           description: The auto-generated id of the user identity
- *         card_id:
- *           type: string
- *           description: The title of your phone
- *         sender_user_id:
- *           type: string
- *           description: The title of your phone
- *         activity_type:
- *           type: string
- *           description: The title of your phone
- *       example:
- *         id: 1
- *         card_id: 1
- *         sender_user_id: 1
- *         activity_type: 1
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     CreateCardCommentModel:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *         card_id:
- *           type: string
- *         text:
- *           type: string
- *       example:
- *         id: 1
- *         card_id: 1
- *         text: 'Hello world!'
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
- *     CardActionModel:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           description: The auto-generated id of the user identity
- *         activity_id:
- *           type: string
- *           description: The title of your phone
- *         action:
- *           type: string
- *           description: The title of your phone
- *         source:
- *           type: object
- *           description: The title of your phone
- *       example:
- *         id: 1
- *         activity_id: 1
- *         action: 'assign_tag'
- *         source: { tag_id: 1 }
- */
-
-/**
- * @swagger
- * components:
- *   schemas:
  *     UserRoleModel:
  *       type: object
  *       properties:
@@ -722,7 +613,7 @@
  * @swagger
  * tags:
  *   name: Custom Field
- *   description: The custom card managing API
+ *   description: The custom field managing API
  */
 
 /**
