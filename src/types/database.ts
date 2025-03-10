@@ -2,6 +2,7 @@ import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 import { SourceType } from './custom_field';
 
 export interface Database {
+  board_member: BoardMemberTable;
   user: UserTable;
   workspace: WorkspaceTable;
   workspace_member: WorkspaceMemberTable;
@@ -54,4 +55,10 @@ export interface CardTable {
   name: string;
   description: string;
   order: number;
+}
+
+export interface BoardMemberTable {
+  board_id: string;
+  user_id: string;
+  role_id: string;
 }

@@ -6,14 +6,17 @@ import { Paginate } from "@/utils/data_utils";
 import { BoardControllerI, BoardCreateData, BoardFilter, BoardResponse, CreateBoardResponse, fromBoardDetailToBoardResponse, fromBoardDetailToBoardResponseList, UpdateBoardData } from "./board_interfaces";
 import { BoardRepositoryI } from "@/repository/board/board_interfaces";
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from "@/repository/workspace/workspace_interfaces";
+import { RoleRepositoryI } from '@/repository/role_access/role_interfaces';
 
 export class BoardController implements BoardControllerI {
   private board_repo: BoardRepositoryI
+  private role_access_repo: RoleRepositoryI
   private workspace_repo: WorkspaceRepositoryI
 
-  constructor(board_repo: BoardRepositoryI, workspace_repo: WorkspaceRepositoryI) {
+  constructor(board_repo: BoardRepositoryI, workspace_repo: WorkspaceRepositoryI, role_access_repo: RoleRepositoryI) {
     this.board_repo = board_repo;
     this.workspace_repo = workspace_repo;
+    this.role_access_repo = role_access_repo;
     this.GetBoard = this.GetBoard.bind(this);
     this.GetListBoard = this.GetListBoard.bind(this);
     this.DeleteBoard = this.DeleteBoard.bind(this);
@@ -57,6 +60,17 @@ export class BoardController implements BoardControllerI {
       })
     }
 
+    let defaultRole = await this.role_access_repo.getRole({
+      default: true, 
+      createDefaultWhenNone: true,
+    });
+    if (!(defaultRole.status_code == StatusCodes.OK || defaultRole.status_code == StatusCodes.CREATED)) {
+      return new ResponseData({
+        message: defaultRole.message,
+        status_code: defaultRole.status_code,
+      })
+    }
+
     let createResponse = await this.board_repo.createBoard(data.toBoardDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
@@ -65,7 +79,7 @@ export class BoardController implements BoardControllerI {
       })
     }
 
-    let addMemberResponse = await this.board_repo.addMember(createResponse.data!.id!, user_id, "2147fece-408f-44ad-99b0-6b146b38d8c2");
+    let addMemberResponse = await this.board_repo.addMember(createResponse.data!.id!, user_id, defaultRole.data?.id!);
     if (addMemberResponse != StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: "error to sign user as board owner",
