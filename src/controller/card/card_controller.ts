@@ -4,21 +4,175 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { CardRepositoryI } from '@/repository/card/card_interfaces';
-import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData } from '@/controller/card/card_interfaces';
+import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
+import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
   private list_repo: ListRepositoryI
+  private custom_field_repo: CustomFieldRepositoryI
 
-  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI) {
+  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
+    this.custom_field_repo = custom_field_repo;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
     this.UpdateCard = this.UpdateCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
+  }
+  async UpdateCustomField(card_id: string, custom_field_id: string, value: string): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (!isValidUUID(custom_field_id)){
+      return new ResponseData({
+        message: "'custom_field_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let checkCard = await this.card_repo.getCard({id: card_id});
+    if (checkCard.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      })  
+    }
+
+    let checkCustomField = await this.custom_field_repo.getCustomField({id: custom_field_id});
+    if (checkCustomField.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCustomField.message,
+        status_code: checkCustomField.status_code,
+      })  
+    }
+
+    throw new Error('Method not implemented.');
+  }
+
+  async AddCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (!isValidUUID(custom_field_id)){
+      return new ResponseData({
+        message: "'custom_field_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let checkCard = await this.card_repo.getCard({id: card_id});
+    if (checkCard.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      })  
+    }
+
+    let checkCustomField = await this.custom_field_repo.getCustomField({id: custom_field_id});
+    if (checkCustomField.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCustomField.message,
+        status_code: checkCustomField.status_code,
+      })  
+    }
+
+    let assignCustomFieldRes = await this.custom_field_repo.assignToCard(custom_field_id, card_id);
+    if (assignCustomFieldRes != StatusCodes.NO_CONTENT){
+      return new ResponseData({
+        message: "internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR
+      })  
+    }
+
+    return new ResponseData({
+      message: "Success",
+      status_code: StatusCodes.NO_CONTENT,
+    })
+  }
+
+  async RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+    if (!isValidUUID(custom_field_id)){
+      return new ResponseData({
+        message: "'custom_field_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let checkCard = await this.card_repo.getCard({id: card_id});
+    if (checkCard.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      })  
+    }
+
+    let checkCustomField = await this.custom_field_repo.getCustomField({id: custom_field_id});
+    if (checkCustomField.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCustomField.message,
+        status_code: checkCustomField.status_code,
+      })  
+    }
+
+    let assignCustomFieldRes = await this.custom_field_repo.unAssignFromCard(custom_field_id, card_id);
+    if (assignCustomFieldRes != StatusCodes.NO_CONTENT){
+      return new ResponseData({
+        message: "internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR
+      })  
+    }
+
+    return new ResponseData({
+      message: "Success",
+      status_code: StatusCodes.NO_CONTENT,
+    })
+  }
+
+  async GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseListData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      }, paginate)
+    }
+
+    let checkCard = await this.card_repo.getCard({id: card_id});
+    if (checkCard.status_code != StatusCodes.OK){
+      return new ResponseListData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      }, paginate)  
+    }
+
+    let res = await this.custom_field_repo.getListAssignCard(card_id, paginate);
+    if (res.status_code != StatusCodes.OK){
+      return new ResponseListData({
+        message: res.message,
+        status_code: res.status_code
+      }, paginate)
+    }
+
+    return new ResponseListData({
+      message: "list of custom field on this card",
+      status_code: StatusCodes.OK,
+      data: fromCustomFieldDetailToCustomFieldResponseCard(res.data!)
+    }, paginate)
   }
 
   async CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>> {
@@ -101,12 +255,12 @@ export class CardController implements CardControllerI {
     }
 
     let checkList = await this.card_repo.getCard(filter.toFilterCardDetail());
-      if (checkList.status_code != StatusCodes.OK){
-        return new ResponseData({
-          message: checkList.message,
-          status_code: checkList.status_code,
-        })  
-      }
+    if (checkList.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkList.message,
+        status_code: checkList.status_code,
+      })  
+    }
 
     return new ResponseData({
       message: checkList.message,

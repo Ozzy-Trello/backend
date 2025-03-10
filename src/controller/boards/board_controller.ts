@@ -47,6 +47,7 @@ export class BoardController implements BoardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
+    data.workspace_id = workspace.data?.id!
 
     let checkBoard = await this.board_repo.getBoard({ workspace_id: workspace.data?.id!, name: data.name });
     if (checkBoard.status_code == StatusCodes.OK) {

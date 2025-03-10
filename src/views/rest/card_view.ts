@@ -14,6 +14,76 @@ export default class CardRestView implements CardRestViewI {
     this.GetListCard = this.GetListCard.bind(this)
     this.UpdateCard = this.UpdateCard.bind(this)
     this.DeleteCard = this.DeleteCard.bind(this)
+    this.AddCustomField = this.AddCustomField.bind(this)
+    this.RemoveCustomField = this.RemoveCustomField.bind(this)
+    this.UpdateCustomField = this.UpdateCustomField.bind(this)
+    this.GetCustomField = this.GetCustomField.bind(this)
+  }
+  async UpdateCustomField(req: Request, res: Response): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+  async AddCustomField(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.card_controller.AddCustomField(req.params.id?.toString(), req.params.custom_field_id?.toString())
+    if (accResponse.status_code !== StatusCodes.CREATED) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
+    })
+    return
+  }
+  async RemoveCustomField(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.card_controller.RemoveCustomField(req.params.id?.toString(), req.params.custom_field_id?.toString())
+    if (accResponse.status_code !== StatusCodes.CREATED) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
+    })
+  }
+  async GetCustomField(req: Request, res: Response): Promise<void> {
+    let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
+    let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
+    let paginate = new Paginate(page, limit);
+    let accResponse = await this.card_controller.GetListCustomField(req.params.id.toString(), paginate)
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message,
+      "paginate": accResponse.paginate,
+    })
+    return
   }
 
   async CreateCard(req: Request, res: Response): Promise<void> {
@@ -21,6 +91,7 @@ export default class CardRestView implements CardRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       list_id: req.body.list_id?.toString(),
+      order: 1,
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

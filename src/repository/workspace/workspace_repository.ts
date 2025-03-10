@@ -6,8 +6,7 @@ import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import WorkspaceMember from "@/database/schemas/workspace_member";
-import db from "@/database/connections";
-import User from "@/database/schemas/user";
+import db from "@/database";
 
 export class WorkspaceRepository implements WorkspaceRepositoryI {
 	createFilter(filter: filterWorkspaceDetail): any {
@@ -128,54 +127,25 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 
 	async getWorkspace(filter: filterWorkspaceDetail): Promise<ResponseData<WorkspaceDetail>> {
 		try {
-			let includes: Includeable[] = [];
-			// if (filter.isEmpty()) {
-			// 	return {
-			// 		status_code: StatusCodes.BAD_REQUEST,
-			// 		message: "you must put the filter first",
-			// 	}
-			// }
+			let qry = db.selectFrom('workspace').selectAll()
 			if (filter.user_id_owner){
-				// harusnya menggunakan join query
-				// includes.push({
-				// 	model:WorkspaceMember, 
-				// 	required: true,
-				// 	where: {
-				// 		user_id: filter.user_id_owner,
-				// 	}
-				// })
-
-				let user = await User.findOne({where: {id:filter.user_id_owner}});
-				if (!user){
-					return {
-						status_code: StatusCodes.NOT_FOUND,
-						message: "user is not found",
-					}
-				}
-				let member = await WorkspaceMember.findOne({
-					where: {user_id: filter.user_id_owner},
-				})
-				if (!member){
-					return {
-						status_code: StatusCodes.NOT_FOUND,
-						message: "this user have no workspace",
-					}
-				}
-				filter.id = member.workspace_id
+				qry = qry.
+				innerJoin('workspace_member', 'workspace.id', 'workspace_member.workspace_id').
+				where('workspace_member.user_id', '=', filter.user_id_owner)
 			}
-			
-			const workspace = await Workspace.findOne({where: this.createFilter(filter), include: includes});
-			if (!workspace) {
+			let qryResult = await qry.executeTakeFirst()
+			if(!qryResult) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
 					message: "workspace is not found",
 				}
 			}
+
 			let result = new WorkspaceDetail({
-				id: workspace.id,
-				name: workspace.name,
-				description: workspace.description,
-				slug: workspace.slug,
+				id: qryResult.id,
+				name: qryResult.name,
+				description: qryResult.description,
+				slug: qryResult.slug,
 			})
 
 			return new ResponseData({
@@ -193,20 +163,25 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 
 	async getWorkspaceList(filter: filterWorkspaceDetail, paginate: Paginate): Promise<ResponseListData<Array<WorkspaceDetail>>> {
 		let result: Array<WorkspaceDetail> = [];
-		paginate.setTotal(await Workspace.count({where: this.createFilter(filter)}))
-		const workspaces = await Workspace.findAll({
-			where: this.createFilter(filter),
-			offset: paginate.getOffset(),
-			limit: paginate.limit,
-		});
-		for (const workspace of workspaces) {
-			result.push(new WorkspaceDetail({
-				id: workspace.id,
-				name: workspace.name,
-				description: workspace.description,
-				slug: workspace.slug,
-			}))
+		let qry = db.selectFrom('workspace')
+		if (filter.user_id_owner){
+			qry = qry.
+			innerJoin('workspace_member', 'workspace.id', 'workspace_member.workspace_id').
+			where('workspace_member.user_id', '=', filter.user_id_owner)
 		}
+		let total = await qry.select(({ fn }) => fn.count<number>('workspace.id').as('total')).executeTakeFirst();
+		paginate.setTotal(total?.total!)
+		
+		let qryResult = await qry.selectAll().offset(paginate.getOffset()).limit(paginate.limit).execute();
+		qryResult.map((raw) => {
+			result.push(new WorkspaceDetail({
+				id: raw.id,
+				name: raw.name,
+				description: raw.description,
+				slug: raw.slug,
+			}))
+		})
+
 		return new ResponseListData({
 			status_code: StatusCodes.OK,
 			message: "list workspace",

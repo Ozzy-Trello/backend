@@ -1,4 +1,4 @@
-import { DataTypes, Model, } from 'sequelize';
+import { DataTypes, Model, Optional, } from 'sequelize';
 import sequelize from '@/database/connections';
 
 interface CardCustomFieldAttributes {
@@ -10,7 +10,8 @@ interface CardCustomFieldAttributes {
   order: number;
 }
 
-interface CardCustomFieldCreationAttributes extends CardCustomFieldAttributes{ }
+// @ts-ignore: Unreachable code error
+interface CardCustomFieldCreationAttributes extends Optional<CardCustomFieldAttributes, 'id'>{ }
 
 class CardCustomField extends Model<CardCustomFieldAttributes, CardCustomFieldCreationAttributes> implements CardCustomFieldAttributes {
   public custom_field_id!: string;
@@ -28,7 +29,7 @@ CardCustomField.init(
   {
     custom_field_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      primaryKey: true,
       references: {
         model: 'custom_field',
         key: 'id',
@@ -42,7 +43,7 @@ CardCustomField.init(
     },
     card_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      primaryKey: true,
       references: {
         model: 'card',
         key: 'id',
@@ -69,6 +70,9 @@ CardCustomField.init(
   {
     tableName: 'card_custom_field',
     sequelize,
+    defaultScope: {
+      attributes: {exclude: ['id', 'createdAt', 'updatedAt']}
+  },
   }
 )
 

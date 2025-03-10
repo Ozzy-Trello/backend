@@ -3,12 +3,18 @@ import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
+import { AssignCardDetail } from '@/repository/custom_field/custom_field_interfaces';
+import { SourceType } from '@/types/custom_field';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
 	GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>>
 	GetListCard(filter: CardFilter, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	DeleteCard(filter: CardFilter): Promise<ResponseData<null>>
+	AddCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
+	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
+	UpdateCustomField(card_id: string, custom_field_id: string, value: string): Promise<ResponseData<null>>
+	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
 	UpdateCard(filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
 }
 
@@ -30,6 +36,19 @@ export class CardResponse {
 	}
 }
 
+export class AssignCardResponse {
+	id!: string;
+	name!: string;
+	description?: string;
+	value?: null | string | number;
+	order!: number;
+	source!: SourceType;
+
+	constructor(payload: Partial<AssignCardResponse>) {
+		Object.assign(this, payload)
+	}
+}
+
 export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 	return new CardResponse({
 		id: data.id,
@@ -42,6 +61,20 @@ export function fromCardDetailToCardResponseCard(data: Array<CardDetail>): Array
 	let result: Array<CardResponse> = [];
 	for (const datum of data) {
 		result.push(fromCardDetailToCardResponse(datum))
+	}
+	return result
+}
+
+export function fromCustomFieldDetailToCustomFieldResponseCard(data: Array<AssignCardDetail>): Array<AssignCardResponse> {
+	let result: Array<AssignCardResponse> = [];
+	for (const datum of data) {
+		result.push(new AssignCardResponse({
+			id: datum.id,
+			name: datum.name,
+			order: datum.order,
+			source:  datum.source,
+			value: datum.value,
+		}))
 	}
 	return result
 }
@@ -118,6 +151,7 @@ export class CardCreateData {
 	name!: string;
 	description?: string;
 	list_id!: string;
+	order?: number;
 
 	constructor(payload: Partial<CardCreateData>) {
 		Object.assign(this, payload)
@@ -130,7 +164,8 @@ export class CardCreateData {
 		return new CardDetail({
 			name: this.name,
 			description: this.description,
-			list_id: this.list_id
+			list_id: this.list_id,
+			order: this.order
 		})
 	}
 

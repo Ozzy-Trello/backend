@@ -1,10 +1,12 @@
-import {filterCustomFieldDetail, CustomFieldDetail, CustomFieldDetailUpdate, CustomFieldRepositoryI} from "@/repository/custom_field/custom_field_interfaces";
+import {filterCustomFieldDetail, CustomFieldDetail, CustomFieldDetailUpdate, CustomFieldRepositoryI, CustomFieldCardDetail, AssignCardDetail} from "@/repository/custom_field/custom_field_interfaces";
 import CustomField from "@/database/schemas/custom_field";
 import {Error, Op} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
+import CardCustomField from "@/database/schemas/card_custom_field";
+import db from "@/database";
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
 	createFilter(filter: filterCustomFieldDetail): any {
@@ -34,6 +36,101 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			whereClause[Op.or] = orConditions;
 		}
 		return whereClause
+	}
+
+	async getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>> {
+		let result: Array<AssignCardDetail> = [];
+		let qry = db.selectFrom("card_custom_field").
+		innerJoin("custom_field", "card_custom_field.custom_field_id", "custom_field.id").
+		where("card_custom_field.card_id", "=", card_id);
+		let total = await qry.select(({ fn }) => fn.count<number>("card_custom_field.card_id").as('total')).executeTakeFirst();
+		paginate.setTotal(total?.total!)
+		
+		let qryResult = await qry.select([
+			"custom_field.id",
+			"custom_field.name",
+			"custom_field.source",
+			"card_custom_field.order",
+			"card_custom_field.value_number",
+			"card_custom_field.value_string",
+			"card_custom_field.value_user_id"
+		]).offset(paginate.getOffset()).limit(paginate.limit).execute();
+		qryResult.map((raw) => {
+			result.push(new AssignCardDetail({
+				id: raw.id,
+				name: raw.name,
+				source: raw.source,
+				order: raw.order,
+				value: function(): undefined | string | number {
+					if (raw.value_user_id) return raw.value_user_id
+					if (raw.value_string) return raw.value_string
+					if (raw.value_number) return raw.value_number
+					return undefined
+				}()
+			}))
+		})
+		return new ResponseListData({
+			status_code: StatusCodes.OK,
+			message: "custom_field custom_field",
+			data: result,
+		}, paginate)
+	}	
+
+	async updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number> {
+		try {
+			const effected = await CardCustomField.update(value.toObject(), {where: {
+				custom_field_id: id,
+				card_id: card_id,
+			}});
+			if (effected[0] <= 0 ){
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async assignToCard(id: string, card_id: string): Promise<number> {
+		try {
+			let data = {
+				card_id: card_id,
+				custom_field_id: id,
+				order: 1,
+			}
+			const checkCustomField = await CardCustomField.findOne({where: data});
+			if (checkCustomField){
+				return StatusCodes.CONFLICT
+			}
+			await CardCustomField.create(data);
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async unAssignFromCard(id: string, card_id: string): Promise<number> {
+		try {
+			const effected = await CardCustomField.destroy({where: {
+				card_id: card_id,
+				custom_field_id: id,
+			}});
+			if (effected <= 0 ){
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
 	}
 
 	async deleteCustomField(filter: filterCustomFieldDetail): Promise<number> {
@@ -133,7 +230,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 	async updateCustomField(filter: filterCustomFieldDetail, data: CustomFieldDetailUpdate): Promise<number> {
 		try {
 			const effected= await CustomField.update(data.toObject(), {where: this.createFilter(filter)});
-			if (effected[0] ==0 ){
+			if (effected[0] <= 0 ){
 				return StatusCodes.NOT_FOUND
 			}
 			return StatusCodes.NO_CONTENT

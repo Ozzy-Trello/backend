@@ -8,6 +8,11 @@ export interface CustomFieldRepositoryI {
   deleteCustomField(filter: filterCustomFieldDetail): Promise<number>;
   updateCustomField(filter: filterCustomFieldDetail, data: CustomFieldDetailUpdate): Promise<number>;
   getListCustomField(filter: filterCustomFieldDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomFieldDetail>>>;
+
+  assignToCard(id: string, card_id: string): Promise<number>;
+  unAssignFromCard(id: string, card_id: string): Promise<number>;
+  getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>>;
+  updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number>;
 }
 
 export interface filterCustomFieldDetail {
@@ -38,6 +43,7 @@ export class CustomFieldDetailUpdate {
 
   constructor(payload: Partial<CustomFieldDetailUpdate>) {
     Object.assign(this, payload);
+    this.toObject = this.toObject.bind(this)
   }
 
   public toObject(): any {
@@ -59,5 +65,40 @@ export class CustomFieldDetail {
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);
+  }
+}
+
+export class AssignCardDetail {
+  public id!: string;
+  public name!: string;
+  public order?: number;
+  public value?: string | number;
+  public source!:  SourceType
+
+  constructor(payload: Partial<AssignCardDetail>) {
+    Object.assign(this, payload);
+  }
+}
+
+export class CustomFieldCardDetail {
+  public order?: string;
+  public card_id!: string;
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+
+  constructor(payload: Partial<CustomFieldDetail>) {
+    Object.assign(this, payload);
+    this.toObject = this.toObject.bind(this)
+  }
+
+  public toObject(): any {
+    const data: any = {};
+    if (this.order) data.order = this.order;
+    if (this.card_id) data.card_id = this.card_id;
+    if (this.value_user_id) data.value_user_id = this.value_user_id;
+    if (this.value_string) data.value_string = this.value_string;
+    if (this.value_number) data.value_number = this.value_number;
+    return data
   }
 }
