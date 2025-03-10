@@ -39,7 +39,7 @@ export default function (): Router {
     const access_control_controller = new AccessControlController(role_repo);
     const auth_controller = new AuthController(user_repo, workspace_repo, role_repo);
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
-    const board_controller = new BoardController(board_repo, workspace_repo);
+    const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
     const card_controller = new CardController(card_repo, list_repo, custom_field_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);

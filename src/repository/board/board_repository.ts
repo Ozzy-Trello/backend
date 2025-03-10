@@ -6,6 +6,7 @@ import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import BoardMember from "@/database/schemas/board_member";
+import db from "@/database";
 
 export class BoardRepository implements BoardRepositoryI {
 	createFilter(filter: filterBoardDetail): any {
@@ -82,11 +83,11 @@ export class BoardRepository implements BoardRepositoryI {
 
 	async addMember(id: string, user_id: string, role_id: string): Promise<number> {
 		try {
-			const board = await BoardMember.create({
+			await db.insertInto("board_member").values({
 				board_id: id,
 				user_id: user_id,
 				role_id: role_id,
-			});
+			}).execute()
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {
