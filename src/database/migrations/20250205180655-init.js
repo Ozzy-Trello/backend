@@ -46,6 +46,48 @@ module.exports = {
       }
     })
 
+    await queryInterface.createTable('custom_rule', {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: uuidv4,
+        primaryKey: true,
+      },
+      name: {
+        type: new DataTypes.STRING(128),
+        allowNull: false,
+      },
+      workspace_id: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'workspace',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      description: {
+        type: new DataTypes.TEXT,
+        allowNull: false,
+      },
+      field_type: {
+        type: new DataTypes.ENUM('product', 'user'),
+        allowNull: false,
+      },
+      order: {
+        type: new DataTypes.INTEGER,
+        allowNull: false,
+      },
+      createdAt: {
+        type: new DataTypes.TIME,
+        allowNull: false,
+        defaultValue: Sequelize.fn("now"),
+      },
+      updatedAt: {
+        type: new DataTypes.TIME,
+      }
+    })
+
     await queryInterface.createTable('workspace', {
       id: {
         type: DataTypes.UUID,
