@@ -81,7 +81,7 @@ export class AssignCardDetail {
 }
 
 export class CustomFieldCardDetail {
-  public order?: string;
+  public order?: number;
   public card_id!: string;
   public value_user_id?: string;
   public value_string?: string;

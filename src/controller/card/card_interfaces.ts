@@ -13,7 +13,7 @@ export interface CardControllerI {
 	DeleteCard(filter: CardFilter): Promise<ResponseData<null>>
 	AddCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
 	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
-	UpdateCustomField(card_id: string, custom_field_id: string, value: string): Promise<ResponseData<null>>
+	UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
 	UpdateCard(filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
 }

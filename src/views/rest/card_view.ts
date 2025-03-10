@@ -19,9 +19,32 @@ export default class CardRestView implements CardRestViewI {
     this.UpdateCustomField = this.UpdateCustomField.bind(this)
     this.GetCustomField = this.GetCustomField.bind(this)
   }
+
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
-    throw new Error("Method not implemented.");
+    let updateResponse = await this.card_controller.UpdateCustomField(
+      req.params.id?.toString(),
+      req.params.custom_field_id?.toString(),
+      req.body.value,
+    )
+    if (updateResponse.status_code !== StatusCodes.OK) {
+      if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(updateResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(updateResponse.status_code).json({
+        "message": updateResponse.message,
+      })
+      return
+    }
+    res.status(updateResponse.status_code).json({
+      "data": updateResponse.data,
+      "message": updateResponse.message,
+    })
+    return
   }
+
   async AddCustomField(req: Request, res: Response): Promise<void> {
     let accResponse = await this.card_controller.AddCustomField(req.params.id?.toString(), req.params.custom_field_id?.toString())
     if (accResponse.status_code !== StatusCodes.CREATED) {
