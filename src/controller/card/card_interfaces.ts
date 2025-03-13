@@ -171,6 +171,7 @@ export class CardCreateData {
 
 	checkRequired(): string | null{
 		if (this.list_id == undefined ) return 'list_id'
+		if (this.name == undefined ) return 'name'
 		return null
 	} 
 
