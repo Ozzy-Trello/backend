@@ -35,6 +35,14 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
+    let paylodCheck = data.checkRequired();
+    if (paylodCheck) {
+      return new ResponseData({
+        message: `you need to put '${paylodCheck}'`,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
     let checkWorkspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({ slug: data.slug }));
     if (checkWorkspace.status_code == StatusCodes.OK) {
       return new ResponseData({

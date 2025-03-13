@@ -118,6 +118,7 @@ export class WorkspaceCreateData {
 		Object.assign(this, payload)
 		this.toWorkspaceDetail = this.toWorkspaceDetail.bind(this);
 		this.isEmpty = this.isEmpty.bind(this);
+		this.checkRequired = this.checkRequired.bind(this);
 	}
 
 	toWorkspaceDetail(): WorkspaceDetail {
@@ -127,6 +128,11 @@ export class WorkspaceCreateData {
 			slug: this.slug
 		})
 	}
+
+	checkRequired(): string | null{
+		if (this.name == undefined ) return 'name'
+		return null
+	} 
 
 	isEmpty(): boolean{
 		return this.name == undefined && this.slug == undefined && this.description == undefined;
