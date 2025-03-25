@@ -86,6 +86,8 @@ export class CustomFieldTrigger {
     if (this.action.label_card_id && !isValidUUID(this.action.label_card_id!)) {
 			return "'label_card_id' is not valid uuid"
 		}
+    if (this.action.label_card_id) return "'label_card_id' not support yet"
+    if (this.action.message_telegram) return "'message_telegram' not support yet"
 		return null
 	}
 
