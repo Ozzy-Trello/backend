@@ -23,6 +23,7 @@ import CardRestView from "@/views/rest/card_view";
 import { CustomFieldRepository } from "@/repository/custom_field/custom_field_repository";
 import { CustomFieldController } from "@/controller/custom_field/custom_field_controller";
 import CustomFieldRestView from "@/views/rest/custom_field_view";
+import { TriggerRepository } from "@/repository/trigger/trigger_repository";
 
 export default function (): Router {
     const root_router = Router();
@@ -34,6 +35,7 @@ export default function (): Router {
     const list_repo = new ListRepository();
     const card_repo = new CardRepository();
     const custom_field_repo = new CustomFieldRepository();
+    const trigger_repo = new TriggerRepository();
 
     const account_controller = new AccountController(user_repo);
     const access_control_controller = new AccessControlController(role_repo);
@@ -41,7 +43,7 @@ export default function (): Router {
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
-    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, user_repo);
+    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, user_repo, trigger_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);
 
     const account_rest_view = new AccountRestView(account_controller);

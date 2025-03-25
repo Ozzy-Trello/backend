@@ -1,4 +1,5 @@
 import { CardControllerI, CardCreateData, CardFilter, UpdateCardData } from "@/controller/card/card_interfaces";
+import { CustomFieldTrigger } from "@/repository/custom_field/custom_field_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { CardRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -41,12 +42,35 @@ export default class CardRestView implements CardRestViewI {
     res.status(updateResponse.status_code).json({
       "data": updateResponse.data,
       "message": updateResponse.message,
+      "warning": updateResponse.warning,
     })
     return
   }
 
   async AddCustomField(req: Request, res: Response): Promise<void> {
-    let accResponse = await this.card_controller.AddCustomField(req.params.id?.toString(), req.params.custom_field_id?.toString())
+    let trigger : CustomFieldTrigger | undefined
+    if (req.body.trigger) {
+      if (!req.body.trigger.action) {
+        res.status(StatusCodes.BAD_REQUEST).json({
+          "message": "you need to put value `action` in `trigger`",
+        })
+        return
+      }
+      trigger = new CustomFieldTrigger({
+        conditional_value: req.body.trigger.conditional_value,
+        action: {
+          target_list_id: req.body.trigger.action.target_list_id,
+          label_card_id: req.body.trigger.action.label_card_id,
+          message_telegram: req.body.trigger.action.message_telegram,
+        }
+      })
+    }
+    let accResponse = await this.card_controller.AddCustomField(
+      req.params.id?.toString(),
+      req.params.custom_field_id?.toString(),
+      req.body.value,
+      trigger
+    )
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({

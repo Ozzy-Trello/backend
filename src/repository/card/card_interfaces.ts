@@ -30,6 +30,7 @@ export class CardDetailUpdate {
   public name?: string;
   public description?: string;
   public order?: number;
+  public list_id?: string;
 
   constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
@@ -40,6 +41,7 @@ export class CardDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
+    if (this.list_id) data.list_id = this.list_id;
     return data
   }
 }

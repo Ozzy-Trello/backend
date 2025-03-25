@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import {filterListDetail, ListDetail, ListDetailUpdate, ListRepositoryI} from "@/repository/list/list_interfaces";
 import List from "@/database/schemas/list";
 import {Error, Op} from "sequelize";
@@ -76,6 +78,12 @@ export class ListRepository implements ListRepositoryI {
 
 	async getList(filter: filterListDetail): Promise<ResponseData<ListDetail>> {
 		try {
+			if (filter.id && !isValidUUID(filter.id)){
+				return {
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "list id not valid uuid"
+				}
+			}
 			const list = await List.findOne({where: this.createFilter(filter)});
 			if (!list) {
 				return {

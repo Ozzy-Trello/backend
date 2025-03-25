@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI} from "@/repository/card/card_interfaces";
 import Card from "@/database/schemas/card";
 import {Error, Op} from "sequelize";
@@ -77,6 +79,12 @@ export class CardRepository implements CardRepositoryI {
 
 	async getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>> {
 		try {
+			if (filter.id && !isValidUUID(filter.id)) {
+				return {
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "card id is not valid uuid",
+				}
+			}
 			const card = await Card.findOne({where: this.createFilter(filter)});
 			if (!card) {
 				return {

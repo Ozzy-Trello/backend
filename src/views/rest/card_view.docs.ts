@@ -20,6 +20,30 @@
  *         description: Card for all list
  */
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     AssiggnCustomFieldTrigger:
+ *       type: object
+ *       properties:
+ *         trigger:
+ *           type: object
+ *           description: The auto-generated id of the user identity
+ *         value:
+ *           type: object
+ *           description: The auto-generated id of the user identity
+ *       example:
+ *         trigger:
+ *           condition_value: 'value to trigger'
+ *           action:
+ *             target_list_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
+ *             message_telegram: 'hallo'
+ *             label_card_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
+ *         value: "aa"
+ */
+
 /**
  * @swagger
  * components:
@@ -275,6 +299,12 @@
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssiggnCustomFieldTrigger'
  *     tags: [ Card ]
  *     security:
  *       - BearerAuth: []

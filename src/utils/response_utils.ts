@@ -1,6 +1,7 @@
 export class Response {
 	public status_code!: number;
 	public message!: string
+	public warning?: string
 
 	constructor(payload: Partial<Response>) {
 		Object.assign(this, payload);
