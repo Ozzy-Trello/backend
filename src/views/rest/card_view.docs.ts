@@ -31,9 +31,17 @@
  *         trigger:
  *           type: object
  *           description: The auto-generated id of the user identity
+ *         value:
+ *           type: object
+ *           description: The auto-generated id of the user identity
  *       example:
- *         name: default 
- *         description: Card for all list
+ *         trigger:
+ *           condition_value: 'value to trigger'
+ *           action:
+ *             target_list_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
+ *             message_telegram: 'hallo'
+ *             label_card_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
+ *         value: "aa"
  */
 
 /**
