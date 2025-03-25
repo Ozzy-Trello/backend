@@ -20,6 +20,22 @@
  *         description: Card for all list
  */
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     AssiggnCustomFieldTrigger:
+ *       type: object
+ *       properties:
+ *         trigger:
+ *           type: object
+ *           description: The auto-generated id of the user identity
+ *       example:
+ *         name: default 
+ *         description: Card for all list
+ */
+
 /**
  * @swagger
  * components:
@@ -275,6 +291,12 @@
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssiggnCustomFieldTrigger'
  *     tags: [ Card ]
  *     security:
  *       - BearerAuth: []

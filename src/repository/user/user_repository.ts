@@ -1,3 +1,5 @@
+import { validate as isValidUUID } from 'uuid';
+
 import {filterUserDetail, UserDetail, UserDetailUpdate, UserRepositoryI} from "@/repository/user/user_interfaces";
 import User from "@/database/schemas/user";
 import {Error, Op, where} from "sequelize";
@@ -87,6 +89,12 @@ export class UserRepository implements UserRepositoryI {
 	async getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>> {
 		try {
 			let qry = User
+			if (filter.id && !isValidUUID(filter.id)) {
+				return {
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "user id is not valid uuid",
+				}
+			}
 			if (filter.withPassword) {
 				qry = User.scope('withPassword');
 			}

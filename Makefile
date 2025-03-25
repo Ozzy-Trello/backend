@@ -18,3 +18,6 @@ create-db:
 re-migrate:
 	npm run sequelize -- db:migrate:undo:all
 	npm run sequelize -- db:migrate
+
+run-local-docker:
+	docker compose -f docker-compose.local.yml up -d

@@ -1,12 +1,30 @@
-import {filterCustomFieldDetail, CustomFieldDetail, CustomFieldDetailUpdate, CustomFieldRepositoryI, CustomFieldCardDetail, AssignCardDetail} from "@/repository/custom_field/custom_field_interfaces";
+import {v4 as uuidv4} from 'uuid';
+import { ExpressionBuilder } from 'kysely';
+
+import {
+	filterCustomFieldDetail, 
+	CustomFieldDetail, 
+	CustomFieldDetailUpdate, 
+	CustomFieldRepositoryI, 
+	CustomFieldCardDetail, 
+	AssignCardDetail,
+	CardCustomFieldDetail,
+
+	filterCustomValueDetail, 
+	CustomValueDetail, 
+	CustomValueDetailUpdate,
+	CustomFieldTrigger,
+} from "@/repository/custom_field/custom_field_interfaces";
 import CustomField from "@/database/schemas/custom_field";
-import {Error, Op} from "sequelize";
+import {Error, Op, where} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import CardCustomField from "@/database/schemas/card_custom_field";
 import db from "@/database";
+import { Transaction } from "kysely";
+import { Database } from "@/types/database";
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
 	createFilter(filter: filterCustomFieldDetail): any {
@@ -36,6 +54,38 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			whereClause[Op.or] = orConditions;
 		}
 		return whereClause
+	}
+
+	createValueFilter(eb: ExpressionBuilder<Database, any>, filter: filterCustomFieldDetail) {
+		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
+		
+		if (filter.id) query = eb.and([query, eb('id', '=', filter.id)]);
+		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
+		if (filter.workspace_id) query = eb.and([query, eb('workspace_id', '=', filter.workspace_id)]);
+	
+		// OR conditions
+		const orConditions = [];
+		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
+		if (filter.__orName) orConditions.push(eb('name', '=', filter.__orName));
+		if (filter.__orWorkspaceId) orConditions.push(eb('workspace_id', '=', filter.__orWorkspaceId));
+		if (filter.__orSource) orConditions.push(eb('source', '=', filter.__orSource));
+	
+		if (orConditions.length > 0) {
+			query = eb.and([query, eb.or(orConditions)]);
+		}
+	
+		// NOT conditions
+		const notConditions = [];
+		if (filter.__notId) notConditions.push(eb('id', '!=', filter.__notId));
+		if (filter.__notName) notConditions.push(eb('name', '!=', filter.__notName));
+		if (filter.__notWorkspaceId) notConditions.push(eb('workspace_id', '!=', filter.__notWorkspaceId));
+		if (filter.__notSource) notConditions.push(eb('source', '!=', filter.__notSource));
+	
+		if (notConditions.length > 0) {
+			query = eb.and([query, ...notConditions]);
+		}
+	
+		return query;
 	}
 
 	async getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>> {
@@ -74,7 +124,45 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			message: "custom_field custom_field",
 			data: result,
 		}, paginate)
-	}	
+	};
+
+	async getAssignCard(id: string, card_id: string): Promise<ResponseData<CardCustomFieldDetail>> {
+		let result = await db.selectFrom("card_custom_field")
+		.innerJoin("custom_field", "card_custom_field.custom_field_id", "custom_field.id")
+		.where("card_custom_field.card_id", "=", card_id)
+		.where("card_custom_field.custom_field_id", "=", id)
+		.select([
+			"custom_field.id",
+			"custom_field.name",
+			"custom_field.source",
+			"card_custom_field.order",
+			"card_custom_field.value_number",
+			"card_custom_field.value_string",
+			"card_custom_field.value_user_id",
+			"card_custom_field.trigger_id"
+		]).executeTakeFirst();
+				
+		if (!result) {
+				return { status_code: StatusCodes.NOT_FOUND, message: "custom_field is not found" };
+		}
+		return new ResponseData({
+			status_code: StatusCodes.OK,
+			message: "custom_field of card",
+			data: new CardCustomFieldDetail({
+				id: result.id,
+				name: result.name,
+				source: result.source,
+				order: result.order,
+				trigger_id: result.trigger_id,
+				value: function(): undefined | string | number {
+					if (result.value_user_id) return result.value_user_id
+					if (result.value_string) return result.value_string
+					if (result.value_number) return result.value_number
+					return undefined
+				}()
+			})
+		})
+	}
 
 	async updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number> {
 		try {
@@ -94,25 +182,56 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		}
 	}
 
-	async assignToCard(id: string, card_id: string): Promise<number> {
-		try {
-			let data = {
-				card_id: card_id,
-				custom_field_id: id,
-				order: 1,
+	async assignToCard(id: string, payload: CustomFieldCardDetail, trigger?: CustomFieldTrigger): Promise<number> {
+		const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
+			try {
+				let data: any = {
+					card_id: payload.card_id,
+					custom_field_id: id,
+					value_user_id: payload.value_user_id,
+					value_string: payload.value_string,
+					value_number: payload.value_number,
+				}
+
+				const total = await tx
+					.selectFrom('card_custom_field')
+					.select(({ fn }) => fn.count<number>('card_id').as('count'))
+					.where("card_custom_field.card_id", "=", payload.card_id)
+					.where("card_custom_field.custom_field_id", "=", id)
+					.executeTakeFirst();
+					
+				if (total?.count! > 0) {
+					return StatusCodes.CONFLICT;
+				}
+
+				if (trigger){
+					const [triggerResult] = await tx
+						.insertInto("trigger")
+						.values({
+							id: uuidv4(),
+							action: trigger.action,
+							condition_value: trigger.conditional_value,
+						})
+						.returning(["id"])
+						.execute();
+					data.trigger_id = triggerResult.id
+				};
+
+				data.order = 1;
+				await tx
+						.insertInto("card_custom_field")
+						.values(data)
+						.execute();
+
+				return StatusCodes.NO_CONTENT
+			} catch (e) {
+					if (e instanceof Error) {
+							throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+					}
+					throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
 			}
-			const checkCustomField = await CardCustomField.findOne({where: data});
-			if (checkCustomField){
-				return StatusCodes.CONFLICT
-			}
-			await CardCustomField.create(data);
-			return StatusCodes.NO_CONTENT
-		} catch (e) {
-			if (e instanceof Error) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
-			}
-			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
-		}
+		});
+		return trx;
 	}
 
 	async unAssignFromCard(id: string, card_id: string): Promise<number> {
@@ -176,24 +295,19 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
 	async getCustomField(filter: filterCustomFieldDetail): Promise<ResponseData<CustomFieldDetail>> {
 		try {
-			const custom_field = await CustomField.findOne({where: this.createFilter(filter)});
+			const custom_field = await db
+				.selectFrom("custom_field").selectAll()
+				.where((eb) => this.createValueFilter(eb, filter))
+				.executeTakeFirst();
+
 			if (!custom_field) {
-				return {
-					status_code: StatusCodes.NOT_FOUND,
-					message: "custom_field is not found",
-				}
+				return { status_code: StatusCodes.NOT_FOUND, message: "custom_field is not found" };
 			}
-			let result = new CustomFieldDetail({
-				id: custom_field.id,
-				name: custom_field.name,
-				description: custom_field.description,
-				workspace_id: custom_field.workspace_id,
-				source: custom_field.source,
-			})
+
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "custom_field detail",
-				data: result,
+				data: new CustomFieldDetail(custom_field),
 			});
 		} catch (e) {
 			if (e instanceof Error) {
@@ -239,6 +353,114 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
 			}
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
+	}
+
+	async deleteCustomValue(filter: filterCustomValueDetail): Promise<number> {
+		try {
+				const result = await db
+						.deleteFrom('custom_value')
+						.where((eb) => this.createValueFilter(eb, filter))
+						.executeTakeFirst();
+				
+				if (!result.numDeletedRows || result.numDeletedRows <= 0) {
+						return StatusCodes.NOT_FOUND;
+				}
+				return StatusCodes.NO_CONTENT;
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async createCustomValue(data: CustomValueDetail): Promise<ResponseData<CustomValueDetail>> {
+		try {
+				const custom_field = await db
+					.insertInto('custom_value')
+					.values({
+						name: data.name!,
+						description: data.description,
+						workspace_id: data.workspace_id,
+					})
+					.returning(['id', 'name', 'description'])
+					.executeTakeFirst();
+
+				if (!custom_field) {
+					return { status_code: StatusCodes.INTERNAL_SERVER_ERROR, message: "failed to get custom value" };
+				}
+				
+				return new ResponseData({
+						status_code: StatusCodes.OK,
+						message: "create custom_field success",
+						data: new CustomValueDetail(custom_field)
+				});
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async getCustomValue(filter: filterCustomValueDetail): Promise<ResponseData<CustomValueDetail>> {
+		try {
+				const custom_field = await db
+					.selectFrom('custom_value')
+					.selectAll()
+					.where((eb) => this.createValueFilter(eb, filter))
+					.executeTakeFirst();
+				
+				if (!custom_field) {
+						return { status_code: StatusCodes.NOT_FOUND, message: "custom_field is not found" };
+				}
+				
+				return new ResponseData({
+						status_code: StatusCodes.OK,
+						message: "custom_field detail",
+						data: new CustomValueDetail(custom_field)
+				});
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async getListCustomValue(filter: filterCustomValueDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomValueDetail>>> {
+		try {
+			const total = await db
+				.selectFrom('custom_value')
+				.select(({ fn }) => fn.count<number>('id').as('count'))
+				.where((eb) => this.createValueFilter(eb, filter))
+				.executeTakeFirst();
+			paginate.setTotal(total?.count!);
+			
+			const lists = await db
+				.selectFrom('custom_value')
+				.selectAll()
+				.where((eb) => this.createValueFilter(eb, filter))
+				.offset(paginate.getOffset())
+				.limit(paginate.limit)
+				.execute();
+			
+			return new ResponseListData({
+					status_code: StatusCodes.OK,
+					message: "custom_field list",
+					data: lists.map((item) => new CustomValueDetail(item))
+			}, paginate);
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async updateCustomValue(filter: filterCustomValueDetail, data: CustomValueDetailUpdate): Promise<number> {
+		try {
+				const result = await db
+					.updateTable('custom_value')
+					.set(data.toObject())
+					.where((eb) => this.createValueFilter(eb, filter))
+					.executeTakeFirst();
+				
+				if (!result.numUpdatedRows || result.numUpdatedRows <= 0) {
+						return StatusCodes.NOT_FOUND;
+				}
+				return StatusCodes.NO_CONTENT;
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}
 }
