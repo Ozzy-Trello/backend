@@ -50,7 +50,7 @@ export class CardController implements CardControllerI {
       })
     }
 
-    if (selectedTrigger.data?.condition_value == String(value) && selectedTrigger.data?.action.target_list_id) {
+    if ((selectedTrigger.data?.condition_value == String(value) || !selectedTrigger.data?.condition_value) && selectedTrigger.data?.action.target_list_id) {
       const updateResponse = await this.card_repo.updateCard(new CardFilter({
         id: trigger.target_list_id,
       }), new CardDetailUpdate({list_id: selectedTrigger.data?.action!.target_list_id}));
@@ -69,24 +69,26 @@ export class CardController implements CardControllerI {
   }
 
   async checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
-    switch(source_type) {
-      case SourceType.User : {
-        let checkUser = await this.user_repo.getUser({id: String(value)});
-        if (checkUser.status_code == StatusCodes.NOT_FOUND) {
-          return new ResponseData({
-            message: "conditional value is not valid, user is not found",
-            status_code: StatusCodes.BAD_REQUEST,
-          })      
-        } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
-          return new ResponseData({
-            message: "conditional value is not valid, " + checkUser.message,
-            status_code: StatusCodes.BAD_REQUEST,
-          })      
-        } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-          return new ResponseData({
-            message: "internal server error",
-            status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-          })      
+    if(value) {
+      switch(source_type) {
+        case SourceType.User : {
+          let checkUser = await this.user_repo.getUser({id: String(value)});
+          if (checkUser.status_code == StatusCodes.NOT_FOUND) {
+            return new ResponseData({
+              message: "conditional value is not valid, user is not found",
+              status_code: StatusCodes.BAD_REQUEST,
+            })      
+          } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
+            return new ResponseData({
+              message: "conditional value is not valid, " + checkUser.message,
+              status_code: StatusCodes.BAD_REQUEST,
+            })      
+          } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
+            return new ResponseData({
+              message: "internal server error",
+              status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+            })      
+          }
         }
       }
     }
@@ -135,7 +137,8 @@ export class CardController implements CardControllerI {
   }
 
   async prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
-    if(source_type == SourceType.User) {
+    let result =  new CustomFieldCardDetail({})
+    if(value && source_type == SourceType.User) {
       if (!(typeof value == "string" && isValidUUID(String(value)))) {
         return new ResponseData({
           message: "'value' is not valid uuid",
@@ -149,17 +152,17 @@ export class CardController implements CardControllerI {
           status_code: checkUser.status_code
         })
       }
+      result.value_user_id =  value.toString()
+    } else {
       return new ResponseData({
-        message: "user data",
-        status_code: StatusCodes.OK,
-        data: new CustomFieldCardDetail({
-          value_user_id: value.toString(),
-        })
+        message: "'value' is not support data",
+        status_code: StatusCodes.BAD_REQUEST,
       })
     }
     return new ResponseData({
-      message: "'value' is not support data",
-      status_code: StatusCodes.BAD_REQUEST,
+      message: "success",
+      status_code: StatusCodes.OK,
+      data: result,
     })
   }
 
@@ -311,7 +314,7 @@ export class CardController implements CardControllerI {
       })
     }
 
-    if (checkCustomField.data?.description && value) {
+    if (checkCustomField.status_code == StatusCodes.OK && value) {
       let selectedCustomField = await this.custom_field_repo.getAssignCard(custom_field_id ,card_id);
       if (selectedCustomField.status_code != StatusCodes.OK){
         return new ResponseData({

@@ -11,6 +11,8 @@ export interface Database {
   trigger: TriggerTable;
   card_custom_field: CardCustomFieldTable;
   card: CardTable;
+  board: BoardTable;
+  list: ListTable;
 }
 
 export interface UserTable {
@@ -38,6 +40,7 @@ export interface CustomFieldTable {
   id: Generated<string>;
   name: string;
   workspace_id: string;
+  trigger_id?: string;
   description: string;
   source: SourceType;
 }
@@ -84,6 +87,24 @@ export interface TriggerTable {
   id: Generated<string>;
   name?: string;
   description?: string;
+  board_id: string;
+  all_card: boolean;
   action: TriggerValue;
   condition_value: string;
+}
+
+export interface BoardTable {
+  id: Generated<string>;
+  workspace_id : string;
+  name: string;
+  description : string;
+  background: string;
+}
+
+export interface ListTable {
+  id : Generated<string>;
+  board_id : string;
+  order: number;
+  name: string;
+  background : string;
 }
