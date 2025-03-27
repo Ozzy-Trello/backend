@@ -69,17 +69,16 @@ export class CustomFieldTrigger {
   public name?: string;
   public description?: string;
   public action!: TriggerValue;
+  public all_card!: boolean;
 
   constructor(payload: Partial<CustomFieldTrigger>) {
+    if (!payload.all_card) payload.all_card = true
     Object.assign(this, payload);
     this.getErrorField = this.getErrorField.bind(this);
     this.isEmptyAction = this.isEmptyAction.bind(this);
   }
 
   public getErrorField(): string | null {
-    if (!this.conditional_value) {
-      return "'conditional_value' is required in trigger";
-    }
     if (this.action.target_list_id && !isValidUUID(this.action.target_list_id!)) {
 			return "'target_list_id' is not valid uuid"
 		}
