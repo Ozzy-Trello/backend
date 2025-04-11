@@ -488,13 +488,13 @@ export class CardController implements CardControllerI {
         })
       }
 
-      let checkList = await this.card_repo.getCard({ __notId: filter.id, __orName: data.name, __orListId: filter.list_id});
-      if (checkList.status_code == StatusCodes.OK) {
-        return new ResponseData({
-          message: "this list name already taken by others",
-          status_code: StatusCodes.NOT_FOUND,
-        })
-      }
+      // let checkList = await this.card_repo.getCard({ __notId: filter.id, __orName: data.name, __orListId: filter.list_id});
+      // if (checkList.status_code == StatusCodes.OK) {
+      //   return new ResponseData({
+      //     message: "this card name already taken by others",
+      //     status_code: StatusCodes.NOT_FOUND,
+      //   })
+      // }
     }
 
     const updateResponse = await this.card_repo.updateCard(filter.toFilterCardDetail(), data.toCardDetailUpdate());
