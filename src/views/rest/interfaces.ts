@@ -67,3 +67,11 @@ export interface CustomFieldRestViewI {
     UpdateCustomField(req: Request, res: Response): Promise<void>;
     DeleteCustomField(req: Request, res: Response): Promise<void>;
 }
+
+export interface TriggerRestViewI {
+    CreateTrigger(req: Request, res: Response): Promise<void>;
+    GetTrigger(req: Request, res: Response): Promise<void>;
+    GetListTrigger(req: Request, res: Response): Promise<void>
+    UpdateTrigger(req: Request, res: Response): Promise<void>;
+    DeleteTrigger(req: Request, res: Response): Promise<void>;
+}

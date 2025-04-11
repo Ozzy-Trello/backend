@@ -1,7 +1,8 @@
 import { ExpressionBuilder } from 'kysely';
+import {v4 as uuidv4} from 'uuid';
 
 import {filterTriggerDetail, TriggerDetail, TriggerDetailUpdate, TriggerRepositoryI} from "@/repository/trigger/trigger_interfaces";
-import {Error, Op} from "sequelize";
+import {Error} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
@@ -40,10 +41,35 @@ export class TriggerRepository implements TriggerRepositoryI {
 		return query;
 	}
 
+	async createTrigger(data : TriggerDetail): Promise<ResponseData<TriggerDetail>> {
+		try {
+			let dataRes = {
+				action: data.action,
+				all_card: data.all_card!,
+				workspace_id: data.workspace_id,
+				condition_value: data.condition_value,
+				description: data.description,
+				id: uuidv4()
+			}
+			await db
+				.insertInto('trigger')
+				.values(dataRes)
+				.execute();
+		
+			return new ResponseData({
+				status_code: StatusCodes.CREATED,
+				message: "create trigger success",
+				data: new TriggerDetail(dataRes)
+			})
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
 	async deleteTrigger(filter: filterTriggerDetail): Promise<number> {
 		try {
 			const result = await db
-				.deleteFrom('custom_value')
+				.deleteFrom('trigger')
 				.where((eb) => this.createFilter(eb, filter))
 				.executeTakeFirst();
 		

@@ -24,6 +24,8 @@ import { CustomFieldRepository } from "@/repository/custom_field/custom_field_re
 import { CustomFieldController } from "@/controller/custom_field/custom_field_controller";
 import CustomFieldRestView from "@/views/rest/custom_field_view";
 import { TriggerRepository } from "@/repository/trigger/trigger_repository";
+import { TriggerController } from "@/controller/trigger/trigger_controller";
+import TriggerRestView from "@/views/rest/trigger_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -37,15 +39,17 @@ export default function (): Router {
     const custom_field_repo = new CustomFieldRepository();
     const trigger_repo = new TriggerRepository();
 
+    const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo);
     const account_controller = new AccountController(user_repo);
     const access_control_controller = new AccessControlController(role_repo);
     const auth_controller = new AuthController(user_repo, workspace_repo, role_repo);
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
-    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, user_repo, trigger_repo);
+    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);
 
+    const trigger_rest_view = new TriggerRestView(trigger_controller);
     const account_rest_view = new AccountRestView(account_controller);
     const access_control_rest_view = new AccessControlRestView(access_control_controller);
     const auth_rest_view = new AuthRestView(auth_controller);
@@ -129,10 +133,20 @@ export default function (): Router {
         router_custom_field.delete("/:id", restJwt, custom_field_rest_view.DeleteCustomField);
     }
 
+    const router_trigger = Router();
+    {
+        router_trigger.post("/", restJwt, trigger_rest_view.CreateTrigger);
+        router_trigger.get("/", restJwt, trigger_rest_view.GetListTrigger);
+        router_trigger.get("/:id", restJwt, trigger_rest_view.GetTrigger);
+        router_trigger.put("/:id", restJwt, trigger_rest_view.UpdateTrigger);
+        router_trigger.delete("/:id", restJwt, trigger_rest_view.DeleteTrigger);
+    }
+
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
     root_router.use("/board", router_board)
+    root_router.use("/trigger", router_trigger)
     root_router.use("/access-control", router_access_control)
     root_router.use("/list", router_list)
     root_router.use("/card", router_card)

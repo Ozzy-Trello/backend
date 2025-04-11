@@ -3,27 +3,23 @@ import { validate as isValidUUID } from 'uuid';
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CardDetailUpdate, CardRepositoryI } from '@/repository/card/card_interfaces';
+import { CardRepositoryI } from '@/repository/card/card_interfaces';
 import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
-import { SourceType, TriggerValue } from '@/types/custom_field';
-import { UserRepositoryI } from '@/repository/user/user_interfaces';
-import { TriggerRepositoryI } from '@/repository/trigger/trigger_interfaces';
+import { TriggerControllerI } from '../trigger/trigger_interfaces';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
   private list_repo: ListRepositoryI
   private custom_field_repo: CustomFieldRepositoryI
-  private user_repo: UserRepositoryI
-  private trigger_repo: TriggerRepositoryI
+  private trigger_controller: TriggerControllerI
 
-  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI, user_repo: UserRepositoryI, trigger_repo: TriggerRepositoryI) {
+  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI, trigger_controller: TriggerControllerI) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
-    this.trigger_repo = trigger_repo;
-    this.user_repo = user_repo;
+    this.trigger_controller = trigger_controller;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -34,136 +30,6 @@ export class CardController implements CardControllerI {
     this.AddCustomField = this.AddCustomField.bind(this);
     this.RemoveCustomField = this.RemoveCustomField.bind(this);
     this.GetListCustomField = this.GetListCustomField.bind(this);
-    
-    this.prepareDataSource = this.prepareDataSource.bind(this);
-    this.doTrigger = this.doTrigger.bind(this);
-    this.checkConditionalValue = this.checkConditionalValue.bind(this);
-  }
-
-  async doTrigger(trigger_id: string, value : string| number, trigger: TriggerValue): Promise<ResponseData<null>> {
-    let eventName = "move card";
-    let selectedTrigger =  await this.trigger_repo.getTrigger({id: trigger_id})
-    if(selectedTrigger.status_code != StatusCodes.OK){
-      return new ResponseData({
-        message: selectedTrigger.message,
-        status_code: selectedTrigger.status_code
-      })
-    }
-
-    if ((selectedTrigger.data?.condition_value == String(value) || !selectedTrigger.data?.condition_value) && selectedTrigger.data?.action.target_list_id) {
-      const updateResponse = await this.card_repo.updateCard(new CardFilter({
-        id: trigger.target_list_id,
-      }), new CardDetailUpdate({list_id: selectedTrigger.data?.action!.target_list_id}));
-      if (updateResponse == StatusCodes.NOT_FOUND) {
-        return new ResponseData({
-          message: "Card is not found",
-          status_code: StatusCodes.NOT_FOUND,
-        })
-      }
-    }
-
-    return new ResponseData({
-      message: eventName,
-      status_code: StatusCodes.OK,
-    })
-  }
-
-  async checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
-    if(value) {
-      switch(source_type) {
-        case SourceType.User : {
-          let checkUser = await this.user_repo.getUser({id: String(value)});
-          if (checkUser.status_code == StatusCodes.NOT_FOUND) {
-            return new ResponseData({
-              message: "conditional value is not valid, user is not found",
-              status_code: StatusCodes.BAD_REQUEST,
-            })      
-          } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
-            return new ResponseData({
-              message: "conditional value is not valid, " + checkUser.message,
-              status_code: StatusCodes.BAD_REQUEST,
-            })      
-          } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-            return new ResponseData({
-              message: "internal server error",
-              status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-            })      
-          }
-        }
-      }
-    }
-    if(trigger_value.target_list_id) {
-      let checkList = await this.list_repo.getList({id: String(trigger_value.target_list_id)});      
-      if (checkList.status_code == StatusCodes.NOT_FOUND) {
-        return new ResponseData({
-          message: "trigger value is not valid, list is not found",
-          status_code: StatusCodes.BAD_REQUEST,
-        })      
-      } else if (checkList.status_code == StatusCodes.BAD_REQUEST) {
-        return new ResponseData({
-          message: "conditional value is not valid, " + checkList.message,
-          status_code: StatusCodes.BAD_REQUEST,
-        })      
-      } else if (checkList.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-        return new ResponseData({
-          message: "internal server error",
-          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-        })      
-      }
-    }
-    if(trigger_value.label_card_id) {
-      let checkCard = await this.card_repo.getCard({id: String(trigger_value.label_card_id)});
-      if (checkCard.status_code == StatusCodes.NOT_FOUND) {
-        return new ResponseData({
-          message: "trigger value is not valid, card is not found",
-          status_code: StatusCodes.BAD_REQUEST,
-        })      
-      } else if (checkCard.status_code == StatusCodes.BAD_REQUEST) {
-        return new ResponseData({
-          message: "conditional value is not valid, " + checkCard.message,
-          status_code: StatusCodes.BAD_REQUEST,
-        })      
-      } else if (checkCard.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-        return new ResponseData({
-          message: "internal server error",
-          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-        })      
-      }
-    }
-    return new ResponseData({
-      message: "success",
-      status_code: StatusCodes.OK,
-    })
-  }
-
-  async prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
-    let result =  new CustomFieldCardDetail({})
-    if(value && source_type == SourceType.User) {
-      if (!(typeof value == "string" && isValidUUID(String(value)))) {
-        return new ResponseData({
-          message: "'value' is not valid uuid",
-          status_code: StatusCodes.BAD_REQUEST,
-        })
-      }
-      let checkUser =  await this.user_repo.getUser({id: value.toString()})
-      if(checkUser.status_code != StatusCodes.OK){
-        return new ResponseData({
-          message: "'value' is not valid, " + checkUser.message,
-          status_code: checkUser.status_code
-        })
-      }
-      result.value_user_id =  value.toString()
-    } else {
-      return new ResponseData({
-        message: "'value' is not support data",
-        status_code: StatusCodes.BAD_REQUEST,
-      })
-    }
-    return new ResponseData({
-      message: "success",
-      status_code: StatusCodes.OK,
-      data: result,
-    })
   }
 
   async UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>> {
@@ -197,7 +63,7 @@ export class CardController implements CardControllerI {
       })
     }
 
-    let data = await this.prepareDataSource(value, checkCustomField.data?.source!);
+    let data = await this.trigger_controller.prepareDataSource(value, checkCustomField.data?.source!);
     if (data.status_code != StatusCodes.OK){
       return new ResponseData({
         message: data.message,
@@ -206,7 +72,7 @@ export class CardController implements CardControllerI {
     }
 
     if (checkCustomField.data?.trigger_id) {
-      let triggerRes = await this.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
+      let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
       if (triggerRes.status_code != StatusCodes.OK){
         warning = triggerRes.message
       }
@@ -278,7 +144,7 @@ export class CardController implements CardControllerI {
     }
 
     if (value) {
-      let checkSource = await this.prepareDataSource(value, checkCustomField.data?.source!);
+      let checkSource = await this.trigger_controller.prepareDataSource(value, checkCustomField.data?.source!);
       if (checkSource.status_code != StatusCodes.OK){
         return new ResponseData({
           message: checkSource.message,
@@ -291,7 +157,7 @@ export class CardController implements CardControllerI {
     }
 
     if (trigger) {
-      let checkSourceVal = await this.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
+      let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
       if (checkSourceVal.status_code != StatusCodes.OK){
         return new ResponseData({
           message: checkSourceVal.message,
@@ -322,7 +188,7 @@ export class CardController implements CardControllerI {
           status_code: selectedCustomField.status_code,
         })
       }
-      let tiggerRes = await this.doTrigger(selectedCustomField.data!.trigger_id!, value, {target_list_id: card_id} )
+      let tiggerRes = await this.trigger_controller.doTrigger(selectedCustomField.data!.trigger_id!, value, {target_list_id: card_id} )
       if (tiggerRes.status_code != StatusCodes.OK){
         return new ResponseData({
           message: tiggerRes.message,

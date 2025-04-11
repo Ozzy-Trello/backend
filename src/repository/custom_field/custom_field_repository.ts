@@ -200,19 +200,20 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					.where("card_custom_field.custom_field_id", "=", id)
 					.executeTakeFirst();
 
+				if (total?.count! > 0) {
+					return StatusCodes.CONFLICT;
+				}
+
 				const selectedList = await tx
 					.selectFrom('list')
-					.selectAll()
-					.innerJoin("card", "card.list_id", "list.id")
+					.innerJoin('card', 'list.id', 'card.list_id')
+					.innerJoin('board', 'list.board_id', 'board.id')
+					.select(['board.workspace_id'])
 					.where("card.id", "=", payload.card_id)
 					.executeTakeFirst();
 
 				if (!selectedList) {
 					return StatusCodes.BAD_REQUEST
-				}
-
-		   if (total?.count! > 0) {
-					return StatusCodes.CONFLICT;
 				}
 
 				if (trigger){
@@ -223,7 +224,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 							action: trigger.action,
 							condition_value: trigger.conditional_value,
 							all_card: trigger.all_card,
-							board_id: selectedList.board_id
+							workspace_id: selectedList.workspace_id
 						})
 						.returning(["id"])
 						.execute();

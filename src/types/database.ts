@@ -87,7 +87,7 @@ export interface TriggerTable {
   id: Generated<string>;
   name?: string;
   description?: string;
-  board_id: string;
+  workspace_id: string;
   all_card: boolean;
   action: TriggerValue;
   condition_value: string;
