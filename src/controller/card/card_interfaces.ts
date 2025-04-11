@@ -92,13 +92,14 @@ export class UpdateCardData {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined;
+		return this.name == undefined && this.description == undefined && this.list_id == undefined;
 	}
 
 	toCardDetailUpdate(): CardDetailUpdate {
 		return new CardDetailUpdate({
 			name: this.name,
 			description: this.description,
+			list_id: this.list_id,
 		})
 	}
 	getErrorfield(): string| null {
