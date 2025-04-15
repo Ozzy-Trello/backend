@@ -2,9 +2,9 @@ import { validate as isValidUUID } from 'uuid';
 
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
+import { CardActionActivity, CardComment, CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
-import { SourceType } from '@/types/custom_field';
+import { CardActionType, CardActionValue, CardActivityType, SourceType } from '@/types/custom_field';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -15,7 +15,8 @@ export interface CardControllerI {
 	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
 	UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
-	UpdateCard(filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
+	UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
+	GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 }
 
 export class CreateCardResponse {
@@ -182,4 +183,56 @@ export class CardCreateData {
 		}
 		return null
 	}
+}
+
+export class CardActivity {
+  sender_id!: string;
+  card_id!: string;
+  activity_type!: CardActivityType;
+
+  constructor(payload: Partial<CardActivity>) {
+    Object.assign(this, payload);
+  }
+}
+
+export class CardCommentData extends CardActivity {
+  activity_id!: string;
+  text!: string;
+
+  constructor(payload: Partial<CardCommentData>){
+    super(payload);
+    Object.assign(this, payload);
+  }
+
+	// toCardComment(): CardComment{
+	// 	return new CardComment({
+	// 		activity_id: this.activity_id,
+	// 		activity_type: this.activity_type,
+	// 		card_id: this.card_id,
+	// 		sender_id: this.sender_id,
+	// 		text: this.text
+	// 	})
+	// }
+}
+
+export class CardActionActivityData extends CardActivity {
+  activity_id!: string;
+  action_type!: CardActionType;
+  source?: CardActionValue
+
+  constructor(payload: Partial<CardActionActivityData>){
+    super(payload);
+    Object.assign(this, payload);
+  }
+
+	// toCardActionActivity(): CardActionActivity{
+	// 	return {
+	// 		activity_id: this.activity_id,
+	// 		activity_type: this.activity_type,
+	// 		card_id: this.card_id,
+	// 		sender_id: this.sender_id,
+	// 		source: this.source,
+	// 		action_type: this.action_type
+	// 	}
+	// }
 }

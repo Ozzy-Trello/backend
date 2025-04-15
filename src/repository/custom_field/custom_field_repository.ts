@@ -486,4 +486,63 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}
+
+	async assignAllBoardCustomFieldToCard(board_id: string, card_id: string): Promise<ResponseData<null>> {
+		const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
+			const lists = await tx
+				.selectFrom('custom_field')
+				.selectAll()
+				.where("board_id", "=", board_id)
+				.limit(100)
+				.execute();
+	
+			const data: Array<{ card_id: string; custom_field_id: string; order: number }> = lists.map((item) => ({
+				card_id,
+				custom_field_id: item.id,
+				order: 1
+			}));
+
+			if (data.length > 0) {
+				await tx
+				.insertInto("card_custom_field")
+				.values(data)
+				.execute();
+			}
+	
+			return new ResponseData({
+				status_code: StatusCodes.OK,
+				message: "success assign all custom field board from card",
+				data: null
+			});
+		});
+		return trx;
+	}
+
+	async unAssignAllBoardCustomFieldFromCard(board_id: string, card_id: string): Promise<ResponseData<null>> {
+		const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
+			const customFields = await tx
+				.selectFrom('custom_field')
+				.select(['id'])
+				.where('board_id', '=', board_id)
+				.execute();
+	
+			const customFieldIds = customFields.map((field) => field.id);
+	
+			if (customFieldIds.length > 0) {
+				await tx
+					.deleteFrom('card_custom_field')
+					.where('card_id', '=', card_id)
+					.where('custom_field_id', 'in', customFieldIds)
+					.execute();
+			}
+	
+			return new ResponseData({
+				status_code: StatusCodes.OK,
+				message: 'success un-assign all custom field board from card',
+				data: null,
+			});
+		});
+	
+		return trx;
+	}
 }

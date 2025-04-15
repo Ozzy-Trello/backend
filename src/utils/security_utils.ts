@@ -29,7 +29,7 @@ export interface PermissionStructure {
   card: { create: boolean; read: boolean; update: boolean; delete: boolean };
 }
 
-export const defaultPermission = {
+export const defaultPermission : PermissionStructure = {
 	board: { create: true, read: true, update: true, delete: true },
   list: { create: true, read: true, update: true, delete: true },
   card: { create: true, read: true, update: true, delete: true },

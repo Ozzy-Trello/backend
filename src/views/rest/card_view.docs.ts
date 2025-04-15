@@ -8,6 +8,7 @@
  *       required:
  *         - name
  *         - description
+ *         - list_id
  *       properties:
  *         name:
  *           type: string
@@ -15,9 +16,13 @@
  *         description:
  *           type: string
  *           description: The title of your phone
+ *         list_id:
+ *           type: string
+ *           description: list id
  *       example:
  *         name: default 
  *         description: Card for all list
+ *         list_id: list id
  */
 
 
@@ -163,6 +168,13 @@
  *   get:
  *     summary: Get card
  *     tags: [ Card ]
+ *     parameters:
+ *       - name: list-id
+ *         in: header
+ *         description: ID of board
+ *         required: true
+ *         schema:
+ *           type: string
  *     security:
  *       - BearerAuth: []
  *     responses:

@@ -22,6 +22,9 @@ export interface CustomFieldRepositoryI {
   getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>>;
   getAssignCard(id: string, card_id: string): Promise<ResponseData<CardCustomFieldDetail>>;
   updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number>;
+
+  assignAllBoardCustomFieldToCard(board_id: string, card_id: string): Promise<ResponseData<null>>;
+  unAssignAllBoardCustomFieldFromCard(board_id: string, card_id: string): Promise<ResponseData<null>>;
 }
 
 export interface filterCustomFieldDetail {

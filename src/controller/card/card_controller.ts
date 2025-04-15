@@ -3,11 +3,12 @@ import { validate as isValidUUID } from 'uuid';
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CardRepositoryI } from '@/repository/card/card_interfaces';
+import { CardActionActivity, CardActivity, CardDetail, CardRepositoryI } from '@/repository/card/card_interfaces';
 import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
+import { CardActionType, CardActivityType } from '@/types/custom_field';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
@@ -33,7 +34,7 @@ export class CardController implements CardControllerI {
   }
 
   async UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>> {
-    let warning = null;
+    let warning = undefined;
     if (!isValidUUID(card_id)){
       return new ResponseData({
         message: "'card_id' is not valid uuid",
@@ -74,7 +75,7 @@ export class CardController implements CardControllerI {
     if (checkCustomField.data?.trigger_id) {
       let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
       if (triggerRes.status_code != StatusCodes.OK){
-        warning = triggerRes.message
+        warning = "trigger failed, error : " + triggerRes.message
       }
     }
 
@@ -90,7 +91,7 @@ export class CardController implements CardControllerI {
 
     return new ResponseData({
       message: "Update Success",
-      warning: "trigger failed, error : " + warning!,
+      warning: warning,
       status_code: StatusCodes.OK,
     })
   }
@@ -313,13 +314,13 @@ export class CardController implements CardControllerI {
       })
     }
 
-    let checkList = await this.card_repo.getCard({ list_id: data.list_id, name: data.name });
-    if (checkList.status_code == StatusCodes.OK) {
-      return new ResponseData({
-        message: "card name already exist on your board",
-        status_code: StatusCodes.CONFLICT,
-      })
-    }
+    // let checkList = await this.card_repo.getCard({ list_id: data.list_id, name: data.name });
+    // if (checkList.status_code == StatusCodes.OK) {
+    //   return new ResponseData({
+    //     message: "card name already exist on your board",
+    //     status_code: StatusCodes.CONFLICT,
+    //   })
+    // }
 
     let createResponse = await this.card_repo.createCard(data.toCardDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -405,6 +406,29 @@ export class CardController implements CardControllerI {
     }, cards.paginate)
   }
 
+  async GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseListData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      }, paginate)
+    }
+    let cardCheck = await this.card_repo.getCard({id: card_id})
+    if (cardCheck.status_code != StatusCodes.OK) {
+      return new ResponseListData({
+        message: cardCheck.message,
+        status_code: StatusCodes.BAD_REQUEST
+      }, paginate)
+    }
+
+    let cardsActivity = await this.card_repo.getCardActivities(card_id, paginate);
+    return new ResponseListData({
+      message: "Card activity",
+      status_code: StatusCodes.OK,
+      data: cardsActivity.data!,
+    }, cardsActivity.paginate)
+  }
+
   async DeleteCard(filter: CardFilter): Promise<ResponseData<null>> {
     if (filter.isEmpty()) {
       return new ResponseData({
@@ -441,7 +465,9 @@ export class CardController implements CardControllerI {
     })
   }
 
-  async UpdateCard(filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>> {
+  async UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>> {
+    let warning = undefined;
+    let selectedCard: CardDetail | undefined
     if (filter.isEmpty()) {
       return new ResponseData({
         message: "you need filter to update",
@@ -488,6 +514,15 @@ export class CardController implements CardControllerI {
         })
       }
 
+      selectedCard = currentBoard.data
+      if (selectedCard && data.list_id && selectedCard.list_id == data.list_id!) {
+        return new ResponseData({
+          message: "card is already on this list",
+          status_code: StatusCodes.NOT_ACCEPTABLE,
+        })
+      }
+
+
       // let checkList = await this.card_repo.getCard({ __notId: filter.id, __orName: data.name, __orListId: filter.list_id});
       // if (checkList.status_code == StatusCodes.OK) {
       //   return new ResponseData({
@@ -495,6 +530,11 @@ export class CardController implements CardControllerI {
       //     status_code: StatusCodes.NOT_FOUND,
       //   })
       // }
+    }else {
+      return new ResponseData({
+        message: "Update card without card id is not support right now",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      })
     }
 
     const updateResponse = await this.card_repo.updateCard(filter.toFilterCardDetail(), data.toCardDetailUpdate());
@@ -504,9 +544,35 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.NOT_FOUND,
       })
     }
+
+    if (selectedCard && data.list_id && selectedCard.list_id != data.list_id!) {
+      await this.card_repo.addActivity(filter.toFilterCardDetail(), new CardActivity({
+        activity_type: CardActivityType.Action,
+        card_id: selectedCard.id,
+        sender_id: user_id,
+      }, new CardActionActivity({
+        action_type: CardActionType.MoveList,
+        source: {
+          origin_list_id: selectedCard.list_id,
+          destination_list_id: data.list_id!
+        },
+      })))
+
+      let selectedList = await this.list_repo.getList({id: data.list_id});
+      if (selectedList.status_code == StatusCodes.OK) {
+        let assignRes = await this.custom_field_repo.assignAllBoardCustomFieldToCard(selectedList.data?.board_id!, selectedCard.id)
+        if (assignRes.status_code != StatusCodes.OK) {
+          warning = "successfull move but error assign all custom fields, " + selectedList.message  
+        }
+      }else {
+        warning = "successfull move but error when assign all custom fields, " + selectedList.message
+      }
+    }
+
     return new ResponseData({
       message: "Card is updated successful",
       status_code: StatusCodes.NO_CONTENT,
+      warning: warning,
     })
   }
 }
