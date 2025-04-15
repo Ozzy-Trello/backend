@@ -109,12 +109,26 @@ export class AuthController implements AuthControllerI {
 	}
 
 	async Login(data: LoginData): Promise<ResponseData<LoginResponse>> {
+		let paylodCheck = data.checkRequired();
+    if (paylodCheck) {
+      return new ResponseData({
+        message: `you need to put '${paylodCheck}'`,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
 		let account = await this.user_repo.getUser({identify: data.identity, withPassword: true});
 		if (account.status_code != StatusCodes.OK) {
 			switch (account.status_code) {
 				case StatusCodes.NOT_FOUND : {
 					return new ResponseData({
 						message: "Incorrect credential or password",
+						status_code: StatusCodes.UNAUTHORIZED,
+					})
+				}
+				case StatusCodes.BAD_REQUEST : {
+					return new ResponseData({
+						message: account.message,
 						status_code: StatusCodes.UNAUTHORIZED,
 					})
 				}

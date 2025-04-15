@@ -58,6 +58,7 @@ export interface CardRestViewI {
     UpdateCustomField(req: Request, res: Response): Promise<void>;
     RemoveCustomField(req: Request, res: Response): Promise<void>;
     GetCustomField(req: Request, res: Response): Promise<void>;
+    GetCardActivity(req: Request, res: Response): Promise<void>
 }
 
 export interface CustomFieldRestViewI {
@@ -66,4 +67,12 @@ export interface CustomFieldRestViewI {
     GetListCustomField(req: Request, res: Response): Promise<void>
     UpdateCustomField(req: Request, res: Response): Promise<void>;
     DeleteCustomField(req: Request, res: Response): Promise<void>;
+}
+
+export interface TriggerRestViewI {
+    CreateTrigger(req: Request, res: Response): Promise<void>;
+    GetTrigger(req: Request, res: Response): Promise<void>;
+    GetListTrigger(req: Request, res: Response): Promise<void>
+    UpdateTrigger(req: Request, res: Response): Promise<void>;
+    DeleteTrigger(req: Request, res: Response): Promise<void>;
 }

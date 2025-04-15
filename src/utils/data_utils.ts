@@ -29,3 +29,7 @@ export class Paginate extends PaginateData{
 		};
 	}
 }
+
+export function isFilterEmpty(obj: any): boolean {
+	return !((Object.getOwnPropertySymbols(obj).length == 0) || (Object.keys(obj).length == 0))
+}

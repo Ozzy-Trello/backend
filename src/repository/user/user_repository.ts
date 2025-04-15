@@ -6,7 +6,7 @@ import {Error, Op, where} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {Paginate} from "@/utils/data_utils";
+import {isFilterEmpty, Paginate} from "@/utils/data_utils";
 
 export class UserRepository implements UserRepositoryI {
 	createFilter(filter: filterUserDetail): any {
@@ -98,7 +98,16 @@ export class UserRepository implements UserRepositoryI {
 			if (filter.withPassword) {
 				qry = User.scope('withPassword');
 			}
-			const user = await qry.findOne({where: this.createFilter(filter)});
+
+			let filterData = this.createFilter(filter);
+			if (isFilterEmpty(filterData)){
+				return {
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "you need filter to get user",
+				}
+			}
+
+			const user = await qry.findOne({where: filterData});
 			if (!user) {
 				return {
 					status_code: StatusCodes.NOT_FOUND,
@@ -132,9 +141,10 @@ export class UserRepository implements UserRepositoryI {
 		if (filter.withPassword) {
 			qry = User.scope('withPassword');
 		}
-		paginate.setTotal(await qry.count({where: this.createFilter(filter)}))
+		let filterData = this.createFilter(filter);
+		paginate.setTotal(await qry.count({where: filterData}))
 		const users = await qry.findAll({
-			where: this.createFilter(filter),
+			where: filterData,
 			offset: paginate.getOffset(),
 			limit: paginate.limit,
 		});
@@ -155,7 +165,11 @@ export class UserRepository implements UserRepositoryI {
 
 	async updateUser(filter: filterUserDetail, data: UserDetailUpdate): Promise<number> {
 		try {
-			const effected= await User.update(data.toObject(), {where: this.createFilter(filter)});
+			let filterData = this.createFilter(filter);
+			if (isFilterEmpty(filterData)){
+				return StatusCodes.BAD_REQUEST
+			}
+			const effected= await User.update(data.toObject(), {where: filterData});
 			if (effected[0] ==0 ){
 				return StatusCodes.NOT_FOUND
 			}

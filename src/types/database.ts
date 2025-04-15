@@ -1,5 +1,5 @@
-import { Generated, Insertable, Selectable, Updateable } from 'kysely';
-import { SourceType, TriggerValue } from './custom_field';
+import { Generated } from 'kysely';
+import { CardActionType, CardActionValue, CardActivityType, MoveListValue, SourceType, TriggerValue } from './custom_field';
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -13,6 +13,9 @@ export interface Database {
   card: CardTable;
   board: BoardTable;
   list: ListTable;
+  card_activity: CardActivityTable;
+  card_activity_action: CardActivityActionTable;
+  card_activity_text: CardActionTextTable;
 }
 
 export interface UserTable {
@@ -39,7 +42,7 @@ export interface WorkspaceMemberTable {
 export interface CustomFieldTable {
   id: Generated<string>;
   name: string;
-  workspace_id: string;
+  board_id: string;
   trigger_id?: string;
   description: string;
   source: SourceType;
@@ -87,7 +90,7 @@ export interface TriggerTable {
   id: Generated<string>;
   name?: string;
   description?: string;
-  board_id: string;
+  workspace_id: string;
   all_card: boolean;
   action: TriggerValue;
   condition_value: string;
@@ -107,4 +110,24 @@ export interface ListTable {
   order: number;
   name: string;
   background : string;
+}
+
+export interface CardActivityTable {
+  id: Generated<string>;
+  sender_user_id: string;
+  card_id: string;
+  activity_type: CardActivityType;
+}
+
+export interface CardActionTextTable {
+  id: Generated<string>;
+  activity_id: string;
+  text: string;
+}
+
+export interface CardActivityActionTable {
+  id: Generated<string>;
+  activity_id: string;
+  action: CardActionType;
+  source: CardActionValue;
 }

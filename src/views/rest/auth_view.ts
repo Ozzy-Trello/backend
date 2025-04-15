@@ -1,6 +1,6 @@
 import {AuthRestViewI} from "@/views/rest/interfaces";
 import {Request, Response} from "express";
-import {AuthControllerI, LoginResponse, RegisterResponse} from "@/controller/auth/auth_interfaces";
+import {AuthControllerI, LoginData, LoginResponse, RegisterResponse} from "@/controller/auth/auth_interfaces";
 import {ReasonPhrases, StatusCodes} from "http-status-codes";
 import {ResponseData} from "@/utils/response_utils";
 
@@ -17,10 +17,10 @@ export default class AuthRestView implements AuthRestViewI {
 
 	async Login(req: Request, res: Response): Promise<void> {
 		try {
-			const login_response: ResponseData<LoginResponse> = await this.controller.Login({
+			const login_response: ResponseData<LoginResponse> = await this.controller.Login(new LoginData({
 				identity: req.body.identity,
 				password: req.body.password
-			})
+			}))
 			if (login_response.status_code != StatusCodes.OK) {
 				if (login_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
 					console.log(login_response.message)
@@ -102,5 +102,3 @@ export default class AuthRestView implements AuthRestViewI {
 		return
 	}
 }
-
-// custome field

@@ -3,6 +3,7 @@ import {Paginate} from "@/utils/data_utils";
 import { TriggerValue } from "@/types/custom_field";
 
 export interface TriggerRepositoryI {
+  createTrigger(data : TriggerDetail): Promise<ResponseData<TriggerDetail>>;
   getTrigger(filter: filterTriggerDetail): Promise<ResponseData<TriggerDetail>>;
   deleteTrigger(filter: filterTriggerDetail): Promise<number>;
   updateTrigger(filter: filterTriggerDetail, data: TriggerDetailUpdate): Promise<number>;
@@ -50,6 +51,7 @@ export class TriggerDetail {
   public description!: string;
   public condition_value!: string;
   public workspace_id!: string;
+  public all_card?: boolean;
   public action!: TriggerValue;
 
   constructor(payload: Partial<TriggerDetail>) {

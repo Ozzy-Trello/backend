@@ -11,9 +11,20 @@ export interface LoginResponse {
 	refresh_token: string;
 }
 
-export interface LoginData {
-	identity: string;
-	password: string;
+export class LoginData {
+	identity!: string;
+	password!: string;
+
+	constructor(payload: Partial<LoginData>) {
+		Object.assign(this, payload);
+		this.checkRequired = this.checkRequired.bind(this);
+	}
+
+	checkRequired(): string | null{
+		if (this.identity == undefined ) return 'identity'
+		if (this.password == undefined ) return 'password'
+		return null
+	}
 }
 
 export interface RefreshTokenData {
