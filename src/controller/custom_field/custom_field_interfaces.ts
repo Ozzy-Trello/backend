@@ -39,7 +39,7 @@ export function fromCustomFieldDetailToCustomFieldResponse(data: CustomFieldDeta
 		name: data.name!,
 		description: data.description,
 		source: data.source,
-		trigger_id: data.trigger_id,
+		trigger_id: data.trigger?.id
 	})
 }
 
@@ -156,7 +156,10 @@ export class CustomFieldCreateData {
 			description: this.description,
 			workspace_id: this.workspace_id,
 			source: this.source,
-			trigger_id: this.trigger_id
+			trigger: {
+				id: this.trigger_id!,
+				condition_value: "",
+			}
 		})
 	}
 

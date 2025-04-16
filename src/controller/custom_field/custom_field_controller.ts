@@ -164,7 +164,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     return new ResponseListData({
       message: "CustomField workspace",
       status_code: StatusCodes.OK,
-      data: fromCustomFieldDetailToCustomFieldResponseCustomField(custom_fields.data!),
+      data: custom_fields.data!,
     }, custom_fields.paginate)
   }
 

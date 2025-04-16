@@ -23,39 +23,11 @@ import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import CardCustomField from "@/database/schemas/card_custom_field";
 import db from "@/database";
-import { Transaction } from "kysely";
+import { Transaction, sql } from "kysely";
 import { Database } from "@/types/database";
+import { SourceType, TriggerValue } from '@/types/custom_field';
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
-	createFilter(filter: filterCustomFieldDetail): any {
-		const whereClause: any = {};
-		const orConditions: any[] = [];
-		const notConditions: any[] = [];
-
-		if (filter.id) whereClause.id = filter.id;
-		if (filter.name) whereClause.name = filter.name;
-		if (filter.workspace_id) whereClause.workspace_id = filter.workspace_id;
-	
-		if (filter.__orId) orConditions.push({ id: filter.__orId });
-		if (filter.__orName) orConditions.push({ name: filter.__orName });
-		if (filter.__orWorkspaceId) orConditions.push({ workspace_id: filter.__orWorkspaceId });
-		if (filter.__orSource) orConditions.push({ source: filter.__orSource });
-
-		if (filter.__notId) notConditions.push({ id: filter.__notId });
-		if (filter.__notName) notConditions.push({ name: filter.__notName });
-		if (filter.__notWorkspaceId) notConditions.push({ workspace_id: filter.__notWorkspaceId });
-		if (filter.__notSource) orConditions.push({ source: filter.__notSource });
-
-		if (notConditions.length > 0) {
-			whereClause[Op.not] = notConditions;
-		}
-
-		if (orConditions.length > 0) {
-			whereClause[Op.or] = orConditions;
-		}
-		return whereClause
-	}
-
 	createValueFilter(eb: ExpressionBuilder<Database, any>, filter: filterCustomFieldDetail) {
 		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
 		
@@ -68,7 +40,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
 		if (filter.__orName) orConditions.push(eb('name', '=', filter.__orName));
 		if (filter.__orWorkspaceId) orConditions.push(eb('workspace_id', '=', filter.__orWorkspaceId));
-		if (filter.__orSource) orConditions.push(eb('source', '=', filter.__orSource));
+		// if (filter.__orSource) orConditions.push(eb('source', '=', filter.__orSource));
 	
 		if (orConditions.length > 0) {
 			query = eb.and([query, eb.or(orConditions)]);
@@ -79,7 +51,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		if (filter.__notId) notConditions.push(eb('id', '!=', filter.__notId));
 		if (filter.__notName) notConditions.push(eb('name', '!=', filter.__notName));
 		if (filter.__notWorkspaceId) notConditions.push(eb('workspace_id', '!=', filter.__notWorkspaceId));
-		if (filter.__notSource) notConditions.push(eb('source', '!=', filter.__notSource));
+		// if (filter.__notSource) notConditions.push(eb('source', '!=', filter.__notSource));
 	
 		if (notConditions.length > 0) {
 			query = eb.and([query, ...notConditions]);
@@ -277,16 +249,17 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
 	async deleteCustomField(filter: filterCustomFieldDetail): Promise<number> {
 		try {
-			const custom_field = await CustomField.destroy({where: this.createFilter(filter)});
-			if (custom_field <= 0) {
-				return StatusCodes.NOT_FOUND
-			}
-			return StatusCodes.NO_CONTENT
+			const result = await db
+					.deleteFrom('custom_field')
+					.where((eb) => this.createValueFilter(eb, filter))
+					.executeTakeFirst();
+			
+				if (!result.numDeletedRows || result.numDeletedRows <= 0) {
+						return StatusCodes.NOT_FOUND;
+				}
+				return StatusCodes.NO_CONTENT;
 		} catch (e) {
-			if (e instanceof Error) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
-			}
-			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}
 
@@ -301,7 +274,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					name: data.name,
 					source: data.source,
 					id: id,
-					trigger_id: data.trigger_id
+					trigger_id: data.trigger?.id
 				})
 				.execute();
 		
@@ -348,41 +321,88 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 	}
 
 	async getListCustomField(filter: filterCustomFieldDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomFieldDetail>>> {
-		let result: Array<CustomFieldDetail> = [];
-		paginate.setTotal(await CustomField.count({where: this.createFilter(filter)}))
-		const lists = await CustomField.findAll({
-			where: this.createFilter(filter),
-			offset: paginate.getOffset(),
-			limit: paginate.limit,
-		});
-		for (const custom_field of lists) {
-			result.push(new CustomFieldDetail({
-				id: custom_field.id,
-				name: custom_field.name,
-				description: custom_field.description,
-				workspace_id: custom_field.workspace_id,
-				source: custom_field.source,
-			}))
+		try {
+			const qry = db
+			  .selectFrom('custom_field')
+				.leftJoin('trigger', 'trigger.id', 'custom_field.trigger_id')
+				.where((eb) => {
+					let query = eb.and([]);
+					if (filter.id) query = eb.and([query, eb('custom_field.id', '=', filter.id)]);
+					if (filter.name) query = eb.and([query, eb('custom_field.name', '=', filter.name)]);
+					if (filter.workspace_id) query = eb.and([query, eb('custom_field.workspace_id', '=', filter.workspace_id)]);
+
+					const orConditions = [];
+					if (filter.__orId) orConditions.push(eb('custom_field.id', '=', filter.__orId));
+					if (filter.__orName) orConditions.push(eb('custom_field.name', '=', filter.__orName));
+					if (filter.__orWorkspaceId) orConditions.push(eb('custom_field.workspace_id', '=', filter.__orWorkspaceId));
+				
+					if (orConditions.length > 0) {
+						query = eb.and([query, eb.or(orConditions)]);
+					}
+				
+					// NOT conditions
+					const notConditions = [];
+					if (filter.__notId) notConditions.push(eb('custom_field.id', '!=', filter.__notId));
+					if (filter.__notName) notConditions.push(eb('custom_field.name', '!=', filter.__notName));
+					if (filter.__notWorkspaceId) notConditions.push(eb('custom_field.workspace_id', '!=', filter.__notWorkspaceId));
+				
+					if (notConditions.length > 0) {
+						query = eb.and([query, ...notConditions]);
+					}
+					return query
+				})
+
+			const total = await qry.select(({ fn }) => fn.count<number>('custom_field.id').as('count')).executeTakeFirst();
+			paginate.setTotal(total?.count!);
+
+			const lists = await qry
+			  .select([
+					sql<string>`custom_field.id`.as('id'),
+					sql<string>`custom_field.name`.as('name'),
+					sql<string>`custom_field.description`.as('description'),
+					sql<SourceType>`custom_field.source`.as('source'),
+					sql<string>`trigger.id`.as('trigger_id'),
+					sql<string>`trigger.condition_value`.as('condition_value'),
+					sql<TriggerValue>`trigger.action`.as('action'),
+				])
+				.offset(paginate.getOffset())
+				.limit(paginate.limit)
+				.execute();
+			
+			return new ResponseListData({
+					status_code: StatusCodes.OK,
+					message: "custom_field list",
+					data: lists.map((item) => new CustomFieldDetail({
+						id: item.id,
+						name: item.name,
+						description: item.description,
+						source: item.source,
+						trigger: item.trigger_id ? {
+							id: item.trigger_id,
+							condition_value: item.condition_value,
+							action: item.action
+						} : undefined
+					}))
+			}, paginate);
+		} catch (e) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
-		return new ResponseListData({
-			status_code: StatusCodes.OK,
-			message: "custom_field custom_field",
-			data: result,
-		}, paginate)
 	}
 
 	async updateCustomField(filter: filterCustomFieldDetail, data: CustomFieldDetailUpdate): Promise<number> {
 		try {
-			const effected= await CustomField.update(data.toObject(), {where: this.createFilter(filter)});
-			if (effected[0] <= 0 ){
-				return StatusCodes.NOT_FOUND
+			const result = await db
+				.updateTable('custom_field')
+				.set(data.toObject())
+				.where((eb) => this.createValueFilter(eb, filter))
+				.executeTakeFirst();
+			
+			if (!result.numUpdatedRows || result.numUpdatedRows <= 0) {
+					return StatusCodes.NOT_FOUND;
 			}
-			return StatusCodes.NO_CONTENT
+			return StatusCodes.NO_CONTENT;
 		} catch (e) {
-			if (e instanceof Error) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
-			}
-			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}
 

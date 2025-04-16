@@ -40,13 +40,13 @@ export interface filterCustomFieldDetail {
   __orName?: string;
   __orDescription?: string;
   __orWorkspaceId?: string;
-  __orSource?: string;
+  // __orSource?: string;
 
   __notId?: string;
   __notName?: string;
   __notDescription?: string;
   __notWorkspaceId?: string;
-  __notSource?: string;
+  // __notSource?: string;
 }
 
 export class CustomFieldDetailUpdate {
@@ -105,14 +105,19 @@ export class CustomFieldTrigger {
 	}
 }
 
+export interface _trigger {
+  id?: string;
+  condition_value?: string;
+  action?: TriggerValue;
+}
+
 export class CustomFieldDetail {
   public id!: string;
   public name?: string;
   public description!: string;
   public workspace_id!: string;
-  public order!: number;
   public source!:  SourceType
-  public trigger_id? :string
+  public trigger?: _trigger
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);
