@@ -34,6 +34,14 @@
  *         description: ID of board
  *         schema:
  *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *          type: number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *          type: number
  *     tags: [ List ]
  *     security:
  *       - BearerAuth: []
