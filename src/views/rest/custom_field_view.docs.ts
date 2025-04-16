@@ -82,6 +82,13 @@
  *   get:
  *     summary: Get custom field
  *     tags: [ Custom Field ]
+ *     parameters:
+ *       - name: workspace-id
+ *         in: header
+ *         description: ID of workspace
+ *         required: false
+ *         schema:
+ *           type: string
  *     security:
  *       - BearerAuth: []
  *     responses:
