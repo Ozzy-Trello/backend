@@ -67,7 +67,6 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (data.trigger_id) {
-      this.custom_field_repo
       const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
       if (checkTrigger.status_code != StatusCodes.OK) {
         return new ResponseData({
@@ -244,21 +243,44 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (filter.id) {
-      let currentBoard = await this.custom_field_repo.getCustomField({ id: filter.id });
-      if (currentBoard.status_code == StatusCodes.NOT_FOUND) {
+      let currentCustomField = await this.custom_field_repo.getCustomField({ id: filter.id });
+      if (currentCustomField.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: "CustomField is not found",
           status_code: StatusCodes.NOT_FOUND,
         })
       }
 
-      let checkList = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
-      if (checkList.status_code == StatusCodes.OK) {
+      let checkCustomFieldName = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
+      if (checkCustomFieldName.status_code == StatusCodes.OK) {
         return new ResponseData({
           message: "this workspace name already taken by others",
           status_code: StatusCodes.NOT_FOUND,
         })
       }
+
+      if (data.trigger_id) {
+        const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
+        if (checkTrigger.status_code != StatusCodes.OK) {
+          return new ResponseData({
+            message: checkTrigger.message,
+            status_code: checkTrigger.status_code
+          })
+        }
+  
+        let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, currentCustomField.data?.source!, checkTrigger.data?.action!)
+        if (checkSourceVal.status_code != StatusCodes.OK){
+          return new ResponseData({
+            message: checkSourceVal.message,
+            status_code: checkSourceVal.status_code,
+          })
+        }
+      }
+    } else {
+      return new ResponseData({
+        message: "Update without id currenly is not supported",
+        status_code: StatusCodes.BAD_REQUEST
+      })
     }
 
     const updateResponse = await this.custom_field_repo.updateCustomField(filter.toFilterCustomFieldDetail(), data.toCustomFieldDetailUpdate());

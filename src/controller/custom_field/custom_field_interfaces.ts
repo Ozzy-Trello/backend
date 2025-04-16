@@ -74,11 +74,14 @@ export class UpdateCustomFieldData {
 			description: this.description,
 		})
 	}
+
 	getErrorfield(): string| null {
 		if ( this.workspace_id && !isValidUUID(this.workspace_id)) {
 			return "'workspace_id' is not valid uuid"
 		}
-		if (this.trigger_id) return "update 'trigger_id' is not supported"
+		if (this.trigger_id && !isValidUUID(this.trigger_id)) {
+			return "'trigger_id' is not valid uuid,"
+		}
 		return null
 	}
 }
