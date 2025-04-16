@@ -251,13 +251,13 @@ export class CustomFieldController implements CustomFieldControllerI {
         })
       }
 
-      let checkCustomFieldName = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
-      if (checkCustomFieldName.status_code == StatusCodes.OK) {
-        return new ResponseData({
-          message: "this workspace name already taken by others",
-          status_code: StatusCodes.NOT_FOUND,
-        })
-      }
+      // let checkCustomFieldName = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
+      // if (checkCustomFieldName.status_code == StatusCodes.OK) {
+      //   return new ResponseData({
+      //     message: "this workspace name already taken by others",
+      //     status_code: StatusCodes.NOT_FOUND,
+      //   })
+      // }
 
       if (data.trigger_id) {
         const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))

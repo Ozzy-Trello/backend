@@ -66,7 +66,7 @@ export class UpdateCustomFieldData {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined;
+		return this.name == undefined && this.description == undefined && this.trigger_id == undefined && this.order == undefined;
 	}
 
 	toCustomFieldDetailUpdate(): CustomFieldDetailUpdate {

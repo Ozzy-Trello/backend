@@ -9,6 +9,7 @@ interface CustomFieldAttributes {
   description: string;
   workspace_id: string;
   source: SourceType;
+  trigger_id?: string;
 }
 
 interface CustomFieldCreationAttributes extends Optional<CustomFieldAttributes, 'id'> { }
@@ -19,6 +20,7 @@ class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttrib
   public description!: string;
   public workspace_id!: string;
   public source!: SourceType;
+  public trigger_id?: string;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -40,6 +42,16 @@ CustomField.init(
       allowNull: false,
       references: {
         model: 'workspace',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+    },
+    trigger_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'trigger',
         key: 'id',
       },
       onUpdate: 'CASCADE',
