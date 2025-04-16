@@ -31,7 +31,8 @@ export class TriggerResponse {
 	id!: string;
 	name?: string;
 	description?: string;
-	background?: string;
+	action!: TriggerValue;
+	condition_value?: string
 
 	constructor(payload: Partial<TriggerResponse>) {
 		Object.assign(this, payload)
@@ -43,6 +44,8 @@ export function fromTriggerDetailToTriggerResponse(data: TriggerDetail): Trigger
 		id: data.id,
 		name: data.name!,
 		description: data.description,
+		action: data.action,
+		condition_value: data.condition_value
 	})
 }
 

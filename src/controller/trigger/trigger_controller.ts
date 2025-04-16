@@ -338,12 +338,19 @@ export class TriggerController implements TriggerControllerI {
       filter.workspace_id = workspace.data?.id!
     }
 
-    let boards = await this.trigger_repo.getListTrigger(filter.toFilterTriggerDetail(), paginate);
+    let triggerList = await this.trigger_repo.getListTrigger(filter.toFilterTriggerDetail(), paginate);
+    if (triggerList.status_code != StatusCodes.OK){
+      return new ResponseListData({
+        message: triggerList.message,
+        status_code: triggerList.status_code,
+        data: [],
+      }, paginate)
+    }
     return new ResponseListData({
       message: "trigger list",
       status_code: StatusCodes.OK,
-      data: fromTriggerDetailToTriggerResponseList(boards.data!),
-    }, boards.paginate)
+      data: fromTriggerDetailToTriggerResponseList(triggerList.data!),
+    }, triggerList.paginate)
   }
 
   async DeleteTrigger(filter: TriggerFilter): Promise<ResponseData<null>> {

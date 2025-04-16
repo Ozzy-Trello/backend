@@ -53,6 +53,7 @@ export class CustomFieldDetailUpdate {
   public name?: string;
   public description?: string;
   public order?: number;
+  public trigger_id?: string;
 
   constructor(payload: Partial<CustomFieldDetailUpdate>) {
     Object.assign(this, payload);
@@ -64,6 +65,7 @@ export class CustomFieldDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
+    if (this.trigger_id) data.trigger_id = this.trigger_id;
     return data
   }
 }
@@ -186,6 +188,7 @@ export class CustomValueDetailUpdate {
   public name?: string;
   public description?: string;
   public order?: number;
+  public trigger_id?: number;
 
   constructor(payload: Partial<CustomValueDetailUpdate>) {
     Object.assign(this, payload);
@@ -197,6 +200,7 @@ export class CustomValueDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
+    if (this.trigger_id) data.trigger_id = this.trigger_id
     return data
   }
 }
