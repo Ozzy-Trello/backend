@@ -89,6 +89,14 @@
  *         required: false
  *         schema:
  *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *          type: number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *          type: number
  *     security:
  *       - BearerAuth: []
  *     responses:
