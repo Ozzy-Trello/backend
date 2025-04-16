@@ -48,6 +48,11 @@ export interface CustomFieldTable {
   source: SourceType;
 }
 
+export interface BoardCustomFieldTable {
+  board_id: string;
+  custom_field_id: string;
+}
+
 export interface CustomValueTable {
   id: Generated<string>;
   workspace_id: string;
