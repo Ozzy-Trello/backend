@@ -5,13 +5,45 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     const { DataTypes } = Sequelize;
 
-    await queryInterface.removeColumn("card_activity", "activity_type");
-    await queryInterface.removeColumn("card_activity_action", "action");
+    // Hapus kolom jika tabel dan kolom ada
+    const tableInfo = await queryInterface.describeTable("card_activity").catch(() => null);
+    if (tableInfo?.activity_type) {
+      await queryInterface.removeColumn("card_activity", "activity_type");
+    }
+
+    const actionTableInfo = await queryInterface.describeTable("card_activity_action").catch(() => null);
+    if (actionTableInfo?.action) {
+      await queryInterface.removeColumn("card_activity_action", "action");
+    }
+
+    // Drop ENUM type if exists
     await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_action_action;`);
     await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_activity_action;`);
-    await queryInterface.dropTable('card_activity_action');
-    await queryInterface.dropTable('card_activity_text');
-    await queryInterface.dropTable('card_activity');
+
+    // Drop table if exists
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity_action') THEN
+          DROP TABLE card_activity_action;
+        END IF;
+      END $$;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity_text') THEN
+          DROP TABLE card_activity_text;
+        END IF;
+      END $$;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity') THEN
+          DROP TABLE card_activity;
+        END IF;
+      END $$;
+    `);
 
     await queryInterface.createTable('card_activity', {
       id: {
@@ -96,9 +128,45 @@ module.exports = {
     const { DataTypes } = Sequelize;
 
     // Drop new tables
-    await queryInterface.dropTable('card_activity_action');
-    await queryInterface.dropTable('card_activity_text');
-    await queryInterface.dropTable('card_activity');
+    // Hapus kolom jika tabel dan kolom ada
+    const tableInfo = await queryInterface.describeTable("card_activity").catch(() => null);
+    if (tableInfo?.activity_type) {
+      await queryInterface.removeColumn("card_activity", "activity_type");
+    }
+
+    const actionTableInfo = await queryInterface.describeTable("card_activity_action").catch(() => null);
+    if (actionTableInfo?.action) {
+      await queryInterface.removeColumn("card_activity_action", "action");
+    }
+
+    // Drop ENUM type if exists
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_action_action;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_activity_action;`);
+
+    // Drop table if exists
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity_action') THEN
+          DROP TABLE card_activity_action;
+        END IF;
+      END $$;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity_text') THEN
+          DROP TABLE card_activity_text;
+        END IF;
+      END $$;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'card_activity') THEN
+          DROP TABLE card_activity;
+        END IF;
+      END $$;
+    `);
 
     // Recreate old tables (based on assumption, adjust as needed)
     await queryInterface.createTable('card_activity', {
