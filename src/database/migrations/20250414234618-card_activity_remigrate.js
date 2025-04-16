@@ -5,13 +5,13 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     const { DataTypes } = Sequelize;
 
-    // await queryInterface.removeColumn("card_activity", "activity_type");
-    // await queryInterface.removeColumn("card_activity_action", "action");
-    // await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_action_action;`);
-    // await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_activity_action;`);
-    // await queryInterface.dropTable('card_activity_action');
-    // await queryInterface.dropTable('card_activity_text');
-    // await queryInterface.dropTable('card_activity');
+    await queryInterface.removeColumn("card_activity", "activity_type");
+    await queryInterface.removeColumn("card_activity_action", "action");
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_action_action;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_card_activity_activity_action;`);
+    await queryInterface.dropTable('card_activity_action');
+    await queryInterface.dropTable('card_activity_text');
+    await queryInterface.dropTable('card_activity');
 
     await queryInterface.createTable('card_activity', {
       id: {

@@ -101,8 +101,8 @@ export class AuthController implements AuthControllerI {
 			status_code: account.status_code,
 			message: "Create user is success",
 			data: {
-				access_token: GenerateToken({user_id: account.data!.id}, Config.REST_SECRET_KEY, {expiresIn: '1d'}),
-				refresh_token: GenerateToken({user_id: account.data!.id}, Config.REST_REFRESH_KEY, {expiresIn: '400d'}),
+				access_token: GenerateToken({user_id: account.data!.id}, Config.REST_SECRET_KEY, {expiresIn: '7d'}),
+				refresh_token: GenerateToken({user_id: account.data!.id}, Config.REST_REFRESH_KEY, {expiresIn: '500d'}),
 				user_id: account.data?.id!
 			},
 		})

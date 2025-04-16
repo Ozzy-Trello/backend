@@ -156,8 +156,8 @@ export class CustomFieldCreateData {
 		if (this.workspace_id && !isValidUUID(this.workspace_id!)) {
 			return "'workspace_id' is not valid uuid"
 		}
-		if (this.source && typeof this.source == "string" && !(this.source.toLowerCase() == "user" || this.source.toLowerCase() == "product")) {
-			return "'source' sould be 'user' or 'product'"
+		if (this.source && typeof this.source == "string" && !(this.source.toLowerCase() == "user" || this.source.toLowerCase() == "product" || this.source.toLowerCase() == "custom_value")) {
+			return "'source' sould be 'user','product' or 'custom_value'"
 		}
 		return null
 	}
