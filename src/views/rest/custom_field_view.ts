@@ -102,7 +102,8 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       workspace_id: req.body.workspace_id?.toString(),
-      trigger_id: req.body.trigger_id
+      trigger_id: req.body.trigger_id,
+      order: req.body.order
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

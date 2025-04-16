@@ -56,6 +56,7 @@ export class UpdateCustomFieldData {
 	description?: string;
 	workspace_id?: string;
 	trigger_id?: string;
+	order?: number;
 
 	constructor(payload: Partial<UpdateCustomFieldData>) {
 		Object.assign(this, payload)
@@ -72,6 +73,8 @@ export class UpdateCustomFieldData {
 		return new CustomFieldDetailUpdate({
 			name: this.name,
 			description: this.description,
+			trigger_id: this.trigger_id,
+			order: this.order,
 		})
 	}
 
