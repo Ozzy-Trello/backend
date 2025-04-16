@@ -21,6 +21,12 @@ export default class TriggerRestView implements TriggerRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       workspace_id: req.body.workspace_id?.toString(),
+      condition_value: req.body.condition_value,
+      action: {
+        target_list_id: req.body.action.target_list_id,
+        label_card_id: req.body.action.label_card_id,
+        message_telegram: req.body.action.message_telegram,
+      }
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

@@ -5,7 +5,6 @@ import {filterTriggerDetail, TriggerDetail, TriggerDetailUpdate, TriggerReposito
 import {Error} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
-import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
 import db from "@/database";
 import { Database } from '@/types/database';
@@ -62,7 +61,10 @@ export class TriggerRepository implements TriggerRepositoryI {
 				data: new TriggerDetail(dataRes)
 			})
 		} catch (e) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: e instanceof Error ? e.message : String(e),
+			})
 		}
 	}
 
@@ -78,7 +80,9 @@ export class TriggerRepository implements TriggerRepositoryI {
 			}
 			return StatusCodes.NO_CONTENT;
 		} catch (e) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+			const msg = e instanceof Error ? e.message : String(e)
+			console.log(msg)
+			return StatusCodes.INTERNAL_SERVER_ERROR
 		}
 	}
 
@@ -100,7 +104,10 @@ export class TriggerRepository implements TriggerRepositoryI {
 						data: new TriggerDetail(trigger)
 				});
 		} catch (e) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: e instanceof Error ? e.message : String(e),
+			})
 		}
 	}
 
@@ -127,7 +134,10 @@ export class TriggerRepository implements TriggerRepositoryI {
 					data: lists.map((item) => new TriggerDetail(item))
 			}, paginate);
 		} catch (e) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+			return new ResponseListData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: e instanceof Error ? e.message : String(e),
+			}, paginate)
 		}
 	}
 
@@ -144,7 +154,9 @@ export class TriggerRepository implements TriggerRepositoryI {
 				}
 				return StatusCodes.NO_CONTENT;
 		} catch (e) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+				const msg = e instanceof Error ? e.message : String(e)
+				console.log(msg)
+				return StatusCodes.INTERNAL_SERVER_ERROR
 		}
 	}
 }

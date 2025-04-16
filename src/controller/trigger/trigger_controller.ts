@@ -60,30 +60,7 @@ export class TriggerController implements TriggerControllerI {
     })
   }
 
-  async checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
-    if(value) {
-      switch(source_type) {
-        case SourceType.User : {
-          let checkUser = await this.user_repo.getUser({id: String(value)});
-          if (checkUser.status_code == StatusCodes.NOT_FOUND) {
-            return new ResponseData({
-              message: "conditional value is not valid, user is not found",
-              status_code: StatusCodes.BAD_REQUEST,
-            })      
-          } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
-            return new ResponseData({
-              message: "conditional value is not valid, " + checkUser.message,
-              status_code: StatusCodes.BAD_REQUEST,
-            })      
-          } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-            return new ResponseData({
-              message: "internal server error",
-              status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-            })      
-          }
-        }
-      }
-    }
+  async checkTriggerValue(trigger_value: TriggerValue): Promise<ResponseData<null>> {
     if(trigger_value.target_list_id) {
       let checkList = await this.list_repo.getList({id: String(trigger_value.target_list_id)});      
       if (checkList.status_code == StatusCodes.NOT_FOUND) {
@@ -93,7 +70,7 @@ export class TriggerController implements TriggerControllerI {
         })      
       } else if (checkList.status_code == StatusCodes.BAD_REQUEST) {
         return new ResponseData({
-          message: "conditional value is not valid, " + checkList.message,
+          message: "condition value is not valid, " + checkList.message,
           status_code: StatusCodes.BAD_REQUEST,
         })      
       } else if (checkList.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -112,15 +89,53 @@ export class TriggerController implements TriggerControllerI {
         })      
       } else if (checkCard.status_code == StatusCodes.BAD_REQUEST) {
         return new ResponseData({
-          message: "conditional value is not valid, " + checkCard.message,
+          message: "condition value is not valid, " + checkCard.message,
           status_code: StatusCodes.BAD_REQUEST,
         })      
       } else if (checkCard.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
         return new ResponseData({
           message: "internal server error",
           status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-        })      
+        })
       }
+    }
+    return new ResponseData({
+      message: "OK",
+      status_code: StatusCodes.OK,
+    })
+  }
+
+  async checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
+    if(value) {
+      switch(source_type) {
+        case SourceType.User : {
+          let checkUser = await this.user_repo.getUser({id: String(value)});
+          if (checkUser.status_code == StatusCodes.NOT_FOUND) {
+            return new ResponseData({
+              message: "condition value is not valid, user is not found",
+              status_code: StatusCodes.BAD_REQUEST,
+            })      
+          } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
+            return new ResponseData({
+              message: "condition value is not valid, " + checkUser.message,
+              status_code: StatusCodes.BAD_REQUEST,
+            })      
+          } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
+            return new ResponseData({
+              message: "internal server error",
+              status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+            })      
+          }
+        }
+      }
+    }
+
+    let checkTriggerValue = await this.checkTriggerValue(trigger_value);
+    if (checkTriggerValue.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkTriggerValue.message,
+        status_code: checkTriggerValue.status_code,
+      })
     }
     return new ResponseData({
       message: "success",
@@ -159,18 +174,39 @@ export class TriggerController implements TriggerControllerI {
   }
 
   async CreateTrigger(data: TriggerCreateData): Promise<ResponseData<CreateTriggerResponse>> {
-    let paylodCheck = data.checkRequired();
-    if (paylodCheck) {
+    let payloadCheck = data.checkRequired();
+    if (payloadCheck) {
       return new ResponseData({
-        message: `you need to put '${paylodCheck}'`,
+        message: `you need to put '${payloadCheck}'`,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let errorField = data.getErrorField();
+    if (errorField) {
+      return new ResponseData({
+        message: errorField,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let emptyAction = data.isEmptyAction();
+    if (emptyAction){
+      return new ResponseData({
+        message: "we need `target_list_id` or `message_telegram` or `label_card_id`",
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
     
     let workspaceFilter = new filterWorkspaceDetail({id: data.workspace_id})
     if (!isValidUUID(workspaceFilter.id!)) {
-      delete workspaceFilter.id;
-      workspaceFilter.slug = data.workspace_id;
+      // delete workspaceFilter.id;
+      // workspaceFilter.slug = data.workspace_id;
+
+      return new ResponseData({
+        message: "not valid workspace id",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
     }
 
     let workspace = await this.workspace_repo.getWorkspace(workspaceFilter)
@@ -186,6 +222,14 @@ export class TriggerController implements TriggerControllerI {
     }
     data.workspace_id = workspace.data?.id!
 
+    let checkData = await this.checkTriggerValue(data.action);
+    if (checkData.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkData.message,
+        status_code: checkData.status_code,
+      })
+    }
+
     let checkTrigger = await this.trigger_repo.getTrigger({ workspace_id: workspace.data?.id!, name: data.name });
     if (checkTrigger.status_code == StatusCodes.OK) {
       return new ResponseData({
@@ -196,6 +240,7 @@ export class TriggerController implements TriggerControllerI {
 
     let createResponse = await this.trigger_repo.createTrigger(data.toTriggerDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
+      console.log(createResponse.message)
       return new ResponseData({
         message: "internal server error",
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
