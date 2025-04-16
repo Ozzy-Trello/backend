@@ -9,6 +9,7 @@
  *         - name
  *         - description
  *         - workspace_id
+ *         - trigger_id
  *       properties:
  *         name:
  *           type: string
@@ -22,11 +23,15 @@
  *         source:
  *           type: string
  *           description: Source data or data master ex user custom value dll
+ *         trigger_id:
+ *           type: string
+ *           description: Source data or data master ex user custom value dll
  *       example:
  *         name: default 
  *         description: CustomField for all list
  *         workspace_id: Workspace ID
  *         source: user
+ *         trigger_id: Triggger Id
  */
 
 /**
