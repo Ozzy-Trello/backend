@@ -21,7 +21,7 @@ export class CardActivity {
   sender_id!: string;
   card_id!: string;
   activity_type!: CardActivityType;
-  data? : CardActionActivity | Comment 
+  // data? : CardActionActivity | Comment 
   action?: CardActionActivity;
   comment?: CardComment;
 
@@ -32,7 +32,7 @@ export class CardActivity {
     }else if('text' in data){
       this.comment = data
     }
-    delete this.data
+    // delete this.data
   }
   
 }

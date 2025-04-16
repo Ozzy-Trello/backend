@@ -6,14 +6,17 @@ import { Paginate } from "@/utils/data_utils";
 import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
 import { CreateCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponseCustomField, CustomFieldControllerI, CustomFieldCreateData, CustomFieldFilter, CustomFieldResponse, UpdateCustomFieldData } from '@/controller/custom_field/custom_field_interfaces';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
+import { TriggerControllerI, TriggerFilter } from '../trigger/trigger_interfaces';
 
 export class CustomFieldController implements CustomFieldControllerI {
   private custom_field_repo: CustomFieldRepositoryI
   private workspace_repo: WorkspaceRepositoryI
+  private trigger_controller: TriggerControllerI;
 
-  constructor(custom_field_repo: CustomFieldRepositoryI, workspace_repo: WorkspaceRepositoryI) {
+  constructor(custom_field_repo: CustomFieldRepositoryI, workspace_repo: WorkspaceRepositoryI, trigger_controller: TriggerControllerI) {
     this.custom_field_repo = custom_field_repo;
     this.workspace_repo = workspace_repo;
+    this.trigger_controller = trigger_controller
     this.GetCustomField = this.GetCustomField.bind(this);
     this.GetListCustomField = this.GetListCustomField.bind(this);
     this.DeleteCustomField = this.DeleteCustomField.bind(this);
@@ -50,13 +53,44 @@ export class CustomFieldController implements CustomFieldControllerI {
       })
     }
 
-    let checkList = await this.custom_field_repo.getCustomField({ workspace_id: data.workspace_id, name: data.name });
-    if (checkList.status_code == StatusCodes.OK) {
+    let checkCustomField = await this.custom_field_repo.getCustomField({ workspace_id: data.workspace_id, name: data.name });
+    if (checkCustomField.status_code == StatusCodes.OK) {
       return new ResponseData({
-        message: "custom_field name already exist on your board",
+        message: "custom_field name already exist in your workspace",
         status_code: StatusCodes.CONFLICT,
       })
     }
+
+    if (data.trigger_id) {
+      const checkTrigger = await this.trigger_controller.GetTrigger(new TriggerFilter({id: data.trigger_id}))
+      if (checkTrigger.status_code != StatusCodes.OK) {
+        return new ResponseData({
+          message: checkTrigger.message,
+          status_code: checkTrigger.status_code
+        })
+      }
+
+      // let checkSource = await this.trigger_controller.prepareDataSource(value, checkCustomField.data?.source!);
+      // if (checkSource.status_code != StatusCodes.OK){
+      //   return new ResponseData({
+      //     message: checkSource.message,
+      //     status_code: checkSource.status_code,
+      //   })
+      // }
+      // data.value_number = checkSource.data?.value_number;
+      // data.value_string = checkSource.data?.value_string;
+      // data.value_user_id = checkSource.data?.value_user_id;
+    }
+
+    // if (trigger) {
+    //   let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
+    //   if (checkSourceVal.status_code != StatusCodes.OK){
+    //     return new ResponseData({
+    //       message: checkSourceVal.message,
+    //       status_code: checkSourceVal.status_code,
+    //     })
+    //   }
+    // }
 
     let createResponse = await this.custom_field_repo.createCustomField(data.toCustomFieldDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {

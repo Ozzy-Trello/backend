@@ -22,6 +22,7 @@ export default class ListRestView implements ListRestViewI {
       description: req.body.description?.toString(),
       background: req.body.background?.toString(),
       board_id: req.body.board_id?.toString(),
+      card_limit: req.body.card_limit
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

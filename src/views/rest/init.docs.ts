@@ -369,12 +369,16 @@
  *         background:
  *           type: string
  *           description: The title of your phone
+ *         card_limit:
+ *           type: integer
+ *           description: number of card limit
  *       example:
  *         board_id: "659cd528-1a9e-4ff4-a772-ce7aee2cbcb9"
  *         order: 1
  *         name: default 
  *         description: list for all List
  *         background: #ffffff
+ *         card_limit: 100
  */
 
 /**

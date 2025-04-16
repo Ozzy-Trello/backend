@@ -105,11 +105,11 @@ export class TriggerController implements TriggerControllerI {
     })
   }
 
-  async checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
-    if(value) {
+  async checkConditionalValue(condition_value : string| number, source_type: SourceType, trigger_value :TriggerValue): Promise<ResponseData<null>> {
+    if(condition_value) {
       switch(source_type) {
         case SourceType.User : {
-          let checkUser = await this.user_repo.getUser({id: String(value)});
+          let checkUser = await this.user_repo.getUser({id: String(condition_value)});
           if (checkUser.status_code == StatusCodes.NOT_FOUND) {
             return new ResponseData({
               message: "condition value is not valid, user is not found",

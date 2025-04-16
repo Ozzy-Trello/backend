@@ -47,7 +47,7 @@ export default function (): Router {
     const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
     const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller);
-    const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo);
+    const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_controller);
 
     const trigger_rest_view = new TriggerRestView(trigger_controller);
     const account_rest_view = new AccountRestView(account_controller);

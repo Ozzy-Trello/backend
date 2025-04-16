@@ -41,8 +41,8 @@ export interface WorkspaceMemberTable {
 
 export interface CustomFieldTable {
   id: Generated<string>;
-  name: string;
-  board_id: string;
+  name?: string;
+  workspace_id: string;
   trigger_id?: string;
   description: string;
   source: SourceType;

@@ -24,6 +24,7 @@ export class ListResponse {
 	id!: string;
 	name?: string;
 	background?: string;
+	card_limit?: number
 
 	constructor(payload: Partial<ListResponse>) {
 		Object.assign(this, payload)
@@ -35,6 +36,7 @@ export function fromListDetailToListResponse(data: ListDetail): ListResponse {
 		id: data.id,
 		name: data.name!,
 		background: data.background,
+		card_limit: data.card_limit
 	})
 }
 
@@ -49,6 +51,7 @@ export function fromListDetailToListResponseList(data: Array<ListDetail>): Array
 export class UpdateListData {
 	name?: string;
 	background?: string;
+	card_limit?: number;
 
 	constructor(payload: Partial<UpdateListData>) {
 		Object.assign(this, payload)
@@ -57,13 +60,14 @@ export class UpdateListData {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.background == undefined;
+		return this.name == undefined && this.background == undefined && this.card_limit == undefined;
 	}
 
 	toListDetailUpdate(): ListDetailUpdate {
 		return new ListDetailUpdate({
 			name: this.name,
 			background: this.background,
+			card_limit: this.card_limit,
 		})
 	}
 }
@@ -73,6 +77,7 @@ export class ListFilter {
 	name?: string;
 	board_id?: string
 	background?: string;
+	card_limit?: number;
 
 	constructor(payload: Partial<ListFilter>) {
 		Object.assign(this, payload);
@@ -87,11 +92,12 @@ export class ListFilter {
 			name: this.name,
 			board_id: this.board_id,
 			background: this.background,
+			card_limit: this.card_limit
 		}
 	}
 
 	isEmpty(): boolean{
-		return this.id == undefined && this.name == undefined && this.board_id == undefined && this.background == undefined;
+		return this.id == undefined && this.name == undefined && this.board_id == undefined && this.background == undefined && this.card_limit == undefined;
 	}
 
 	getErrorfield(): string| null {
@@ -111,6 +117,7 @@ export class ListCreateData {
 	description?: string;
 	background?: string;
 	board_id!: string;
+	card_limit?: number;
 
 	constructor(payload: Partial<ListCreateData>) {
 		Object.assign(this, payload)
@@ -123,7 +130,8 @@ export class ListCreateData {
 		return new ListDetail({
 			name: this.name,
 			background: this.background,
-			board_id: this.board_id
+			board_id: this.board_id,
+			card_limit: this.card_limit
 		})
 	}
 
