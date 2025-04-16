@@ -176,8 +176,8 @@ export class CardRepository implements CardRepositoryI {
 			});
 		}
 
-		if(data.data instanceof CardActionActivity) {
-			let item: CardActionActivity = data.data as CardActionActivity
+		if(data.action && data.action instanceof CardActionActivity) {
+			let item: CardActionActivity = data.action as CardActionActivity
 			const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
 				const card_activiy = await tx
 					.insertInto('card_activity')
@@ -211,8 +211,8 @@ export class CardRepository implements CardRepositoryI {
 				});
 			})
 			return trx
-		}else if(data.data instanceof CardComment) {
-			let item: CardComment = data.data as CardComment
+		}else if(data.comment && data.comment instanceof CardComment) {
+			let item: CardComment = data.comment as CardComment
 			const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
 				const card_activiy = await tx
 					.insertInto('card_activity')

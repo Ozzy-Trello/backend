@@ -6,6 +6,7 @@ interface ListAttributes {
     id : string;
     board_id: string;
     order: number;
+    card_limit?: number;
     name: string;
     background : string;
 }
@@ -16,6 +17,7 @@ class List extends Model<ListAttributes, ListCreationAttributes> implements List
     public id! : string;
     public board_id! : string;
     public order!: number;
+    public card_limit?: number;
     public name!: string;
     public background! : string;
 
@@ -35,6 +37,10 @@ List.init(
         },
         order: {
             type: DataTypes.INTEGER,
+        },
+        card_limit: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
         },
         name: {
             type: new DataTypes.STRING(128),

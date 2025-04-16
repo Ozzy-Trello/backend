@@ -467,7 +467,7 @@ export class CardController implements CardControllerI {
 
   async UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>> {
     let warning = undefined;
-    let selectedCard: CardDetail | undefined
+    let move_to_other_board = false
     if (filter.isEmpty()) {
       return new ResponseData({
         message: "you need filter to update",
@@ -505,24 +505,43 @@ export class CardController implements CardControllerI {
       }
     }
 
-    if (filter.id) {
-      let currentBoard = await this.card_repo.getCard({ id: filter.id });
-      if (currentBoard.status_code == StatusCodes.NOT_FOUND) {
-        return new ResponseData({
-          message: "Card is not found",
-          status_code: StatusCodes.NOT_FOUND,
-        })
-      }
+    let selectedCard = await this.card_repo.getCard(filter.toFilterCardDetail());
+    if (selectedCard.status_code == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      })
+    }
 
-      selectedCard = currentBoard.data
-      if (selectedCard && data.list_id && selectedCard.list_id == data.list_id!) {
+    if (data.list_id) {
+      if (selectedCard.data?.list_id == data.list_id!){
         return new ResponseData({
           message: "card is already on this list",
           status_code: StatusCodes.NOT_ACCEPTABLE,
         })
       }
 
+      let currentList = await this.list_repo.getList({id: selectedCard.data?.list_id!});
+      if (currentList.status_code!=StatusCodes.OK){
+        return new ResponseData({
+          message: "current list is not broken or deleted",
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        })
+      }
+      let targetList = await this.list_repo.getList({id: data.list_id!});
+      if (targetList.status_code!=StatusCodes.OK){
+        return new ResponseData({
+          message: "target list error " + targetList.message,
+          status_code: targetList.status_code,
+        })
+      }
 
+      if (targetList.data?.board_id != currentList.data?.board_id) {
+        move_to_other_board = true
+      }
+    }
+
+    if (filter.id) {
       // let checkList = await this.card_repo.getCard({ __notId: filter.id, __orName: data.name, __orListId: filter.list_id});
       // if (checkList.status_code == StatusCodes.OK) {
       //   return new ResponseData({
@@ -545,27 +564,27 @@ export class CardController implements CardControllerI {
       })
     }
 
-    if (selectedCard && data.list_id && selectedCard.list_id != data.list_id!) {
-      await this.card_repo.addActivity(filter.toFilterCardDetail(), new CardActivity({
+    if (data.list_id && selectedCard.data?.list_id! != data.list_id!) {
+      const activityRes = await this.card_repo.addActivity(filter.toFilterCardDetail(), new CardActivity({
         activity_type: CardActivityType.Action,
-        card_id: selectedCard.id,
+        card_id: selectedCard.data?.id,
         sender_id: user_id,
       }, new CardActionActivity({
         action_type: CardActionType.MoveList,
         source: {
-          origin_list_id: selectedCard.list_id,
+          origin_list_id: selectedCard.data?.list_id!,
           destination_list_id: data.list_id!
         },
       })))
+      if (activityRes.status_code != StatusCodes.OK) {
+        warning = "successfull but error to add to activities, " + activityRes.message  
+      }
 
-      let selectedList = await this.list_repo.getList({id: data.list_id});
-      if (selectedList.status_code == StatusCodes.OK) {
-        let assignRes = await this.custom_field_repo.assignAllBoardCustomFieldToCard(selectedList.data?.board_id!, selectedCard.id)
+      if (move_to_other_board){
+        let assignRes = await this.custom_field_repo.assignAllBoardCustomFieldToCard(data.list_id!, selectedCard.data?.id!)
         if (assignRes.status_code != StatusCodes.OK) {
-          warning = "successfull move but error assign all custom fields, " + selectedList.message  
+          warning = "successfull move but error assign all custom fields, " + assignRes.message  
         }
-      }else {
-        warning = "successfull move but error when assign all custom fields, " + selectedList.message
       }
     }
 

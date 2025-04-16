@@ -32,6 +32,7 @@ export interface filterCustomFieldDetail {
   name?: string;
   description?: string;
   workspace_id?: string;
+  trigger_id?: string;
   source?: SourceType;
   order?: number;
 
@@ -109,6 +110,7 @@ export class CustomFieldDetail {
   public workspace_id!: string;
   public order!: number;
   public source!:  SourceType
+  public trigger_id? :string
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);

@@ -21,10 +21,12 @@ export class ListRepository implements ListRepositoryI {
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
 		if (filter.__orBoardId) orConditions.push({ board_id: filter.__orBoardId });
+		if (filter.__orCardLimit) orConditions.push({ card_limit: filter.__orCardLimit });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
 		if (filter.__notBoardId) notConditions.push({ board_id: filter.__notBoardId });
+		if (filter.__notCardLimit) notConditions.push({ card_limit: filter.__notCardLimit });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
@@ -57,7 +59,8 @@ export class ListRepository implements ListRepositoryI {
 				name: data.name!,
 				background: data.background!,
 				board_id: data.board_id!,
-				order: data.order
+				order: data.order,
+				card_limit: data.card_limit
 			});
 			return new ResponseData({
 				status_code: StatusCodes.OK,
@@ -66,6 +69,7 @@ export class ListRepository implements ListRepositoryI {
 					id: list.id,
 					name: list.name,
 					background: list.background,
+					card_limit: list.card_limit
 				})
 			});
 		} catch (e) {
@@ -96,6 +100,7 @@ export class ListRepository implements ListRepositoryI {
 				name: list.name,
 				background: list.background,
 				board_id: list.board_id,
+				card_limit: list.card_limit,
 			})
 
 			return new ResponseData({
@@ -125,6 +130,7 @@ export class ListRepository implements ListRepositoryI {
 				name: list.name,
 				background: list.background, 
 				board_id: list.board_id,
+				card_limit: list.card_limit,
 			}))
 		}
 		return new ResponseListData({

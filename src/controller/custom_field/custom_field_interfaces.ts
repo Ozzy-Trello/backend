@@ -26,6 +26,7 @@ export class CustomFieldResponse {
 	name?: string;
 	description?: string;
 	source?: SourceType;
+	trigger_id?: string;
 
 	constructor(payload: Partial<CustomFieldResponse>) {
 		Object.assign(this, payload)
@@ -38,6 +39,7 @@ export function fromCustomFieldDetailToCustomFieldResponse(data: CustomFieldDeta
 		name: data.name!,
 		description: data.description,
 		source: data.source,
+		trigger_id: data.trigger_id,
 	})
 }
 
@@ -53,6 +55,7 @@ export class UpdateCustomFieldData {
 	name?: string;
 	description?: string;
 	workspace_id?: string;
+	trigger_id?: string;
 
 	constructor(payload: Partial<UpdateCustomFieldData>) {
 		Object.assign(this, payload)
@@ -75,6 +78,7 @@ export class UpdateCustomFieldData {
 		if ( this.workspace_id && !isValidUUID(this.workspace_id)) {
 			return "'workspace_id' is not valid uuid"
 		}
+		if (this.trigger_id) return "update 'trigger_id' is not supported"
 		return null
 	}
 }
@@ -84,7 +88,8 @@ export class CustomFieldFilter {
 	name?: string;
 	workspace_id?: string
 	description?: string;
-	source?: SourceType
+	source?: SourceType;
+	trigger_id?: string;
 
 	constructor(payload: Partial<CustomFieldFilter>) {
 		Object.assign(this, payload);
@@ -100,6 +105,7 @@ export class CustomFieldFilter {
 			workspace_id: this.workspace_id,
 			source: this.source,
 			description: this.description,
+			trigger_id: this.trigger_id,
 		}
 	}
 
@@ -108,7 +114,8 @@ export class CustomFieldFilter {
 		this.name == undefined && 
 		this.workspace_id == undefined && 
 		this.source == undefined && 
-		this.description == undefined;
+		this.description == undefined &&
+		this.trigger_id == undefined
 	}
 
 	getErrorfield(): string| null {
@@ -128,6 +135,7 @@ export class CustomFieldCreateData {
 	description?: string;
 	workspace_id!: string;
 	source!: SourceType;
+	trigger_id?: string;
 
 	constructor(payload: Partial<CustomFieldCreateData>) {
 		Object.assign(this, payload)
@@ -142,6 +150,7 @@ export class CustomFieldCreateData {
 			description: this.description,
 			workspace_id: this.workspace_id,
 			source: this.source,
+			trigger_id: this.trigger_id
 		})
 	}
 
@@ -155,6 +164,9 @@ export class CustomFieldCreateData {
 	getErrorField(): string | null {
 		if (this.workspace_id && !isValidUUID(this.workspace_id!)) {
 			return "'workspace_id' is not valid uuid"
+		}
+		if(this.trigger_id && !isValidUUID(this.trigger_id)) {
+			return "'trigger_id' is not valid uuid"
 		}
 		if (this.source && typeof this.source == "string" && !(this.source.toLowerCase() == "user" || this.source.toLowerCase() == "product" || this.source.toLowerCase() == "custom_value")) {
 			return "'source' sould be 'user','product' or 'custom_value'"
