@@ -4,9 +4,11 @@ import {Error, FindOptions, Includeable, Op, QueryTypes} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
-import {Paginate} from "@/utils/data_utils";
+import {isFilterEmpty, Paginate} from "@/utils/data_utils";
 import WorkspaceMember from "@/database/schemas/workspace_member";
 import db from "@/database";
+import { ExpressionBuilder } from "kysely";
+import { Database } from "@/types/database";
 
 export class WorkspaceRepository implements WorkspaceRepositoryI {
 	createFilter(filter: filterWorkspaceDetail): any {
@@ -37,6 +39,37 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 			whereClause[Op.or] = orConditions;
 		}
 		return whereClause
+	}
+
+	createValueFilter(eb: ExpressionBuilder<Database, any>, filter: filterWorkspaceDetail) {
+		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
+		
+		if (filter.id) query = eb.and([query, eb('id', '=', filter.id)]);
+		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
+		if (filter.slug) query = eb.and([query, eb('slug', '=', filter.slug)]);
+		if (filter.description) query = eb.and([query, eb('description', '=', filter.description)]);
+	
+		// OR conditions
+		const orConditions = [];
+		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
+		if (filter.__orName) orConditions.push(eb('name', '=', filter.__orName));
+		if (filter.__orSlug) orConditions.push(eb('slug', '=', filter.__orSlug));
+		if (filter.__orDescription) orConditions.push(eb('description', '=', filter.__orDescription));
+	
+		if (orConditions.length > 0) {
+			query = eb.and([query, eb.or(orConditions)]);
+		}
+	
+		// NOT conditions
+		const notConditions = [];
+		if (filter.__notId) notConditions.push(eb('id', '!=', filter.__notId));
+		if (filter.__notName) notConditions.push(eb('name', '!=', filter.__notName));
+	
+		if (notConditions.length > 0) {
+			query = eb.and([query, ...notConditions]);
+		}
+	
+		return query;
 	}
 
 	async deleteWorkspace(filter: filterWorkspaceDetail): Promise<number> {
@@ -127,7 +160,14 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 
 	async getWorkspace(filter: filterWorkspaceDetail): Promise<ResponseData<WorkspaceDetail>> {
 		try {
+			if (isFilterEmpty(filter)) {
+				return {
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "you need filter to get workspace detail",
+				}
+			}
 			let qry = db.selectFrom('workspace').selectAll()
+			qry = qry.where((eb) => this.createValueFilter(eb, filter))
 			if (filter.user_id_owner){
 				qry = qry.
 				innerJoin('workspace_member', 'workspace.id', 'workspace_member.workspace_id').

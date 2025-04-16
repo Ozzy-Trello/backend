@@ -13,7 +13,15 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateBoardModel'
+ *               type: object
+ *           example:
+ *             name: hallo
+ *             condition_value: 'value to trigger'
+ *             workspace_id: id dari workspace
+ *             action:
+ *               target_list_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
+ *               message_telegram: 'hallo'
+ *               label_card_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6' 
  *     responses:
  *       200:
  *         token: "this token"
