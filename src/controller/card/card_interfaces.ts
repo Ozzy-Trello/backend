@@ -2,7 +2,7 @@ import { validate as isValidUUID } from 'uuid';
 
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { CardActionActivity, CardComment, CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
+import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
 import { CardActionType, CardActionValue, CardActivityType, SourceType } from '@/types/custom_field';
 

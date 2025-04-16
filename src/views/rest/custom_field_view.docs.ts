@@ -8,6 +8,7 @@
  *       required:
  *         - name
  *         - description
+ *         - workspace_id
  *       properties:
  *         name:
  *           type: string
@@ -15,9 +16,17 @@
  *         description:
  *           type: string
  *           description: The title of your phone
+ *         workspace_id:
+ *           type: string
+ *           description: Workspace ID
+ *         source:
+ *           type: string
+ *           description: Source data or data master ex user custom value dll
  *       example:
  *         name: default 
  *         description: CustomField for all list
+ *         workspace_id: Workspace ID
+ *         source: user
  */
 
 /**
