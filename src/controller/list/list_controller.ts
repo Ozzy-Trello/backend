@@ -4,9 +4,8 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
-import { CreateListResponse, fromListDetailToListResponse, ListControllerI, ListCreateData, ListFilter, ListResponse, UpdateListData } from '@/controller/list/list_interfaces';
+import { CreateListResponse, fromListDetailToListResponse, fromListDetailToListResponseList, ListControllerI, ListCreateData, ListFilter, ListResponse, UpdateListData } from '@/controller/list/list_interfaces';
 import { BoardRepositoryI } from '@/repository/board/board_interfaces';
-import { fromBoardDetailToBoardResponseList } from '../boards/board_interfaces';
 
 export class ListController implements ListControllerI {
   private list_repo: ListRepositoryI
@@ -139,7 +138,7 @@ export class ListController implements ListControllerI {
     return new ResponseListData({
       message: "List list",
       status_code: StatusCodes.OK,
-      data: fromBoardDetailToBoardResponseList(boards.data!),
+      data: fromListDetailToListResponseList(boards.data!),
     }, boards.paginate)
   }
 
