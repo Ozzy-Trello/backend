@@ -26,6 +26,9 @@ import CustomFieldRestView from "@/views/rest/custom_field_view";
 import { TriggerRepository } from "@/repository/trigger/trigger_repository";
 import { TriggerController } from "@/controller/trigger/trigger_controller";
 import TriggerRestView from "@/views/rest/trigger_view";
+import { FileRepository } from "@/repository/file/file_repository";
+import { FileController } from "@/controller/file/file_controllers";
+import FileRestView from "@/views/rest/files_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -38,6 +41,7 @@ export default function (): Router {
     const card_repo = new CardRepository();
     const custom_field_repo = new CustomFieldRepository();
     const trigger_repo = new TriggerRepository();
+    const file_repository = new FileRepository();
 
     const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo);
     const account_controller = new AccountController(user_repo);
@@ -48,6 +52,8 @@ export default function (): Router {
     const list_controller = new ListController(list_repo, board_repo);
     const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_repo, trigger_controller);
+    const file_controller = new FileController(file_repository);
+
 
     const trigger_rest_view = new TriggerRestView(trigger_controller);
     const account_rest_view = new AccountRestView(account_controller);
@@ -58,6 +64,8 @@ export default function (): Router {
     const list_rest_view = new ListRestView(list_controller);
     const card_rest_view = new CardRestView(card_controller);
     const custom_field_rest_view = new CustomFieldRestView(custom_field_controller);
+    const file_rest_view = new FileRestView(file_controller);
+
 
     const router_account = Router();
     {
@@ -143,6 +151,14 @@ export default function (): Router {
         router_trigger.delete("/:id", restJwt, trigger_rest_view.DeleteTrigger);
     }
 
+    const router_file = Router();
+    {
+        router_file.post("/", restJwt, file_rest_view.uploadMiddleware(), file_rest_view.uploadFile);
+        router_file.get("/", restJwt, file_rest_view.getFileList);
+        router_file.get("/:id", restJwt, file_rest_view.getFile);
+        router_file.delete("/:id", restJwt, file_rest_view.deleteFile);
+    }
+
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
@@ -152,5 +168,6 @@ export default function (): Router {
     root_router.use("/list", router_list)
     root_router.use("/card", router_card)
     root_router.use("/custom-field", router_custom_field)
+    root_router.use("/file", router_file);
     return root_router
 }
