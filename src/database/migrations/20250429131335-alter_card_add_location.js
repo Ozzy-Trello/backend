@@ -4,7 +4,7 @@
 module.exports = {
   async up (queryInterface, Sequelize) {
     const tableInfo = await queryInterface.describeTable("card").catch(() => null);
-    if (!tableInfo?.card_limit) {
+    if (!tableInfo?.location) {
       await queryInterface.addColumn("card", "location", {
         type: Sequelize.STRING,
         allowNull: true,
@@ -14,7 +14,7 @@ module.exports = {
 
   async down (queryInterface, Sequelize) {
     const tableInfo = await queryInterface.describeTable("card").catch(() => null);
-    if (tableInfo?.card_limit) {
+    if (tableInfo?.location) {
       await queryInterface.removeColumn("card", "location");
     }
   }
