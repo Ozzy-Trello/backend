@@ -31,6 +31,7 @@ export class CardResponse {
 	id!: string;
 	name?: string;
 	description?: string;
+	location?: string;
 
 	constructor(payload: Partial<CardResponse>) {
 		Object.assign(this, payload)
@@ -44,6 +45,7 @@ export class AssignCardResponse {
 	value?: null | string | number;
 	order!: number;
 	source!: SourceType;
+	location?: string;
 
 	constructor(payload: Partial<AssignCardResponse>) {
 		Object.assign(this, payload)
@@ -55,6 +57,7 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 		id: data.id,
 		name: data.name!,
 		description: data.description,
+		location: data?.location
 	})
 }
 
@@ -84,6 +87,7 @@ export class UpdateCardData {
 	name?: string;
 	description?: string;
 	list_id?: string;
+	location?: string;
 
 	constructor(payload: Partial<UpdateCardData>) {
 		Object.assign(this, payload)
@@ -93,7 +97,7 @@ export class UpdateCardData {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined && this.list_id == undefined;
+		return this.name == undefined && this.description == undefined && this.list_id == undefined && this.location == undefined;
 	}
 
 	toCardDetailUpdate(): CardDetailUpdate {
@@ -101,6 +105,7 @@ export class UpdateCardData {
 			name: this.name,
 			description: this.description,
 			list_id: this.list_id,
+			location: this.location
 		})
 	}
 	getErrorfield(): string| null {
@@ -116,6 +121,7 @@ export class CardFilter {
 	name?: string;
 	list_id?: string
 	description?: string;
+	location?: string;
 
 	constructor(payload: Partial<CardFilter>) {
 		Object.assign(this, payload);
@@ -130,11 +136,12 @@ export class CardFilter {
 			name: this.name,
 			list_id: this.list_id,
 			description: this.description,
+			location: this.location
 		}
 	}
 
 	isEmpty(): boolean{
-		return this.id == undefined && this.name == undefined && this.list_id == undefined && this.description == undefined;
+		return this.id == undefined && this.name == undefined && this.list_id == undefined && this.description == undefined && this.location == undefined;
 	}
 
 	getErrorfield(): string| null {

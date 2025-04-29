@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
+import { AllowNull } from 'sequelize-typescript';
 
 interface CardAttributes {
     id : string;
@@ -8,6 +9,7 @@ interface CardAttributes {
     name: string;
     description : string;
     order : number;
+    location?: string;
 }
 
 interface CardCreationAttributes extends Optional<CardAttributes, 'id'> {}
@@ -18,6 +20,7 @@ class Card extends Model<CardAttributes, CardCreationAttributes> implements Card
     public name!: string;
     public description! : string;
     public order! : number;
+    public location?: string;
 
     public readonly createdAt!: Date;
     public readonly updatedAt!: Date;
@@ -41,6 +44,10 @@ Card.init(
         description: {
             type: new DataTypes.TEXT,
             allowNull: false,
+        },
+        location: {
+            type: DataTypes.STRING,
+            allowNull: true,
         },
         order: {
             type: new DataTypes.NUMBER,
