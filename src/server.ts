@@ -41,7 +41,7 @@ export class Server {
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost",
-        "https://dev-workflow-ozzy.netlify.app/",
+        "https://dev-workflow-ozzy.netlify.app",
       ], // Add any frontend origins
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["*"],
