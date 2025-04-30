@@ -22,7 +22,8 @@ export default class CardAttachmentRestView {
       // Create card attachment data from request
       const attachmentData = new CardAttachmentCreateData({
         card_id: req.body.card_id,
-        file_id: req.body.file_id
+        file_id: req.body.file_id,
+        is_cover: req.body.is_cover
       });
 
       // Create card attachment

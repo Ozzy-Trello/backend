@@ -38,7 +38,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const attachmentDetail = new CardAttachmentDetail({
         card_id: data.card_id,
         file_id: data.file_id,
-        is_cover: data.is_cover || false,
+        is_cover: data.is_cover,
         created_by: userId
       });
       

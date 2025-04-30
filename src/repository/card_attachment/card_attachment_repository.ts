@@ -54,7 +54,7 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
         id,
         card_id: data.card_id,
         file_id: data.file_id,
-        is_cover: data.is_cover || false,
+        is_cover: data.is_cover,
         created_by: data.created_by!,
         created_at: new Date(),
         updated_at: new Date()

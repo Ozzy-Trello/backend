@@ -40,7 +40,7 @@ export class CardAttachmentFilter {
 export class CardAttachmentCreateData {
   card_id!: string;
   file_id!: string;
-  is_cover?: boolean;
+  is_cover!: boolean;
   
   constructor(payload: Partial<CardAttachmentCreateData>) {
     Object.assign(this, payload);
