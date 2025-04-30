@@ -212,27 +212,40 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
 
   async getCardAttachmentList(filter: filterCardAttachmentDetail, paginate: Paginate): Promise<ResponseListData<Array<CardAttachmentDetail>>> {
     try {
-      let result: Array<CardAttachmentDetail> = [];
       let filterData = this.createFilter(filter);
       
       paginate.setTotal(await CardAttachment.count({ where: filterData }));
       
+      // query attachment without includes
       const attachments = await CardAttachment.findAll({
         where: filterData,
         offset: paginate.getOffset(),
         limit: paginate.limit,
-        order: [['created_at', 'DESC']],
-        include: [
-          {
-            model: File,
-            as: 'file',
-            required: false
-          }
-        ]
+        order: [['created_at', 'DESC']]
       });
-      
-      for (const attachment of attachments) {
-        result.push(new CardAttachmentDetail({
+
+      // get the associated file
+      const attachmentIds = attachments.map(attachment => attachment.id);
+
+      // Fetch all related files in a single query
+      const files = await File.findAll({
+        where: {
+          id: {
+            [Op.in]: attachments.map(a => a.file_id).filter(id => id !== null)
+          }
+        }
+      });
+
+      const fileMap = new Map();
+      files.forEach(file => {
+        fileMap.set(file.id, file);
+      });
+
+      // construct the result with the associated files
+      const result = attachments.map(attachment => {
+        const file = attachment.file_id ? fileMap.get(attachment.file_id) || null : null;
+        
+        return new CardAttachmentDetail({
           id: attachment.id,
           card_id: attachment.card_id,
           file_id: attachment.file_id,
@@ -240,9 +253,9 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
           created_by: attachment.created_by,
           created_at: attachment.created_at,
           updated_at: attachment.updated_at,
-          file: attachment.file
-        }));
-      }
+          file: file
+        });
+      });
       
       return new ResponseListData({
         status_code: StatusCodes.OK,

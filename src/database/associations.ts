@@ -20,6 +20,8 @@ export function initializeAssociations() {
     foreignKey: 'card_id',
     as: 'attachments'
   });
+  console.log("CardAttachment", CardAttachment.associations);
+  console.log("File", File.associations);
   
   console.log('Database associations initialized successfully');
 }
