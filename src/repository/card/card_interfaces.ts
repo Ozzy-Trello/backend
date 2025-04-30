@@ -34,7 +34,6 @@ export class CardActivity {
     }
     // delete this.data
   }
-  
 }
 
 export class CardComment {
@@ -154,9 +153,7 @@ export class CardDetail {
   }
 }
 
-
 export interface CardActivityMoveList {
   date: string;
   list_id: string
 }
-

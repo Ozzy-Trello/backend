@@ -29,6 +29,9 @@ import TriggerRestView from "@/views/rest/trigger_view";
 import { FileRepository } from "@/repository/file/file_repository";
 import { FileController } from "@/controller/file/file_controllers";
 import FileRestView from "@/views/rest/files_view";
+import { CardAttachmentRepository } from "@/repository/card_attachment/card_attachment_repository";
+import { CardAttachmentController } from "@/controller/card_attachment/card_attachment_controller";
+import CardAttachmentRestView from "@/views/rest/card_attachment_view";
 
 export default function (): Router {
     const root_router = Router();
@@ -42,6 +45,7 @@ export default function (): Router {
     const custom_field_repo = new CustomFieldRepository();
     const trigger_repo = new TriggerRepository();
     const file_repository = new FileRepository();
+    const card_attachment_repository = new CardAttachmentRepository();
 
     const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo);
     const account_controller = new AccountController(user_repo);
@@ -53,7 +57,7 @@ export default function (): Router {
     const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_repo, trigger_controller);
     const file_controller = new FileController(file_repository);
-
+    const card_attachment_controller = new CardAttachmentController(card_attachment_repository, file_repository);
 
     const trigger_rest_view = new TriggerRestView(trigger_controller);
     const account_rest_view = new AccountRestView(account_controller);
@@ -65,7 +69,7 @@ export default function (): Router {
     const card_rest_view = new CardRestView(card_controller);
     const custom_field_rest_view = new CustomFieldRestView(custom_field_controller);
     const file_rest_view = new FileRestView(file_controller);
-
+    const card_attachment_rest_view = new CardAttachmentRestView(card_attachment_controller);
 
     const router_account = Router();
     {
@@ -159,6 +163,15 @@ export default function (): Router {
         router_file.delete("/:id", restJwt, file_rest_view.deleteFile);
     }
 
+    const router_card_attachment = Router();
+    {
+        router_card_attachment.post("/", restJwt, card_attachment_rest_view.CreateCardAttachment);
+        router_card_attachment.get("/", restJwt, card_attachment_rest_view.GetCardAttachmentList);
+        router_card_attachment.get("/:id", restJwt, card_attachment_rest_view.GetCardAttachment);
+        router_card_attachment.delete("/:id", restJwt, card_attachment_rest_view.DeleteCardAttachment);
+    }
+
+
     root_router.use("/auth", router_auth)
     root_router.use("/account", router_account)
     root_router.use("/workspace", router_workspace)
@@ -169,5 +182,6 @@ export default function (): Router {
     root_router.use("/card", router_card)
     root_router.use("/custom-field", router_custom_field)
     root_router.use("/file", router_file);
+    root_router.use("/card-attachment", router_card_attachment);
     return root_router
 }
