@@ -109,6 +109,7 @@ export class CardRepository implements CardRepositoryI {
 				description: card.description,
 				order: card.order,
 				list_id: card.list_id,
+				location: card?.location ?? ""
 			})
 
 			return new ResponseData({
@@ -139,6 +140,7 @@ export class CardRepository implements CardRepositoryI {
 				description: card.description, 
 				order: card.order, 
 				list_id: card.list_id,
+				location: card?.location ?? ""
 			}))
 		}
 		return new ResponseListData({

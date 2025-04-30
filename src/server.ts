@@ -12,12 +12,14 @@ import db from "@/database";
 import { Config } from "@/config";
 
 import rest from "@/routes/rest";
+import { initializeAssociations } from "./database/associations";
 
 export class Server {
 	private rest_router: Express = express();
 
 	constructor() {
 		this.restRoute()
+		initializeAssociations();
 	}
 
 	public async checkDependencies() {
@@ -33,7 +35,18 @@ export class Server {
 		const specs = swaggerJSDoc(swaggerOption);
 
 		this.rest_router.use(bodyParser.json());
-		this.rest_router.use(cors());
+
+		const corsOptions = {
+			origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost'], // Add any frontend origins
+			methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+			allowedHeaders: ['*'],
+		};
+		
+		// Apply CORS first - before any other middleware
+		this.rest_router.use(cors(corsOptions));
+		
+		// Explicit handling for OPTIONS preflight requests
+		this.rest_router.options('*', cors(corsOptions));
 		this.rest_router.use(morgan(Config.NODE_ENV));
 
 		this.rest_router.use("/v1", rest())

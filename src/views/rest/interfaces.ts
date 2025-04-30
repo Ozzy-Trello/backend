@@ -76,3 +76,10 @@ export interface TriggerRestViewI {
     UpdateTrigger(req: Request, res: Response): Promise<void>;
     DeleteTrigger(req: Request, res: Response): Promise<void>;
 }
+
+export interface FileViewI {
+    UploadFile(req: Request, res: Response): Promise<void>;
+    GetFiles(req: Request, res: Response): Promise<void>;
+    GetFile(req: Request, res: Response): Promise<void>;
+    DeleteFile(req: Request, res: Response): Promise<void>;
+}

@@ -34,7 +34,6 @@ export class CardActivity {
     }
     // delete this.data
   }
-  
 }
 
 export class CardComment {
@@ -106,6 +105,7 @@ export interface filterCardDetail {
   name?: string;
   description?: string;
   list_id?: string;
+  location?: string;
 
   __orId?: string;
   __orName?: string;
@@ -123,6 +123,7 @@ export class CardDetailUpdate {
   public description?: string;
   public order?: number;
   public list_id?: string;
+  public location?: string;
 
   constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
@@ -134,6 +135,7 @@ export class CardDetailUpdate {
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
     if (this.list_id) data.list_id = this.list_id;
+    if (this.location) data.location = this.location;
     return data
   }
 }
@@ -144,15 +146,14 @@ export class CardDetail {
   public description!: string;
   public list_id!: string;
   public order?: number;
+  public location?: string;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
   }
 }
 
-
 export interface CardActivityMoveList {
   date: string;
   list_id: string
 }
-
