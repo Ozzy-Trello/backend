@@ -36,22 +36,7 @@ export class Server {
 
     this.rest_router.use(bodyParser.json());
 
-    const corsOptions = {
-      origin: [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost",
-        "https://dev-workflow-ozzy.netlify.app",
-      ], // Add any frontend origins
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["*"],
-    };
-
-    // Apply CORS first - before any other middleware
     this.rest_router.use(cors());
-
-    // Explicit handling for OPTIONS preflight requests
-    this.rest_router.options("*", cors(corsOptions));
     this.rest_router.use(morgan(Config.NODE_ENV));
 
     this.rest_router.use("/v1", rest());
