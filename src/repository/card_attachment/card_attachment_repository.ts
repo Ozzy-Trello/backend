@@ -9,6 +9,9 @@ import { InternalServerError } from "@/utils/errors";
 import { isFilterEmpty, Paginate } from "@/utils/data_utils";
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
+import { AttachmentType } from '@/types/card_attachment';
+import { CardDetail } from '../card/card_interfaces';
+import Card from '@/database/schemas/card';
 
 export class CardAttachmentRepository implements CardAttachmentRepositoryI {
   createFilter(filter: filterCardAttachmentDetail): any {
@@ -16,7 +19,8 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
 
     if (filter.id) whereClause.id = filter.id;
     if (filter.card_id) whereClause.card_id = filter.card_id;
-    if (filter.file_id) whereClause.file_id = filter.file_id;
+    if (filter.attachable_type) whereClause.attachable_type = filter.attachable_type;
+    if (filter.attachable_id) whereClause.attachable_id = filter.attachable_id;
     if (filter.is_cover !== undefined) whereClause.is_cover = filter.is_cover;
     if (filter.created_by) whereClause.created_by = filter.created_by;
     
@@ -46,15 +50,17 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
       const id = data.id || uuidv4();
       
       // If set as cover, reset any existing covers for this card
-      if (data.is_cover) {
+      if (data.attachable_type == AttachmentType.File && data.is_cover) {
         await this.resetCoverForCard(data.card_id, transaction);
       }
-      
+
       let attachment = await CardAttachment.create({
         id,
         card_id: data.card_id,
-        file_id: data.file_id,
+        attachable_type: data.attachable_type,
+        attachable_id: data.attachable_id,
         is_cover: data.is_cover,
+        metadata: data.metadata,
         created_by: data.created_by!,
         created_at: new Date(),
         updated_at: new Date()
@@ -69,7 +75,8 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
         data: new CardAttachmentDetail({
           id: attachment.id,
           card_id: attachment.card_id,
-          file_id: attachment.file_id,
+          attachable_type: attachment.attachable_type,
+          attachable_id: attachment.attachable_id,
           is_cover: attachment.is_cover,
           created_by: attachment.created_by,
           created_at: attachment.created_at,
@@ -189,7 +196,8 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
       let result = new CardAttachmentDetail({
         id: attachment.id,
         card_id: attachment.card_id,
-        file_id: attachment.file_id,
+        attachable_type: attachment.attachable_type,
+        attachable_id: attachment.attachable_id,
         is_cover: attachment.is_cover,
         created_by: attachment.created_by,
         created_at: attachment.created_at,
@@ -224,36 +232,60 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
         order: [['created_at', 'DESC']]
       });
 
-      // get the associated file
-      const attachmentIds = attachments.map(attachment => attachment.id);
+      // exctract associated attachable ids
+      let fileIds: string[] = [];
+      let targetCardIds: string[] = [];
+      attachments?.forEach(attachment => {
+        if (attachment.attachable_type == AttachmentType.File) {
+          fileIds.push(attachment.attachable_id);
+        } else if (attachment.attachable_type == AttachmentType.Card) {
+          targetCardIds.push(attachment.attachable_id);
+        }
+      });
 
       // Fetch all related files in a single query
       const files = await File.findAll({
         where: {
           id: {
-            [Op.in]: attachments.map(a => a.file_id).filter(id => id !== null)
+            [Op.in]: fileIds 
           }
         }
       });
-
-      const fileMap = new Map();
+      const fileMap = new Map(); // Create a map for quick lookup
       files.forEach(file => {
         fileMap.set(file.id, file);
       });
 
+      // Fetch all related target cards in a single query
+      const targetCard = await Card.findAll({
+        where: {
+          id: {
+            [Op.in]: targetCardIds
+          }
+        }
+      })
+      const targetCardMap = new Map(); // Create a map for quick lookup
+      targetCard.forEach(card => {
+        targetCardMap.set(card.id, card);
+      });
+
+      
       // construct the result with the associated files
       const result = attachments.map(attachment => {
-        const file = attachment.file_id ? fileMap.get(attachment.file_id) || null : null;
+        const file = attachment.attachable_type == AttachmentType.File  ? fileMap.get(attachment.attachable_id) || null : null;
+        const targetCard = attachment.attachable_type == AttachmentType.Card ? targetCardMap.get(attachment.attachable_id) || null : null;
         
         return new CardAttachmentDetail({
           id: attachment.id,
           card_id: attachment.card_id,
-          file_id: attachment.file_id,
+          attachable_type: attachment.attachable_type,
+          attachable_id: attachment.attachable_id,
           is_cover: attachment.is_cover,
           created_by: attachment.created_by,
           created_at: attachment.created_at,
           updated_at: attachment.updated_at,
-          file: file
+          file: file,
+          target_card: targetCard
         });
       });
       
@@ -305,7 +337,8 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
       let result = new CardAttachmentDetail({
         id: attachment.id,
         card_id: attachment.card_id,
-        file_id: attachment.file_id,
+        attachable_type: attachment.attachable_type,
+        attachable_id: attachment.attachable_id,
         is_cover: attachment.is_cover,
         created_by: attachment.created_by,
         created_at: attachment.created_at,
