@@ -36,7 +36,7 @@ export class TriggerController implements TriggerControllerI {
   }
 
   async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {
-    if(paylod.action) {
+    if(paylod.condition) {
       const action: ConditionType = paylod.type!;
       switch(action){
         case ConditionType.CardInBoard: {
