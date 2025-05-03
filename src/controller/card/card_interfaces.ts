@@ -4,7 +4,8 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
-import { CardActionValue, CardActivityType, SourceType } from '@/types/custom_field';
+import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
+import { AutomationCondition } from '@/types/trigger';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -235,4 +236,16 @@ export class CardActionActivityData extends CardActivity {
 	// 		action_type: this.action_type
 	// 	}
 	// }
+}
+
+export class TriggerDoData {
+  group_type!: TriggerTypes;
+  type!: ConditionType;
+  workspace_id!: string;
+  condition!: AutomationCondition;
+  filter?: any;
+
+  constructor(payload: Partial<TriggerDoData>) {
+    Object.assign(this, payload);
+  }
 }

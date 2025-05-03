@@ -9,7 +9,7 @@ import { CardDetailUpdate, CardRepositoryI } from "@/repository/card/card_interf
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
 import { TriggerRepositoryI } from "@/repository/trigger/trigger_interfaces";
-import { CardFilter } from "../card/card_interfaces";
+import { CardFilter, TriggerDoData } from "../card/card_interfaces";
 import { Paginate } from '@/utils/data_utils';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { BoardRepositoryI } from '@/repository/board/board_interfaces';
@@ -35,30 +35,23 @@ export class TriggerController implements TriggerControllerI {
     // this.checkConditionalValue = this.checkConditionalValue.bind(this);
   }
 
-  async doTrigger(paylod: DoTriggerData): Promise<ResponseData<null>> {
+  async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {
     if(paylod.action) {
-      const action: ConditionType = paylod.action!;
+      const action: ConditionType = paylod.type!;
       switch(action){
         case ConditionType.CardInBoard: {
           const required = ["action", "by"];
           const optional = ["board"];
 
           this.trigger_repo.getTrigger({
-            
+
           })
-
         }
-        case ConditionType.CardInList: {
-
-        }
-        case ConditionType.CardAction: {
-
-        }
-        case ConditionType.ListAction: {
-
-        }
-        case ConditionType.ListHasCard: {
-
+        case ConditionType.CardInList, ConditionType.CardAction, ConditionType.ListAction, ConditionType.ListHasCard: {
+          return new ResponseData({
+            message: "not supported yet",
+            status_code: StatusCodes.BAD_REQUEST,
+          })      
         }
       }
     }
@@ -647,13 +640,13 @@ export class TriggerController implements TriggerControllerI {
         })
       }
 
-      let checkBoard = await this.trigger_repo.getTrigger({ __notId: filter.id, __orName: data.name });
-      if (checkBoard.status_code == StatusCodes.OK) {
-        return new ResponseData({
-          message: "this trigger name already taken by others",
-          status_code: StatusCodes.NOT_FOUND,
-        })
-      }
+      // let checkBoard = await this.trigger_repo.getTrigger({ __notId: filter.id, __orName: data.name });
+      // if (checkBoard.status_code == StatusCodes.OK) {
+      //   return new ResponseData({
+      //     message: "this trigger name already taken by others",
+      //     status_code: StatusCodes.NOT_FOUND,
+      //   })
+      // }
     }
 
     const updateResponse = await this.trigger_repo.updateTrigger(filter.toFilterTriggerDetail(), data.toTriggerDetailUpdate());

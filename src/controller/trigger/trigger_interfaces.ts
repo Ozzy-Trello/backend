@@ -7,10 +7,11 @@ import { Paginate } from "@/utils/data_utils"
 import { ResponseData, ResponseListData } from "@/utils/response_utils"
 import { StatusCodes } from 'http-status-codes';
 import { AutomationCondition } from '@/types/trigger';
+import { TriggerDoData } from '../card/card_interfaces';
 
 export interface TriggerControllerI {
   prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>>
-  doTrigger(paylod: DoTriggerData): Promise<ResponseData<null>>
+  doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>>
   // doTrigger(trigger_id: string, value : string| number, trigger: ActionsValue): Promise<ResponseData<null>>
   // checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :ActionsValue[]): Promise<ResponseData<null>>
 
@@ -32,6 +33,11 @@ export interface DoTriggerData {
     card_id?: string;
   }
   filter?: any
+  condition?: {
+    action: string
+    board: string
+    by: string
+  }
 }
 
 

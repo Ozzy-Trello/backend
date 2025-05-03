@@ -1,7 +1,7 @@
 import { ExpressionBuilder, JSONColumnType, RawBuilder, sql } from 'kysely';
 import {v4 as uuidv4} from 'uuid';
 
-import {filterTriggerDetail, TriggerDetail, TriggerDetailUpdate, TriggerRepositoryI} from "@/repository/trigger/trigger_interfaces";
+import {filterTriggerDetail, TriggerDetail, TriggerDetailUpdate, TriggerFilter, TriggerRepositoryI} from "@/repository/trigger/trigger_interfaces";
 import {Error} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
@@ -99,11 +99,11 @@ export class TriggerRepository implements TriggerRepositoryI {
 		}
 	}
 
-	async getTrigger(filter: filterTriggerDetail): Promise<ResponseData<TriggerDetail>> {
+	async getTrigger(filter: TriggerFilter): Promise<ResponseData<TriggerDetail>> {
 		try {
 			const trigger = await db
 			.selectFrom('trigger')
-			.where((eb) => this.createFilter(eb, filter))
+			.where("id", "=", filter.id!)
 			.select([
 				sql<string>`trigger.id`.as('id'),
 				sql<string>`trigger.name`.as('name'),

@@ -8,7 +8,7 @@ import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardR
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
-import { CardActivityType, ConditionType } from '@/types/custom_field';
+import { CardActivityType, ConditionType, TriggerTypes } from '@/types/custom_field';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
@@ -314,10 +314,14 @@ export class CardController implements CardControllerI {
     }
 
     this.trigger_controller.doTrigger({
-      action: ConditionType.CardInBoard,
-      target: {
-        board_id: [listCheck.data?.board_id!]
-      }
+      type: ConditionType.CardInBoard,
+      workspace_id: listCheck.data?.workspace_id!,
+      condition: {
+        action: "move",
+        by: "every_one",
+        type: "card_in_board"
+      },
+      group_type: TriggerTypes.CardMove
     })
 
     return new ResponseData({

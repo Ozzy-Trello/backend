@@ -1,12 +1,12 @@
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { ActionsValue } from "@/types/custom_field";
+import { ActionsValue, ConditionType, TriggerTypes } from "@/types/custom_field";
 import { TriggerCreateData } from "@/controller/trigger/trigger_interfaces";
 import { AutomationCondition } from "@/types/trigger";
 
 export interface TriggerRepositoryI {
   createTrigger(data : TriggerCreateData): Promise<ResponseData<TriggerCreateData>>;
-  getTrigger(filter: filterTriggerDetail): Promise<ResponseData<TriggerDetail>>;
+  getTrigger(filter: TriggerFilter): Promise<ResponseData<TriggerDetail>>;
   deleteTrigger(filter: filterTriggerDetail): Promise<number>;
   updateTrigger(filter: filterTriggerDetail, data: TriggerDetailUpdate): Promise<number>;
   getListTrigger(filter: filterTriggerDetail, paginate: Paginate): Promise<ResponseListData<Array<TriggerDetail>>>;
@@ -56,6 +56,19 @@ export class TriggerDetail {
   public action!: ActionsValue[];
 
   constructor(payload: Partial<TriggerDetail>) {
+    Object.assign(this, payload);
+  }
+}
+
+export class TriggerFilter {
+  id?: string;
+  group_type?: TriggerTypes;
+  type?: ConditionType;
+  workspace_id?: string;
+  condition?: AutomationCondition;
+  filter?: any;
+
+  constructor(payload: Partial<TriggerFilter>) {
     Object.assign(this, payload);
   }
 }
