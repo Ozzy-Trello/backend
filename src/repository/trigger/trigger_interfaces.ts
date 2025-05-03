@@ -1,9 +1,11 @@
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { TriggerValue } from "@/types/custom_field";
+import { ActionsValue } from "@/types/custom_field";
+import { TriggerCreateData } from "@/controller/trigger/trigger_interfaces";
+import { AutomationCondition } from "@/types/trigger";
 
 export interface TriggerRepositoryI {
-  createTrigger(data : TriggerDetail): Promise<ResponseData<TriggerDetail>>;
+  createTrigger(data : TriggerCreateData): Promise<ResponseData<TriggerCreateData>>;
   getTrigger(filter: filterTriggerDetail): Promise<ResponseData<TriggerDetail>>;
   deleteTrigger(filter: filterTriggerDetail): Promise<number>;
   updateTrigger(filter: filterTriggerDetail, data: TriggerDetailUpdate): Promise<number>;
@@ -49,10 +51,9 @@ export class TriggerDetail {
   public id!: string;
   public name?: string;
   public description!: string;
-  public condition_value!: string;
+  public condition!: AutomationCondition;
   public workspace_id!: string;
-  public all_card?: boolean;
-  public action!: TriggerValue;
+  public action!: ActionsValue[];
 
   constructor(payload: Partial<TriggerDetail>) {
     Object.assign(this, payload);

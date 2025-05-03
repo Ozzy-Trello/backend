@@ -75,13 +75,13 @@ export class CustomFieldController implements CustomFieldControllerI {
         })
       }
 
-      let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, checkCustomField.data?.source!, checkTrigger.data?.action!)
-      if (checkSourceVal.status_code != StatusCodes.OK){
-        return new ResponseData({
-          message: checkSourceVal.message,
-          status_code: checkSourceVal.status_code,
-        })
-      }
+      // let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, checkCustomField.data?.source!, checkTrigger.data?.action!)
+      // if (checkSourceVal.status_code != StatusCodes.OK){
+      //   return new ResponseData({
+      //     message: checkSourceVal.message,
+      //     status_code: checkSourceVal.status_code,
+      //   })
+      // }
     }
 
     let createResponse = await this.custom_field_repo.createCustomField(data.toCustomFieldDetail());
@@ -268,13 +268,13 @@ export class CustomFieldController implements CustomFieldControllerI {
           })
         }
   
-        let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, currentCustomField.data?.source!, checkTrigger.data?.action!)
-        if (checkSourceVal.status_code != StatusCodes.OK){
-          return new ResponseData({
-            message: checkSourceVal.message,
-            status_code: checkSourceVal.status_code,
-          })
-        }
+        // let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, currentCustomField.data?.source!, checkTrigger.data?.action!)
+        // if (checkSourceVal.status_code != StatusCodes.OK){
+        //   return new ResponseData({
+        //     message: checkSourceVal.message,
+        //     status_code: checkSourceVal.status_code,
+        //   })
+        // }
       }
     } else {
       return new ResponseData({

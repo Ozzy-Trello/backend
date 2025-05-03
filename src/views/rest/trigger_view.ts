@@ -1,4 +1,4 @@
-import { TriggerControllerI, TriggerCreateData, TriggerFilter, UpdateTriggerData, createAutomationCondition, createTriggerCreateData } from "@/controller/trigger/trigger_interfaces";
+import { TriggerControllerI, TriggerCreateData, TriggerFilter, UpdateTriggerData, createTriggerCreateData } from "@/controller/trigger/trigger_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { TriggerRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";

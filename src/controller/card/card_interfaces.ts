@@ -4,14 +4,14 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
-import { CardActionType, CardActionValue, CardActivityType, SourceType } from '@/types/custom_field';
+import { CardActionValue, CardActivityType, SourceType } from '@/types/custom_field';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
 	GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>>
 	GetListCard(filter: CardFilter, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	DeleteCard(filter: CardFilter): Promise<ResponseData<null>>
-	AddCustomField(card_id: string, custom_field_id: string, value: string | number, trigger?: CustomFieldTrigger): Promise<ResponseData<null>>
+	AddCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
 	UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
@@ -217,7 +217,7 @@ export class CardCommentData extends CardActivity {
 
 export class CardActionActivityData extends CardActivity {
   activity_id!: string;
-  action_type!: CardActionType;
+  // action_type!: CardActionType;
   source?: CardActionValue
 
   constructor(payload: Partial<CardActionActivityData>){

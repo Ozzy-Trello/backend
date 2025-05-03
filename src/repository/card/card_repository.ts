@@ -10,7 +10,7 @@ import {isFilterEmpty, Paginate} from "@/utils/data_utils";
 import db from '@/database';
 import { Database } from '@/types/database';
 import { Transaction, sql } from 'kysely';
-import { CardActionType, CardActionValue, MoveListValue } from '@/types/custom_field';
+import { CardActionValue, MoveListValue } from '@/types/custom_field';
 
 export class CardRepository implements CardRepositoryI {
 	createFilter(filter: filterCardDetail): any {
@@ -194,7 +194,7 @@ export class CardRepository implements CardRepositoryI {
 					.insertInto('card_activity_action')
 					.values({
 						id: uuidv4(),
-						action: item.action_type,
+						// action: item.action_type,
 						activity_id: card_activiy?.id!,
 						source: item.source
 					})
@@ -272,7 +272,7 @@ export class CardRepository implements CardRepositoryI {
 			.where('ca.card_id', '=', card_id)
 			.select([
 				sql<string>`ca.id`.as('activity_id'),
-				sql<CardActionType>`ca.activity_type`.as('activity_type'),
+				// sql<CardActionType>`ca.activity_type`.as('activity_type'),
 				sql<string>`ca.card_id`.as('card_id'),
 				sql<string>`ca.sender_user_id`.as('sender_id'),
 				sql<string>`caa.action`.as('action_type'),
@@ -292,12 +292,13 @@ export class CardRepository implements CardRepositoryI {
 				sender_id: row.sender_id,
 			}
 			if (row.action_type) {
-				const action = new CardActionActivity({
-					action_type: row.action_type as CardActionType
-				});
-				if (row.action_type == CardActionType.MoveList){
-					action.setMoveListValue(row.source as MoveListValue);
-				}
+				const action = new CardActionActivity({});
+				// const action = new CardActionActivity({
+				// 	action_type: row.action_type as CardActionType
+				// });
+				// if (row.action_type == CardActionType.MoveList){
+				// 	action.setMoveListValue(row.source as MoveListValue);
+				// }
 				result.push(new CardActivity(act, action));
 			} else if (row.text) {
 				result.push(new CardActivity(act, new CardComment({ text: row.text })));
@@ -318,7 +319,7 @@ export class CardRepository implements CardRepositoryI {
 			.selectFrom('card_activity_action as caa')
 			.innerJoin('card_activity as ca', 'caa.activity_id', 'ca.id')
 			.where('ca.card_id', '=', card_id)
-			.where('caa.action', '=', CardActionType.MoveList)
+			// .where('caa.action', '=', CardActionType.MoveList)
 
 		const total = await qry.select(({ fn }) => fn.count<number>('id').as('count')).executeTakeFirst();
 		paginate.setTotal(total?.count!);

@@ -1,4 +1,4 @@
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, JSONColumnType, RawBuilder, sql } from 'kysely';
 import {v4 as uuidv4} from 'uuid';
 
 import {filterTriggerDetail, TriggerDetail, TriggerDetailUpdate, TriggerRepositoryI} from "@/repository/trigger/trigger_interfaces";
@@ -8,6 +8,9 @@ import {StatusCodes} from "http-status-codes";
 import {Paginate} from "@/utils/data_utils";
 import db from "@/database";
 import { Database } from '@/types/database';
+import { TriggerCreateData } from '@/controller/trigger/trigger_interfaces';
+import { ActionsValue, ConditionType, TriggerTypes } from '@/types/custom_field';
+import { AutomationCondition } from '@/types/trigger';
 
 export class TriggerRepository implements TriggerRepositoryI {
 	createFilter(eb: ExpressionBuilder<Database, any>, filter: filterTriggerDetail) {
@@ -40,25 +43,35 @@ export class TriggerRepository implements TriggerRepositoryI {
 		return query;
 	}
 
-	async createTrigger(data : TriggerDetail): Promise<ResponseData<TriggerDetail>> {
+	async createTrigger(data : TriggerCreateData): Promise<ResponseData<TriggerCreateData>> {
 		try {
 			let dataRes = {
 				action: data.action,
-				all_card: data.all_card!,
 				workspace_id: data.workspace_id,
-				condition_value: data.condition_value,
-				description: data.description,
+				condition_type: data.type,
+				condition: data.condition,
+				group_type: data.group_type,
 				id: uuidv4()
 			}
+
 			await db
 				.insertInto('trigger')
-				.values(dataRes)
+				.values({
+					action: JSON.stringify(data.action),
+					workspace_id: data.workspace_id,
+					condition_type: data.type,
+					condition: data.condition,
+					group_type: data.group_type,
+					id: uuidv4()
+				})
 				.execute();
 		
 			return new ResponseData({
 				status_code: StatusCodes.CREATED,
 				message: "create trigger success",
-				data: new TriggerDetail(dataRes)
+				data: new TriggerCreateData({
+					id: dataRes.id
+				})
 			})
 		} catch (e) {
 			return new ResponseData({
@@ -88,11 +101,19 @@ export class TriggerRepository implements TriggerRepositoryI {
 
 	async getTrigger(filter: filterTriggerDetail): Promise<ResponseData<TriggerDetail>> {
 		try {
-				const trigger = await db
-					.selectFrom('trigger')
-					.selectAll()
-					.where((eb) => this.createFilter(eb, filter))
-					.executeTakeFirst();
+			const trigger = await db
+			.selectFrom('trigger')
+			.where((eb) => this.createFilter(eb, filter))
+			.select([
+				sql<string>`trigger.id`.as('id'),
+				sql<string>`trigger.name`.as('name'),
+				sql<string>`trigger.description`.as('description'),
+				sql<ActionsValue[]>`trigger.action`.as('action'),
+				sql<ConditionType>`trigger.condition_type`.as('condition_type'),
+				sql<TriggerTypes>`trigger.group_type`.as('group_type'),
+				sql<AutomationCondition>`trigger.condition`.as('condition'),
+			])
+			.executeTakeFirst();
 				
 				if (!trigger) {
 						return { status_code: StatusCodes.NOT_FOUND, message: "trigger is not found" };
@@ -122,7 +143,15 @@ export class TriggerRepository implements TriggerRepositoryI {
 			
 			const lists = await db
 				.selectFrom('trigger')
-				.selectAll()
+				.select([
+					sql<string>`trigger.id`.as('id'),
+					sql<string>`trigger.name`.as('name'),
+					sql<string>`trigger.description`.as('description'),
+					sql<ActionsValue[]>`trigger.action`.as('action'),
+					sql<ConditionType>`trigger.condition_type`.as('condition_type'),
+					sql<TriggerTypes>`trigger.group_type`.as('group_type'),
+					sql<AutomationCondition>`trigger.condition`.as('condition'),
+				])
 				.where((eb) => this.createFilter(eb, filter))
 				.offset(paginate.getOffset())
 				.limit(paginate.limit)
