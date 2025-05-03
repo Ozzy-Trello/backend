@@ -1,4 +1,4 @@
-import { TriggerControllerI, TriggerCreateData, TriggerFilter, UpdateTriggerData } from "@/controller/trigger/trigger_interfaces";
+import { TriggerControllerI, TriggerCreateData, TriggerFilter, UpdateTriggerData, createAutomationCondition, createTriggerCreateData } from "@/controller/trigger/trigger_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { TriggerRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -17,32 +17,29 @@ export default class TriggerRestView implements TriggerRestViewI {
   }
 
   async CreateTrigger(req: Request, res: Response): Promise<void> {
-    let accResponse = await this.trigger_controller.CreateTrigger(new TriggerCreateData({ 
-      name: req.body.name?.toString(),
-      description: req.body.description?.toString(),
-      workspace_id: req.body.workspace_id?.toString(),
-      condition_value: req.body.condition_value,
-      action: {
-        target_list_id: req.body.action.target_list_id,
-        label_card_id: req.body.action.label_card_id,
-        message_telegram: req.body.action.message_telegram,
-      }
-    }))
-    if (accResponse.status_code !== StatusCodes.CREATED) {
-      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
-        res.status(accResponse.status_code).json({
+    const data = createTriggerCreateData(req.body)
+    if (data.status_code != StatusCodes.OK){
+      res.status(data.status_code).json({
+        "message": data.message,
+      })
+      return
+    }
+    let createTriggerResponse = await this.trigger_controller.CreateTrigger(data.data!)
+    if (createTriggerResponse.status_code !== StatusCodes.CREATED) {
+      if (createTriggerResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(createTriggerResponse.status_code).json({
           "message": "internal server error",
         })
         return
       }
-      res.status(accResponse.status_code).json({
-        "message": accResponse.message,
+      res.status(createTriggerResponse.status_code).json({
+        "message": createTriggerResponse.message,
       })
       return
     }
-    res.status(accResponse.status_code).json({
-      "data": accResponse.data,
-      "message": accResponse.message
+    res.status(createTriggerResponse.status_code).json({
+      "data": createTriggerResponse.data,
+      "message": createTriggerResponse.message
     })
     return
   }
