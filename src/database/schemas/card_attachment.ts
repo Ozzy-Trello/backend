@@ -57,6 +57,9 @@ CardAttachment.init(
     attachable_type: {
       type: DataTypes.STRING,
       allowNull: false,
+      validate: {
+        isIn: [['card', 'file']] // Adds validation but without the database-level ENUM constraints
+      }
     },
     attachable_id: {
       type: DataTypes.UUID,

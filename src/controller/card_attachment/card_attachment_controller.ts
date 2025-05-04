@@ -283,10 +283,10 @@ export class CardAttachmentController implements CardAttachmentControllerI {
         };
       }
       
-      if (!filter.id && (!filter.card_id)) {
+      if (!filter.id && (!filter.card_id && !filter.attachable_id)) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
-          message: "Either id or both card_id and file_id must be provided",
+          message: "Either id or both card_id and attachable_id must be provided",
           data: null
         };
       }

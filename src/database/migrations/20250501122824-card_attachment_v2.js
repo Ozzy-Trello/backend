@@ -35,8 +35,11 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       attachable_type: {
-        type: DataTypes.ENUM(Object.values('card', 'file')),
-        allowNull: false
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          isIn: [['card', 'file']] // Adds validation but without the database-level ENUM constraints
+        }
       },
       attachable_id: {
         type: DataTypes.UUID,
