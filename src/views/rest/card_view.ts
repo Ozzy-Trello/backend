@@ -231,7 +231,8 @@ export default class CardRestView implements CardRestViewI {
     }), new UpdateCardData({
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
-      list_id: req.body.list_id?.toString()
+      list_id: req.body.list_id?.toString(),
+      location: req.body.location?.toString()
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
