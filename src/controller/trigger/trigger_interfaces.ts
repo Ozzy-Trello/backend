@@ -174,7 +174,6 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
         let expected_keys: any = [];
         switch(String(body.type).toLowerCase()) {
           case ConditionType.CardInBoard: {
-            // expected_keys = ["type", "by", "action"].sort();
             expected_keys = ["board", "by", "action"].sort();
             break
           }
@@ -197,7 +196,7 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
           default: {
             return new ResponseData({
               status_code: StatusCodes.BAD_REQUEST,
-              message: `not support condition`
+              message: `not support type`
             })
           }
         }
@@ -212,7 +211,7 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
           return new ResponseData({
             message: "invalid condition.board uuid",
             status_code: StatusCodes.BAD_REQUEST,
-          })  
+          })
         }
         if(body.condition.board_id && !isValidUUID(body.condition.board_id)) {
           return new ResponseData({

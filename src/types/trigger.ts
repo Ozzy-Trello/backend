@@ -1,35 +1,33 @@
-export interface ListActionCondition {
-  type: "list_action";
-  by: "every_one" | "me";
-  action: string;
-}
-
 export interface CardInBoardCondition {
-  type: "card_in_board";
-  by: "every_one" | "me";
-  action: string;
+  action: "added" | "created";
+  by: "anyone" | "me";
+  board: string;
 }
 
 export interface CardInListCondition {
-  type: "card_in_list";
-  by: "every_one" | "me";
-  id_list: string;
-  action: string;
+  action: "card_in_list";
+  by: "anyone" | "me";
+  list_id: string;
+}
+
+export interface ListActionCondition {
+  action: "added" | "created";
+  by: "anyone" | "me";
+  board: string;
 }
 
 export interface CardActionCondition {
-  type: "card_action";
-  by: "every_one" | "me";
-  action: string;
-}
-
-export interface ListHasCardCondition {
-  type: "list_has_card";
-  id_list: string;
+  action: "card_action";
+  by: "anyone" | "me";
   condition: Array<{
     operator: string;
     value: string | number;
   }>;
+}
+
+export interface ListHasCardCondition {
+  action: "list_has_card";
+  id_list: string;
 }
 
 export type AutomationCondition =

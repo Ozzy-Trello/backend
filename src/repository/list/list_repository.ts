@@ -55,6 +55,7 @@ export class ListRepository implements ListRepositoryI {
 
 	async createList(data: ListDetail): Promise<ResponseData<ListDetail>> {
 		try {
+			if(!data.card_limit) data.card_limit = 50
 			const list = await List.create({
 				name: data.name!,
 				background: data.background!,

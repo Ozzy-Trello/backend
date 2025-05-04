@@ -10,6 +10,8 @@ export interface CardRepositoryI {
   deleteCard(filter: filterCardDetail): Promise<number>;
   updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number>;
   getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>>;
+  
+  getTotalCardInList(list_id: string): Promise<ResponseData<number>>;
 
   addActivity(filter: filterCardDetail, data: CardActivity): Promise<ResponseData<CardActivity>>;
   getCardActivities(card_id: string, paginate: Paginate): Promise<ResponseListData<CardActivity[]>>;

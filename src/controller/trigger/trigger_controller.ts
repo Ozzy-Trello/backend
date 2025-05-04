@@ -1,11 +1,11 @@
 import { validate as isValidUUID } from 'uuid';
 
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
-import { CardChangesConfig, CardMoveConfig, CopyCondition, MoveCondition, SourceType, ActionsValue, UserActionCondition, ConditionType } from "@/types/custom_field";
+import { CardChangesConfig, CardMoveConfig, CopyCondition, MoveCondition, SourceType, ActionsValue, UserActionCondition, ConditionType, TriggerTypes } from "@/types/custom_field";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { CreateTriggerResponse, DoTriggerData, TriggerControllerI, TriggerCreateData, TriggerFilter, TriggerResponse, UpdateTriggerData } from "./trigger_interfaces";
 import { StatusCodes } from "http-status-codes";
-import { CardDetailUpdate, CardRepositoryI } from "@/repository/card/card_interfaces";
+import { CardDetail, CardDetailUpdate, CardRepositoryI } from "@/repository/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
 import { TriggerRepositoryI } from "@/repository/trigger/trigger_interfaces";
@@ -36,25 +36,79 @@ export class TriggerController implements TriggerControllerI {
   }
 
   async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {
-    if(paylod.condition) {
-      const action: ConditionType = paylod.type!;
-      switch(action){
-        case ConditionType.CardInBoard: {
-          const required = ["action", "by"];
-          const optional = ["board"];
+    let card_target: ResponseData<CardDetail> | undefined
+    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: paylod.workspace_id}));
+    if (workspace.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: workspace.message,
+        status_code: workspace.status_code,
+      })
+    }
 
-          this.trigger_repo.getTrigger({
+    if (paylod.data && paylod.data.card_id) {
+      card_target = await this.card_repo.getCard({id: paylod.data.card_id})
+      return new ResponseData({
+        message: card_target.message,
+        status_code: card_target.status_code,
+      })
+    }
 
-          })
+    const trigger = await this.trigger_repo.getTrigger({
+      condition: paylod.condition,
+      filter: paylod.filter,
+      group_type: paylod.group_type,
+      type: paylod.type,
+      workspace_id: paylod.workspace_id      
+    })
+
+    if (trigger.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: trigger.message,
+        status_code: trigger.status_code,
+      })
+    }
+
+    switch(paylod.type){
+      case ConditionType.CardInBoard: {
+        const required = ["action", "by"];
+        const optional = ["board"];
+
+        switch(paylod.condition.action){
+          case 'added': {
+            console.log("doing added")
+            break
+          }
+          case 'created': {
+            console.log("doing created")
+            break
+          }
+          case 'card_in_list': {
+            console.log("doing card_in_list")
+            break
+          }
+          case 'card_action': {
+            console.log("doing card_action")
+            break
+          }
+          case 'list_has_card': {
+            console.log("doing list_has_card")
+            break
+          }
         }
-        case ConditionType.CardInList, ConditionType.CardAction, ConditionType.ListAction, ConditionType.ListHasCard: {
-          return new ResponseData({
-            message: "not supported yet",
-            status_code: StatusCodes.BAD_REQUEST,
-          })      
+
+        switch(paylod.group_type) {
+          case TriggerTypes.CardMove:
+          case TriggerTypes.CardChanges:
         }
       }
+      case ConditionType.CardInList, ConditionType.CardAction, ConditionType.ListAction, ConditionType.ListHasCard: {
+        return new ResponseData({
+          message: "not supported yet",
+          status_code: StatusCodes.BAD_REQUEST,
+        })
+      }
     }
+
     return new ResponseData({
       message: "succes",
       status_code: StatusCodes.OK,
@@ -411,13 +465,20 @@ export class TriggerController implements TriggerControllerI {
       })
     }
 
-    // let checkSourceVal = await this.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
-    // if (checkSourceVal.status_code != StatusCodes.OK){
-    //   return new ResponseData({
-    //     message: checkSourceVal.message,
-    //     status_code: checkSourceVal.status_code,
-    //   })
-    // }
+    const triggerData = await this.trigger_repo.getTrigger(data)
+    if (triggerData.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
+      console.log(triggerData.message)
+      return new ResponseData({
+        message: "internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+      })
+    }
+    if (triggerData.status_code == StatusCodes.OK) {
+      return new ResponseData({
+        message: "this trigger is already exist",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
 
     let createResponse = await this.trigger_repo.createTrigger(data);
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {

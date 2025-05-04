@@ -317,11 +317,14 @@ export class CardController implements CardControllerI {
       type: ConditionType.CardInBoard,
       workspace_id: listCheck.data?.workspace_id!,
       condition: {
-        action: "move",
-        by: "every_one",
-        type: "card_in_board"
+        action: 'added',
+        by: 'anyone',
+        board: listCheck.data?.board_id!,
       },
-      group_type: TriggerTypes.CardMove
+      group_type: TriggerTypes.CardMove,
+      data: {
+        card_id: createResponse.data?.id
+      }
     })
 
     return new ResponseData({

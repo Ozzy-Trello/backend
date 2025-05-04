@@ -244,6 +244,9 @@ export class TriggerDoData {
   workspace_id!: string;
   condition!: AutomationCondition;
   filter?: any;
+	data?: {
+		card_id?: string
+	}
 
   constructor(payload: Partial<TriggerDoData>) {
     Object.assign(this, payload);

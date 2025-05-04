@@ -338,7 +338,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					sql<string>`custom_field.description`.as('description'),
 					sql<SourceType>`custom_field.source`.as('source'),
 					sql<string>`trigger.id`.as('trigger_id'),
-					sql<string>`trigger.condition_value`.as('condition_value'),
+					sql<string>`trigger.condition`.as('condition'),
 					sql<ActionsValue>`trigger.action`.as('action'),
 				])
 				.offset(paginate.getOffset())
@@ -355,7 +355,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 						source: item.source,
 						trigger: item.trigger_id ? {
 							id: item.trigger_id,
-							condition_value: item.condition_value,
+							condition_value: item.condition,
 							action: item.action
 						} : undefined
 					}))
