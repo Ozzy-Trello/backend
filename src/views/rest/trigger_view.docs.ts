@@ -4,7 +4,7 @@
  *   post:
  *     x-beta: true
  *     x-internal: true
- *     summary: Create trigger
+ *     summary: Create automation rule
  *     tags: [ Trigger ]
  *     security:
  *       - BearerAuth: []
@@ -13,22 +13,70 @@
  *       content:
  *         application/json:
  *           schema:
- *               type: object
- *           example:
- *             name: hallo
- *             condition_value: 'value to trigger'
- *             workspace_id: id dari workspace
- *             action:
- *               target_list_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6'
- *               message_telegram: 'hallo'
- *               label_card_id: '627ca47b-8e04-49b7-a623-feb3bfeeacd6' 
+ *             type: object
+ *             properties:
+ *               card_move:
+ *                 type: string
+ *                 example: "card_move"
+ *               condition:
+ *                 type: object
+ *                 properties:
+ *                   type:
+ *                     type: string
+ *                     example: "list_action"
+ *                   by:
+ *                     type: string
+ *                     example: "every_one"
+ *                   action:
+ *                     type: string
+ *                     example: "added"
+ *               workspace_id:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *               action:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     type:
+ *                       type: string
+ *                       example: "card_move"
+ *                     condition:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                             example: "copy"
+ *                           include_comments:
+ *                             type: boolean
+ *                             example: true
+ *                           positon:
+ *                             type: string
+ *                             example: "bottom"
+ *                           id_list:
+ *                             type: string
+ *                             format: uuid
+ *                             example: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                           board_id:
+ *                             type: string
+ *                             format: uuid
+ *                             example: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
  *     responses:
- *       200:
- *         token: "this token"
+ *       201:
+ *         description: Automation rule created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/CreateBoardModel'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Automation rule created successfully"
+ *                 data:
+ *                   type: object
  *       500:
  *         description: Internal Server Error
  */

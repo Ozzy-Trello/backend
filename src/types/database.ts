@@ -1,5 +1,6 @@
 import { Generated } from 'kysely';
-import { CardActionType, CardActionValue, CardActivityType, MoveListValue, SourceType, TriggerValue } from './custom_field';
+import { CardActionValue, CardActivityType, ConditionType, MoveListValue, SourceType, TriggerTypes } from './custom_field';
+import { AutomationCondition } from './trigger';
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -96,9 +97,10 @@ export interface TriggerTable {
   name?: string;
   description?: string;
   workspace_id: string;
-  all_card: boolean;
-  action: TriggerValue;
-  condition_value: string;
+  group_type: TriggerTypes;
+  condition_type: ConditionType; //type
+  action: string;
+  condition: AutomationCondition;
 }
 
 export interface BoardTable {
@@ -133,6 +135,6 @@ export interface CardActionTextTable {
 export interface CardActivityActionTable {
   id: Generated<string>;
   activity_id: string;
-  action: CardActionType;
+  // action: CardActionType;
   source: CardActionValue;
 }
