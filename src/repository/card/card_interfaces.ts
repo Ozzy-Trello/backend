@@ -10,7 +10,8 @@ export interface CardRepositoryI {
   deleteCard(filter: filterCardDetail): Promise<number>;
   updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number>;
   getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>>;
-  
+  moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>>;
+
   getTotalCardInList(list_id: string): Promise<ResponseData<number>>;
 
   addActivity(filter: filterCardDetail, data: CardActivity): Promise<ResponseData<CardActivity>>;
@@ -120,6 +121,14 @@ export interface filterCardDetail {
   __notListId?: string;
 }
 
+export interface filterMoveCard {
+  id?: string;
+  previous_list_id?: string;
+  target_list_id?: string;
+  previous_position?: number;
+  target_position?: number;
+}
+
 export class CardDetailUpdate {
   public name?: string;
   public description?: string;
@@ -149,6 +158,10 @@ export class CardDetail {
   public list_id!: string;
   public order?: number;
   public location?: string;
+  public created_at?: string;
+  public updated_at?: string;
+  public createdAt?: string;
+  public updatedAt?: string;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

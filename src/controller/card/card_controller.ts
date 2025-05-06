@@ -4,7 +4,7 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { CardActionActivity, CardActivity, CardDetail, CardRepositoryI } from '@/repository/card/card_interfaces';
-import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse } from '@/controller/card/card_interfaces';
+import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse, CardMoveData } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
@@ -376,6 +376,79 @@ export class CardController implements CardControllerI {
     })
   }
 
+  async MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>> {
+    try {
+      // 1. Validate card ID
+      if (!filter.id || !isValidUUID(filter.id)) {
+        return new ResponseData({
+          message: "Card ID is invalid or missing",
+          status_code: StatusCodes.BAD_REQUEST
+        });
+      }
+  
+      // 2. Get the current card information before move
+      const card = await this.card_repo.getCard({ id: filter.id });
+      if (card.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: card.message,
+          status_code: card.status_code
+        });
+      }
+  
+      // 3. Call the repository's moveCard function
+      const moveResponse = await this.card_repo.moveCard({
+        id: filter.id,
+        previous_list_id: filter.previous_list_id,
+        target_list_id: filter.target_list_id,
+        previous_position: filter.previous_position,
+        target_position: filter.target_position
+      });
+      
+      if (moveResponse.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: moveResponse.message,
+          status_code: moveResponse.status_code
+        });
+      }
+  
+      // 4. If moved between lists, add a card activity
+      const sourceListId = card.data!.list_id;
+      const targetListId = filter.target_list_id || sourceListId;
+      
+      if (targetListId !== sourceListId) {
+        await this.card_repo.addActivity({ id: filter.id }, new CardActivity({
+          activity_type: CardActivityType.Action,
+          card_id: filter.id,
+          sender_id: user_id
+        }, new CardActionActivity({
+          source: {
+            origin_list_id: sourceListId,
+            destination_list_id: targetListId
+          }
+        })));
+      }
+      
+      // 5. Return the moved card data
+      return new ResponseData({
+        message: "Card moved successfully",
+        status_code: StatusCodes.OK,
+        data: fromCardDetailToCardResponse(moveResponse.data!)
+      });
+      
+    } catch (e) {
+      if (e instanceof Error) {
+        return new ResponseData({
+          message: e.message,
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR
+        });
+      }
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR
+      });
+    }
+  }
+
   async GetListCard(filter: CardFilter, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>> {
     let errorFiled =  filter.getErrorfield();
     if (errorFiled){
@@ -396,6 +469,7 @@ export class CardController implements CardControllerI {
     }
 
     let cards = await this.card_repo.getListCard(filter.toFilterCardDetail(), paginate);
+    
     return new ResponseListData({
       message: "Card list",
       status_code: StatusCodes.OK,

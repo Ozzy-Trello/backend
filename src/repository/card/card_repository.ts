@@ -1,6 +1,6 @@
 import { validate as isValidUUID, v4 as uuidv4 } from 'uuid';
 
-import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList} from "@/repository/card/card_interfaces";
+import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList, filterMoveCard} from "@/repository/card/card_interfaces";
 import Card from "@/database/schemas/card";
 import {Error, Op} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
@@ -174,16 +174,18 @@ export class CardRepository implements CardRepositoryI {
 		paginate.setTotal(total?.total!)
 		
 		let qryResult = await qry.selectAll().offset(paginate.getOffset()).limit(paginate.limit).orderBy("card.order asc").execute();
-		qryResult.map((raw) => {
+		qryResult.map((raw: CardDetail) => {
 			result.push(new CardDetail({
 				id: raw.id,
 				name: raw.name,
 				description: raw.description,
 				order: raw.order, 
 				list_id: raw.list_id,
-        location: (raw as CardDetail).location ?? ""
+        location: raw.location ?? "",
+				created_at: raw?.created_at || raw?.createdAt || "",
+				updated_at: raw?.updated_at || raw?.updatedAt || "",
 			}))
-		})
+		});
 
 		return new ResponseListData({
 			status_code: StatusCodes.OK,
@@ -396,5 +398,130 @@ export class CardRepository implements CardRepositoryI {
 			message: "card list history",
 			data: result,
 		}, paginate)
+	}
+
+	async moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>> {
+		try {
+			// 1. Validate the card exists
+			if (!filter.id || !isValidUUID(filter.id)) {
+				return new ResponseData({
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "Card ID is invalid",
+				});
+			}
+	
+			// 2. Begin transaction
+			return await db.transaction().execute(async (tx: Transaction<Database>) => {
+				// Find the card
+				const card = await tx
+					.selectFrom('card')
+					.where('id', '=', filter.id!)
+					.selectAll()
+					.executeTakeFirst();
+	
+				if (!card) {
+					return new ResponseData({
+						status_code: StatusCodes.NOT_FOUND,
+						message: "Card not found",
+					});
+				}
+	
+				// Check if this is a move within the same list or between lists
+				const sourceListId = filter.previous_list_id || card.list_id;
+				const targetListId = filter.target_list_id || card.list_id;
+				const isSameList = sourceListId === targetListId;
+	
+				// Validate that both source and target lists exist
+				if (!isSameList) {
+					// Check that target list exists
+					const targetList = await tx
+						.selectFrom('list')
+						.where('id', '=', targetListId)
+						.select('id')
+						.executeTakeFirst();
+					
+					if (!targetList) {
+						return new ResponseData({
+							status_code: StatusCodes.BAD_REQUEST,
+							message: "Target list does not exist",
+						});
+					}
+				}
+	
+				// Get cards in the target list to calculate position
+				const cardsInTargetList = await tx
+					.selectFrom('card')
+					.where('list_id', '=', targetListId)
+					.orderBy('order', 'asc')
+					.select(['id', 'order'])
+					.execute();
+	
+				// Calculate new order value
+				let newOrder: number;
+				
+				// If target position is at the end or list is empty
+				if (filter.target_position === undefined ||
+						filter.target_position >= cardsInTargetList.length ||
+						cardsInTargetList.length === 0) {
+					// If list is empty or moving to end, use a higher value
+					newOrder = cardsInTargetList.length > 0
+						? cardsInTargetList[cardsInTargetList.length - 1].order + 1000
+						: 1000;
+				}
+				// If target position is at the beginning
+				else if (filter.target_position === 0) {
+					newOrder = cardsInTargetList[0].order / 2;
+				}
+				// If target position is in the middle
+				else {
+					// Place between the two surrounding cards
+					const prevCard = cardsInTargetList[filter.target_position - 1];
+					const nextCard = cardsInTargetList[filter.target_position];
+					newOrder = (prevCard.order + nextCard.order) / 2;
+				}
+	
+				// Update the card with new list_id and order
+				await tx
+					.updateTable('card')
+					.set({
+						list_id: targetListId,
+						order: newOrder
+					})
+					.where('id', '=', filter.id!)
+					.execute();
+	
+				// Get updated card
+				const updatedCard = await tx
+					.selectFrom('card')
+					.where('id', '=', filter.id!)
+					.selectAll()
+					.executeTakeFirst();
+	
+				return new ResponseData({
+					status_code: StatusCodes.OK,
+					message: "Card moved successfully",
+					data: new CardDetail({
+						id: updatedCard!.id,
+						name: updatedCard!.name,
+						description: updatedCard!.description,
+						order: updatedCard!.order,
+						list_id: updatedCard!.list_id,
+						location: (updatedCard as any)?.location ?? ""
+					})
+				});
+			});
+		} catch (e) {
+			console.error(e);
+			if (e instanceof Error) {
+				return new ResponseData({
+					status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+					message: e.message
+				});
+			}
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: "An unexpected error occurred"
+			});
+		}
 	}
 }

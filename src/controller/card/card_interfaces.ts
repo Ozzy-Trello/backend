@@ -12,6 +12,7 @@ export interface CardControllerI {
 	GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>>
 	GetListCard(filter: CardFilter, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	DeleteCard(filter: CardFilter): Promise<ResponseData<null>>
+	MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>>
 	AddCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
 	UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
@@ -33,7 +34,11 @@ export class CardResponse {
 	name?: string;
 	description?: string;
 	location?: string;
-
+	order?: number;
+	list_id?: string;
+	created_at?: string;
+	updated_at?: string;
+	
 	constructor(payload: Partial<CardResponse>) {
 		Object.assign(this, payload)
 	}
@@ -58,7 +63,11 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 		id: data.id,
 		name: data.name!,
 		description: data.description,
-		location: data?.location
+		location: data?.location,
+		order: data.order,
+		list_id: data.list_id,
+		created_at: data.created_at,
+		updated_at: data.updated_at,
 	})
 }
 
@@ -151,6 +160,31 @@ export class CardFilter {
 		}
 		if ( this.list_id && !isValidUUID(this.list_id)) {
 			return "'list_id' is not valid uuid"
+		}
+		return null
+	}
+}
+
+
+export class CardMoveData {
+	id!: string;
+	previous_list_id!: string;
+	target_list_id!: string;
+	previous_position?: number;
+	target_position?: number;
+	constructor(payload: Partial<CardMoveData>) {
+		Object.assign(this, payload)
+		this.getErrorField = this.getErrorField.bind(this);
+	}
+	getErrorField(): string | null {
+		if (this.id && !isValidUUID(this.id)) {
+			return "'id' is not valid uuid"
+		}
+		if (this.previous_list_id && !isValidUUID(this.previous_list_id)) {
+			return "'previous_list_id' is not valid uuid"
+		}
+		if (this.target_list_id && !isValidUUID(this.target_list_id)) {
+			return "'target_list_id' is not valid uuid"
 		}
 		return null
 	}

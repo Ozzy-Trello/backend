@@ -277,6 +277,74 @@
  *
  */
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CardMoveModel:
+ *       type: object
+ *       required:
+ *         - target_position
+ *       properties:
+ *         target_list_id:
+ *           type: string
+ *           description: ID of the target list to move the card to
+ *         previous_list_id:
+ *           type: string
+ *           description: ID of the current list the card is in
+ *         target_position:
+ *           type: number
+ *           description: The position in the target list where the card should be placed
+ *         previous_position:
+ *           type: number
+ *           description: The current position of the card in its list
+ *       example:
+ *         target_list_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *         previous_list_id: "a17ca47b-9e04-48b7-b623-feb3bfeeabd7"
+ *         target_position: 2
+ *         previous_position: 0
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/move:
+ *   post:
+ *     summary: Move a card within a list or to another list
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to move
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CardMoveModel'
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card moved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   $ref: '#/components/schemas/GetCardModel'
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card or list not found
+ *       500:
+ *         description: Internal Server Error
+ */
 
 /**
  * @swagger

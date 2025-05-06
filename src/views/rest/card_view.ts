@@ -1,4 +1,4 @@
-import { CardControllerI, CardCreateData, CardFilter, UpdateCardData } from "@/controller/card/card_interfaces";
+import { CardControllerI, CardCreateData, CardFilter, CardMoveData, UpdateCardData } from "@/controller/card/card_interfaces";
 import { CustomFieldTrigger } from "@/repository/custom_field/custom_field_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { CardRestViewI } from "@/views/rest/interfaces";
@@ -13,6 +13,7 @@ export default class CardRestView implements CardRestViewI {
     this.CreateCard = this.CreateCard.bind(this)
     this.GetCard = this.GetCard.bind(this)
     this.GetListCard = this.GetListCard.bind(this)
+    this.MoveCard = this.MoveCard.bind(this)
     this.UpdateCard = this.UpdateCard.bind(this)
     this.DeleteCard = this.DeleteCard.bind(this)
     this.AddCustomField = this.AddCustomField.bind(this)
@@ -178,7 +179,10 @@ export default class CardRestView implements CardRestViewI {
     let paginate = new Paginate(page, limit);
     let accResponse = await this.card_controller.GetListCard(new CardFilter({
       list_id: req.header('list-id')?.toString(),
-    }), paginate)
+    }), paginate);
+
+    console.log("in view: ", accResponse);
+    
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -195,6 +199,33 @@ export default class CardRestView implements CardRestViewI {
       "data": accResponse.data,
       "message": accResponse.message,
       "paginate": accResponse.paginate,
+    })
+    return
+  }
+
+  async MoveCard(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.card_controller.MoveCard(req.auth!.user_id, new CardMoveData({
+      id: req.params.id?.toString(),
+      previous_list_id: req.body.previous?.toString(),
+      target_list_id: req.body.target_list_id?.toString(),
+      previous_position: req.body.order ? parseInt(req.body.order) : 0,
+      target_position: req.body.target_position ? parseInt(req.body.target_position.toString()) : 0,
+    }))
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
     })
     return
   }
