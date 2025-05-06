@@ -13,8 +13,8 @@ interface CardAttachmentAttributes {
   is_cover: boolean;
   metadata: any;
   created_by: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
   deleted_at?: Date;
 }
 

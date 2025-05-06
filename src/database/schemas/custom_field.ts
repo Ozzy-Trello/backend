@@ -10,6 +10,8 @@ interface CustomFieldAttributes {
   workspace_id: string;
   source: SourceType;
   trigger_id?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 interface CustomFieldCreationAttributes extends Optional<CustomFieldAttributes, 'id'> { }
@@ -22,8 +24,8 @@ class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttrib
   public source!: SourceType;
   public trigger_id?: string;
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 CustomField.init(
@@ -65,10 +67,24 @@ CustomField.init(
       type: new DataTypes.ENUM(SourceType.Product, SourceType.User),
       allowNull: false,
     },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   },
   {
     tableName: 'custom_field',
     sequelize,
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
 )
 

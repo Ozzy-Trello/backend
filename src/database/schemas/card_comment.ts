@@ -5,6 +5,8 @@ interface ActivityCommentAttributes {
     id: string;
     activity_id: string;
     text: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface TaskCreationAttributes extends ActivityCommentAttributes {}
@@ -14,8 +16,8 @@ class ActivityComment extends Model<ActivityCommentAttributes, TaskCreationAttri
     public activity_id!: string;
     public text!: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 ActivityComment.init(
@@ -30,11 +32,25 @@ ActivityComment.init(
         },
         text: {
           type: DataTypes.STRING(8),
+        },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
         }
     },
     {
         tableName: 'card_activity_text',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 )
 

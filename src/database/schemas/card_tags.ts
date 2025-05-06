@@ -5,6 +5,8 @@ interface CardTagAttributes {
     tag_id : string;
     card_id: string;
     color: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface TaskCreationAttributes extends CardTagAttributes {}
@@ -14,8 +16,8 @@ class CardTag extends Model<CardTagAttributes, TaskCreationAttributes> implement
     public tag_id!: string;
     public color!: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 CardTag.init(
@@ -31,11 +33,25 @@ CardTag.init(
         color: {
             type: DataTypes.STRING(8),
             defaultValue: '#FFFFFF',
+        },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
         }
     },
     {
         tableName: 'card_tag',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 )
 

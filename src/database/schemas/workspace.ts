@@ -7,6 +7,8 @@ interface WorkspaceAttributes {
   name: string;
   slug: string;
   description: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 
@@ -18,8 +20,8 @@ class Workspace extends Model<WorkspaceAttributes, WorkspaceCreationAttributes> 
   public slug!: string;
   public description!: string;
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 Workspace.init(
@@ -42,10 +44,24 @@ Workspace.init(
       type: new DataTypes.TEXT,
       allowNull: false,
     },
+    created_at: {
+			type: DataTypes.DATE,
+			allowNull: false,
+			defaultValue: DataTypes.NOW,
+		},
+		updated_at: {
+			type: DataTypes.DATE,
+			allowNull: false,
+			defaultValue: DataTypes.NOW,
+		},
   },
   {
     tableName: 'workspace',
     sequelize,
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
 )
 

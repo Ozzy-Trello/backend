@@ -8,6 +8,8 @@ interface RoleAttributes {
   description: string;
   default: boolean;
   permissions?: PermissionStructure;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 interface RoleCreationAttributes extends Optional<RoleAttributes, 'id' | 'default'> {}
@@ -19,8 +21,8 @@ class Role extends Model<RoleAttributes, RoleCreationAttributes> implements Role
   public default!: boolean;
   public permissions?: PermissionStructure;
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 Role.init(
@@ -60,10 +62,24 @@ Role.init(
         }
       }
     },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+    },
   },
   {
     tableName: 'role',
     sequelize,
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
 );
 

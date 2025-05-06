@@ -182,8 +182,8 @@ export class CardRepository implements CardRepositoryI {
 				order: raw.order, 
 				list_id: raw.list_id,
         location: raw.location ?? "",
-				created_at: raw?.created_at || raw?.createdAt || "",
-				updated_at: raw?.updated_at || raw?.updatedAt || "",
+				created_at: raw?.created_at || "",
+				updated_at: raw?.updated_at || "",
 			}))
 		});
 
@@ -324,9 +324,9 @@ export class CardRepository implements CardRepositoryI {
 				sql<string>`caa.action`.as('action_type'),
 				sql<CardActionValue>`caa.source`.as('source'),
 				sql<string>`cat.text`.as('text'),
-				sql<string>`"ca"."createdAt"`.as('xcreatedAt')
+				sql<string>`"ca"."created_at"`.as('xcreated_at')
 			])
-			.orderBy('xcreatedAt', 'desc')
+			.orderBy('xcreated_at', 'desc')
 			.offset(paginate.getOffset())
 			.limit(paginate.limit)
 			.execute();
@@ -372,17 +372,17 @@ export class CardRepository implements CardRepositoryI {
 
 		const results = await qry
 			.select([
-				sql<string>`caa.createdAt`.as('xcreatedAt'),
+				sql<string>`caa.created_at`.as('xcreated_at'),
 				sql<string>`(caa.source ->> 'origin_list_id')`.as('origin_list_id'),
 				sql<string>`(caa.source ->> 'destination_list_id')`.as('destination_list_id'),
 			])
-			.orderBy('xcreatedAt', 'asc')
+			.orderBy('xcreated_at', 'asc')
 			.offset(paginate.getOffset())
 			.limit(paginate.limit)
 			.execute();
 
 		for (const row of results) {
-			const date_selected = new Date(row.xcreatedAt);
+			const date_selected = new Date(row.xcreated_at);
 			const formatted = date_selected.toLocaleString('id-ID', {
 				day: '2-digit',
 				month: '2-digit',

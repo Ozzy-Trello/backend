@@ -8,6 +8,8 @@ interface BoardAttributes {
     name: string;
     description : string;
     background: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface BoardCreationAttributes extends Optional<BoardAttributes, 'id'> {}
@@ -19,8 +21,8 @@ class Board extends Model<BoardAttributes, BoardCreationAttributes> implements B
     public description! : string;
     public background!: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 Board.init(
@@ -46,11 +48,25 @@ Board.init(
             type: DataTypes.STRING(8),
             defaultValue: '#FFFFFF',
             allowNull: false,
-        }
+        },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
     },
     {
         tableName: 'board',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',    
     }
 )
 

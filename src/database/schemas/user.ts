@@ -8,6 +8,8 @@ interface UserAttributes {
 	email: string;
 	phone: string;
 	password: string;
+	created_at?: Date;
+	updated_at?: Date;
 }
 
 interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {
@@ -20,8 +22,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 	public phone!: string;
 	public password!: string;
 
-	public readonly createdAt!: Date;
-	public readonly updatedAt!: Date;
+	public readonly created_at!: Date;
+	public readonly updated_at!: Date;
 }
 
 User.init(
@@ -49,6 +51,16 @@ User.init(
 			type: new DataTypes.TEXT,
 			allowNull: false,
 		},
+		created_at: {
+			type: DataTypes.DATE,
+			allowNull: false,
+			defaultValue: DataTypes.NOW,
+		},
+		updated_at: {
+			type: DataTypes.DATE,
+			allowNull: false,
+			defaultValue: DataTypes.NOW,
+		},
 	},
 	{
 		tableName: 'user',
@@ -57,7 +69,7 @@ User.init(
 			attributes: {
 				exclude: ['password']
 			},
-			order: [['createdAt', 'DESC']]
+			order: [['created_at', 'DESC']]
 		},
 		scopes: {
 			withPassword: {

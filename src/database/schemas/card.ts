@@ -9,6 +9,8 @@ interface CardAttributes {
     description : string;
     order : number;
     location?: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface CardCreationAttributes extends Optional<CardAttributes, 'id'> {}
@@ -21,8 +23,8 @@ class Card extends Model<CardAttributes, CardCreationAttributes> implements Card
     public order! : number;
     public location?: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 Card.init(
@@ -52,10 +54,24 @@ Card.init(
             type: new DataTypes.NUMBER,
             allowNull: false,
         },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        }
     },
     {
         tableName: 'card',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 )
 

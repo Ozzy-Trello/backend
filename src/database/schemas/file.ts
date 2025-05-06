@@ -12,8 +12,8 @@ interface FileAttributes {
   mime_type: string;
   created_by: string;
   card_id?: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at?: Date;
+  updated_at?: Date;
   deleted_at?: Date;
 }
 

@@ -8,6 +8,8 @@ interface CardCustomFieldAttributes {
   value_number?: number;
   value_string?: string;
   order: number;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 // @ts-ignore: Unreachable code error
@@ -21,8 +23,8 @@ class CardCustomField extends Model<CardCustomFieldAttributes, CardCustomFieldCr
   public value_number?: number;
   public value_string?: string;
 
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 CardCustomField.init(
@@ -65,14 +67,28 @@ CardCustomField.init(
     },
     value_string: {
       type: DataTypes.STRING(255),
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
     }
   },
   {
     tableName: 'card_custom_field',
     sequelize,
     defaultScope: {
-      attributes: {exclude: ['id', 'createdAt', 'updatedAt']}
-  },
+      attributes: {exclude: ['id', 'created_at', 'updated_at']}
+    },
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
 )
 

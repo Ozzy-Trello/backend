@@ -160,8 +160,6 @@ export class CardDetail {
   public location?: string;
   public created_at?: string;
   public updated_at?: string;
-  public createdAt?: string;
-  public updatedAt?: string;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

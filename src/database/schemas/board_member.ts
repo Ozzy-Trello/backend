@@ -5,6 +5,8 @@ interface BoardMemberAttributes {
     board_id : string;
     user_id: string;
     role_id: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface BoardMemberCreationAttributes extends BoardMemberAttributes {}
@@ -14,8 +16,8 @@ class BoardMember extends Model<BoardMemberAttributes, BoardMemberCreationAttrib
     public user_id!: string;
     public role_id!: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 BoardMember.init(
@@ -34,10 +36,24 @@ BoardMember.init(
             type: DataTypes.UUID,
             allowNull: false,
         },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
     },
     {
         tableName: 'board_member',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',    
     }
 )
 
