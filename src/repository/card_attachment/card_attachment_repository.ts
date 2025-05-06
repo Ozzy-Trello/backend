@@ -177,13 +177,6 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
 
       const attachment = await CardAttachment.findOne({ 
         where: filterData,
-        include: [
-          {
-            model: File,
-            as: 'file',
-            required: false
-          }
-        ]
       });
       
       if (!attachment) {
@@ -192,7 +185,8 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
           message: "card attachment is not found",
         };
       }
-      
+
+      // construct attachment detail
       let result = new CardAttachmentDetail({
         id: attachment.id,
         card_id: attachment.card_id,
@@ -202,9 +196,27 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
         created_by: attachment.created_by,
         created_at: attachment.created_at,
         updated_at: attachment.updated_at,
-        file: attachment.file
       });
 
+
+      if (attachment.attachable_type == AttachmentType.File) {
+        const file = await File.findOne({
+          where: {
+            id: attachment.attachable_id
+          }
+        });
+        result.file = file
+      } else if (attachment.attachable_type == AttachmentType.Card) {
+        const targetCard = await Card.findOne({
+          where: {
+            id: {
+              [Op.eq]: attachment.attachable_id
+            }
+          }
+        });
+        result.target_card = targetCard;
+      }
+      
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "card attachment detail",
