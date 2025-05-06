@@ -181,9 +181,10 @@ export class CardRepository implements CardRepositoryI {
 				description: raw.description,
 				order: raw.order, 
 				list_id: raw.list_id,
-        location: card?.location ?? ""
+        location: (raw as CardDetail).location ?? ""
 			}))
 		})
+
 		return new ResponseListData({
 			status_code: StatusCodes.OK,
 			message: "card card",
