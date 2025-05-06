@@ -3,12 +3,15 @@ import sequelize from '@/database/connections';
 import File from './file';
 import Card from './card';
 import User from './user';
+import { AttachmentType } from '@/types/card_attachment';
 
 interface CardAttachmentAttributes {
   id: string;
   card_id: string;
-  file_id: string;
+  attachable_type: AttachmentType;
+  attachable_id: string;
   is_cover: boolean;
+  metadata: any;
   created_by: string;
   created_at: Date;
   updated_at: Date;
@@ -20,8 +23,10 @@ interface TaskCreationAttributes extends CardAttachmentAttributes {}
 class CardAttachment extends Model<CardAttachmentAttributes, TaskCreationAttributes> implements CardAttachmentAttributes {
   public id!: string;
   public card_id!: string;
-  public file_id!: string;
+  public attachable_type!: AttachmentType;
+  public attachable_id!: string;
   public is_cover!: boolean;
+  public metadata: any;
   public created_by!: string;
   public created_at!: Date;
   public updated_at!: Date;
@@ -49,18 +54,25 @@ CardAttachment.init(
         key: 'id',
       },
     },
-    file_id: {
+    attachable_type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        isIn: [['card', 'file']] // Adds validation but without the database-level ENUM constraints
+      }
+    },
+    attachable_id: {
       type: DataTypes.UUID,
       allowNull: false,
-      references: {
-        model: 'file',
-        key: 'id',
-      },
     },
     is_cover: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    metadata: {
+      type: DataTypes.JSONB,
+      allowNull: true
     },
     created_by: {
       type: DataTypes.UUID,
@@ -99,11 +111,6 @@ CardAttachment.init(
 
 // Set up associations
 export const initCardAttachmentAssociations = () => {
-  CardAttachment.belongsTo(File, {
-    foreignKey: 'file_id',
-    as: 'file'
-  });
-  
   CardAttachment.belongsTo(Card, {
     foreignKey: 'card_id',
     as: 'card'

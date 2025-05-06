@@ -1,5 +1,6 @@
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
+import { AttachmentType } from "@/types/card_attachment";
 
 export interface CardAttachmentControllerI {
   CreateCardAttachment(userId: string, data: CardAttachmentCreateData): Promise<ResponseData<CardAttachmentResponse>>;
@@ -13,12 +14,14 @@ export interface CardAttachmentControllerI {
 export class CardAttachmentResponse {
   id!: string;
   card_id!: string;
-  file_id!: string;
+  attachable_type!: AttachmentType;
+  attachable_id!: string;
   is_cover?: boolean;
   created_by!: string;
   created_at!: Date;
   updated_at!: Date;
   file?: any; // File details object
+  target_card?: any; // Target card details object
   
   constructor(payload: Partial<CardAttachmentResponse>) {
     Object.assign(this, payload);
@@ -28,7 +31,8 @@ export class CardAttachmentResponse {
 export class CardAttachmentFilter {
   id?: string;
   card_id?: string;
-  file_id?: string;
+  attachable_type?: AttachmentType;
+  attachable_id?: string;
   is_cover?: boolean;
   created_by?: string;
   
@@ -39,7 +43,8 @@ export class CardAttachmentFilter {
 
 export class CardAttachmentCreateData {
   card_id!: string;
-  file_id!: string;
+  attachable_type!: AttachmentType;
+  attachable_id!: string;
   is_cover!: boolean;
   
   constructor(payload: Partial<CardAttachmentCreateData>) {

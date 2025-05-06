@@ -1,5 +1,6 @@
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
+import { AttachmentType } from "@/types/card_attachment";
 
 export interface CardAttachmentRepositoryI {
   getCardAttachment(filter: filterCardAttachmentDetail): Promise<ResponseData<CardAttachmentDetail>>;
@@ -13,20 +14,27 @@ export interface CardAttachmentRepositoryI {
 export interface filterCardAttachmentDetail {
   id?: string;
   card_id?: string;
-  file_id?: string;
+  attachable_type?: AttachmentType;
+  attachable_id?: string;
   is_cover?: boolean;
+  metadata?: string;
   created_by?: string;
 }
 
 export class CardAttachmentDetail {
   public id?: string;
   public card_id!: string;
-  public file_id!: string;
+  public attachable_type!: AttachmentType;
+  public attachable_id!: string;
   public is_cover!: boolean;
+  public metadata?: any;
   public created_by?: string;
   public created_at?: Date;
   public updated_at?: Date;
-  public file?: any
+  public deleted_at?: Date;
+  public created_by_user?: any;
+  public file?: any;
+  public target_card?: any;
   
   constructor(payload: Partial<CardAttachmentDetail>) {
     Object.assign(this, payload);
@@ -35,7 +43,8 @@ export class CardAttachmentDetail {
 
 export class CardAttachmentDetailUpdate {
   public card_id?: string;
-  public file_id?: string;
+  public attachable_type?: AttachmentType;
+  public attachable_id?: string;
   public is_cover?: string;
   
   constructor(payload: Partial<CardAttachmentDetailUpdate>) {
@@ -46,12 +55,13 @@ export class CardAttachmentDetailUpdate {
   public toObject(): any {
     const data: any = {};
     if (this.card_id) data.card_id = this.card_id;
-    if (this.file_id) data.file_id = this.file_id;
+    if (this.attachable_type) data.attachable_type = this.attachable_type;
+    if (this.attachable_id) data.attachable_id = this.attachable_id;
     if (this.is_cover) data.is_cover = this.is_cover;
     return data;
   }
   
   isEmpty(): boolean {
-    return this.card_id === undefined && this.file_id === undefined;
+    return this.card_id === undefined;
   }
 }

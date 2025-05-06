@@ -18,18 +18,18 @@ export class CardAttachmentController implements CardAttachmentControllerI {
   async CreateCardAttachment(userId: string, data: CardAttachmentCreateData): Promise<ResponseData<CardAttachmentResponse>> {
     try {
       // Validate the request
-      if (!data.card_id || !data.file_id) {
+      if (!data.card_id || !data.attachable_type || !data.attachable_id) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
-          message: "card_id and file_id are required",
+          message: "card_id, attachable_type, and attachable_id are required",
           data: undefined
         };
       }
       
-      if (!isValidUUID(data.card_id) || !isValidUUID(data.file_id)) {
+      if (!isValidUUID(data.card_id) || !isValidUUID(data.attachable_id)) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
-          message: "Invalid UUID format for card_id or file_id",
+          message: "Invalid UUID format for card_id or attachable_id",
           data: undefined
         };
       }
@@ -37,7 +37,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       // Create attachment detail
       const attachmentDetail = new CardAttachmentDetail({
         card_id: data.card_id,
-        file_id: data.file_id,
+        attachable_type: data.attachable_type,
+        attachable_id: data.attachable_id,
         is_cover: data.is_cover,
         created_by: userId
       });
@@ -57,7 +58,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const response = new CardAttachmentResponse({
         id: saveResult.data.id!,
         card_id: saveResult.data.card_id,
-        file_id: saveResult.data.file_id,
+        attachable_type: saveResult.data.attachable_type,
+        attachable_id: saveResult.data.attachable_id,
         is_cover: saveResult.data.is_cover,
         created_by: saveResult.data.created_by!,
         created_at: saveResult.data.created_at!,
@@ -103,7 +105,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const repoFilter: filterCardAttachmentDetail = {
         id: filter.id,
         card_id: filter.card_id,
-        file_id: filter.file_id,
+        attachable_type: filter.attachable_type,
+        attachable_id: filter.attachable_id,
         is_cover: filter.is_cover,
         created_by: filter.created_by
       };
@@ -123,7 +126,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const response = new CardAttachmentResponse({
         id: result.data.id!,
         card_id: result.data.card_id,
-        file_id: result.data.file_id,
+        attachable_type: result.data.attachable_type,
+        attachable_id: result.data.attachable_id,
         is_cover: result.data.is_cover,
         created_by: result.data.created_by!,
         created_at: result.data.created_at!,
@@ -162,7 +166,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const repoFilter: filterCardAttachmentDetail = {
         id: filter.id,
         card_id: filter.card_id,
-        file_id: filter.file_id,
+        attachable_type: filter.attachable_type,
+        attachable_id: filter.attachable_id,
         is_cover: filter.is_cover,
         created_by: filter.created_by
       };
@@ -183,7 +188,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const responses = result.data.map(attachment => new CardAttachmentResponse({
         id: attachment.id!,
         card_id: attachment.card_id,
-        file_id: attachment.file_id,
+        attachable_id: attachment.attachable_id,
+        attachable_type: attachment.attachable_type,
         is_cover: attachment.is_cover,
         created_by: attachment.created_by!,
         created_at: attachment.created_at!,
@@ -219,10 +225,10 @@ export class CardAttachmentController implements CardAttachmentControllerI {
         };
       }
       
-      if (!filter.id && (!filter.card_id || !filter.file_id)) {
+      if (!filter.id && (!filter.card_id)) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
-          message: "Either id or both card_id and file_id must be provided",
+          message: "id and card_id must be provided",
           data: null
         };
       }
@@ -231,7 +237,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const repoFilter: filterCardAttachmentDetail = {
         id: filter.id,
         card_id: filter.card_id,
-        file_id: filter.file_id,
+        attachable_type: filter.attachable_type,
+        attachable_id: filter.attachable_id,
         created_by: filter.created_by
       };
       
@@ -276,10 +283,10 @@ export class CardAttachmentController implements CardAttachmentControllerI {
         };
       }
       
-      if (!filter.id && (!filter.card_id || !filter.file_id)) {
+      if (!filter.id && (!filter.card_id && !filter.attachable_id)) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
-          message: "Either id or both card_id and file_id must be provided",
+          message: "Either id or both card_id and attachable_id must be provided",
           data: null
         };
       }
@@ -288,7 +295,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const repoFilter: filterCardAttachmentDetail = {
         id: filter.id,
         card_id: filter.card_id,
-        file_id: filter.file_id,
+        attachable_type: filter.attachable_type,
+        attachable_id: filter.attachable_id,
         created_by: filter.created_by
       };
       
@@ -343,12 +351,14 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       const response = new CardAttachmentResponse({
         id: result.data.id!,
         card_id: result.data.card_id,
-        file_id: result.data.file_id,
+        attachable_type: result.data.attachable_type,
+        attachable_id: result.data.attachable_id,
         is_cover: result.data.is_cover,
         created_by: result.data.created_by!,
         created_at: result.data.created_at!,
         updated_at: result.data.updated_at!,
-        file: result.data.file
+        file: result.data?.file,
+        target_card: result.data?.target_card
       });
       
       return {
