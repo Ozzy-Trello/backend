@@ -2,7 +2,7 @@ import { validate as isValidUUID } from 'uuid';
 
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { CardActionType, CardActionValue, CardActivityType, MoveListValue } from "@/types/custom_field";
+import { CardActionValue, CardActivityType, MoveListValue } from "@/types/custom_field";
 
 export interface CardRepositoryI {
   getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>>;
@@ -10,6 +10,8 @@ export interface CardRepositoryI {
   deleteCard(filter: filterCardDetail): Promise<number>;
   updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number>;
   getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>>;
+  
+  getTotalCardInList(list_id: string): Promise<ResponseData<number>>;
 
   addActivity(filter: filterCardDetail, data: CardActivity): Promise<ResponseData<CardActivity>>;
   getCardActivities(card_id: string, paginate: Paginate): Promise<ResponseListData<CardActivity[]>>;
@@ -21,17 +23,17 @@ export class CardActivity {
   sender_id!: string;
   card_id!: string;
   activity_type!: CardActivityType;
-  // data? : CardActionActivity | Comment 
+  data? : CardActionActivity | Comment 
   action?: CardActionActivity;
   comment?: CardComment;
 
   constructor(payload: Partial<CardActivity>, data: CardActionActivity | CardComment) {
     Object.assign(this, payload);
-    if ('action_type' in data) {
-      this.action = data
-    }else if('text' in data){
-      this.comment = data
-    }
+    // if ('action_type' in data) {
+    //   this.action = data
+    // }else if('text' in data){
+    //   this.comment = data
+    // }
     // delete this.data
   }
 }
@@ -50,7 +52,7 @@ export class CardComment {
 }
 
 export class CardActionActivity {
-  action_type!: CardActionType;
+  // action_type!: CardActionType;
   source?: CardActionValue;
 
   constructor(payload: Partial<CardActionActivity>){
@@ -59,9 +61,9 @@ export class CardActionActivity {
   }
 
   setMoveListValue(data: MoveListValue){
-    if (this.action_type != CardActionType.MoveList) {
-      throw Error("not activity action is not move list")
-    }
+    // if (this.action_type != CardActionType.MoveList) {
+    //   throw Error("not activity action is not move list")
+    // }
     this.source = {
       origin_list_id: data.origin_list_id,
       destination_list_id: data.destination_list_id

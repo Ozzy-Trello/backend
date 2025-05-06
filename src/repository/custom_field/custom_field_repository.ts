@@ -1,5 +1,5 @@
 import {v4 as uuidv4} from 'uuid';
-import { ExpressionBuilder } from 'kysely';
+import { ExpressionBuilder, JSONColumnType } from 'kysely';
 
 import {
 	filterCustomFieldDetail, 
@@ -25,7 +25,7 @@ import CardCustomField from "@/database/schemas/card_custom_field";
 import db from "@/database";
 import { Transaction, sql } from "kysely";
 import { Database } from "@/types/database";
-import { SourceType, TriggerValue } from '@/types/custom_field';
+import { ActionsValue, SourceType } from '@/types/custom_field';
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
 	createValueFilter(eb: ExpressionBuilder<Database, any>, filter: filterCustomFieldDetail) {
@@ -154,7 +154,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 		}
 	}
 
-	async assignToCard(id: string, payload: CustomFieldCardDetail, trigger?: CustomFieldTrigger): Promise<number> {
+	async assignToCard(id: string, payload: CustomFieldCardDetail): Promise<number> {
 		const trx = await db.transaction().execute(async (tx: Transaction<Database>) => {
 			try {
 				let data: any = {
@@ -187,30 +187,6 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				if (!selectedList) {
 					return StatusCodes.BAD_REQUEST
 				}
-
-				if (trigger){
-					const [triggerResult] = await tx
-						.insertInto("trigger")
-						.values({
-							id: uuidv4(),
-							action: trigger.action,
-							condition_value: trigger.conditional_value,
-							all_card: trigger.all_card,
-							workspace_id: selectedList.workspace_id
-						})
-						.returning(["id"])
-						.execute();
-					data.trigger_id = triggerResult.id
-
-					// if (trigger.all_card!) {
-					// 	const boardIds = await tx
-					// 		.selectFrom('card')
-					// 		.select("card.id")
-					// 		.innerJoin("list", "card.list_id", "list.id")
-					// 		.where("list.board_id", "=", data.board_id)
-					// 		.execute();
-					// }
-				};
 
 				data.order = 1;
 				await tx
@@ -362,8 +338,8 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					sql<string>`custom_field.description`.as('description'),
 					sql<SourceType>`custom_field.source`.as('source'),
 					sql<string>`trigger.id`.as('trigger_id'),
-					sql<string>`trigger.condition_value`.as('condition_value'),
-					sql<TriggerValue>`trigger.action`.as('action'),
+					sql<string>`trigger.condition`.as('condition'),
+					sql<ActionsValue>`trigger.action`.as('action'),
 				])
 				.offset(paginate.getOffset())
 				.limit(paginate.limit)
@@ -379,7 +355,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 						source: item.source,
 						trigger: item.trigger_id ? {
 							id: item.trigger_id,
-							condition_value: item.condition_value,
+							condition_value: item.condition,
 							action: item.action
 						} : undefined
 					}))

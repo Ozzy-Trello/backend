@@ -47,7 +47,7 @@ export default function (): Router {
     const file_repository = new FileRepository();
     const card_attachment_repository = new CardAttachmentRepository();
 
-    const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo);
+    const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo, board_repo);
     const account_controller = new AccountController(user_repo);
     const access_control_controller = new AccessControlController(role_repo);
     const auth_controller = new AuthController(user_repo, workspace_repo, role_repo);

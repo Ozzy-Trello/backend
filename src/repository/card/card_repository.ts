@@ -9,8 +9,8 @@ import {InternalServerError} from "@/utils/errors";
 import {isFilterEmpty, Paginate} from "@/utils/data_utils";
 import db from '@/database';
 import { Database } from '@/types/database';
-import { Transaction, sql } from 'kysely';
-import { CardActionType, CardActionValue, MoveListValue } from '@/types/custom_field';
+import { ExpressionBuilder, Transaction, sql } from 'kysely';
+import { CardActionValue } from '@/types/custom_field';
 
 export class CardRepository implements CardRepositoryI {
 	createFilter(filter: filterCardDetail): any {
@@ -38,6 +38,48 @@ export class CardRepository implements CardRepositoryI {
 			whereClause[Op.or] = orConditions;
 		}
 		return whereClause
+	}
+
+	createKyFilter(eb: ExpressionBuilder<Database, any>, filter: filterCardDetail) {
+		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
+		
+		if (filter.id) query = eb.and([query, eb('id', '=', filter.id)]);
+		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
+		if (filter.list_id) query = eb.and([query, eb('list_id', '=', filter.list_id)]);
+	
+		// OR conditions
+		const orConditions = [];
+		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
+		if (filter.__orName) orConditions.push(eb('name', '=', filter.__orName));
+		if (filter.__orListId) orConditions.push(eb('list_id', '=', filter.__orListId));
+	
+		if (orConditions.length > 0) {
+			query = eb.and([query, eb.or(orConditions)]);
+		}
+	
+		// NOT conditions
+		const notConditions = [];
+		if (filter.__notId) notConditions.push(eb('id', '!=', filter.__notId));
+		if (filter.__notName) notConditions.push(eb('name', '!=', filter.__notName));
+		if (filter.__notListId) notConditions.push(eb('workspace_id', '!=', filter.__notListId));
+	
+		if (notConditions.length > 0) {
+			query = eb.and([query, ...notConditions]);
+		}
+	
+		return query;
+	}
+
+	async getTotalCardInList(list_id: string): Promise<ResponseData<number>> {
+		let total = await db.selectFrom("card").
+			where("card.list_id", "=", list_id).
+			select(({ fn }) => fn.count<number>("card.id").
+			as('total')).executeTakeFirst();
+		return new ResponseData({
+			message: "Ok",
+			status_code: StatusCodes.OK,
+			data: total?.total!
+		})
 	}
 
 	async deleteCard(filter: filterCardDetail): Promise<number> {
@@ -127,22 +169,21 @@ export class CardRepository implements CardRepositoryI {
 
 	async getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>> {
 		let result: Array<CardDetail> = [];
-		paginate.setTotal(await Card.count({where: this.createFilter(filter)}))
-		const lists = await Card.findAll({
-			where: this.createFilter(filter),
-			offset: paginate.getOffset(),
-			limit: paginate.limit,
-		});
-		for (const card of lists) {
+		let qry = db.selectFrom("card").where((eb) => this.createKyFilter(eb, filter));
+		let total = await qry.select(({ fn }) => fn.count<number>("card.id").as('total')).executeTakeFirst();
+		paginate.setTotal(total?.total!)
+		
+		let qryResult = await qry.selectAll().offset(paginate.getOffset()).limit(paginate.limit).orderBy("card.order asc").execute();
+		qryResult.map((raw) => {
 			result.push(new CardDetail({
-				id: card.id,
-				name: card.name,
-				description: card.description, 
-				order: card.order, 
-				list_id: card.list_id,
-				location: card?.location ?? ""
+				id: raw.id,
+				name: raw.name,
+				description: raw.description,
+				order: raw.order, 
+				list_id: raw.list_id,
+        location: card?.location ?? ""
 			}))
-		}
+		})
 		return new ResponseListData({
 			status_code: StatusCodes.OK,
 			message: "card card",
@@ -196,7 +237,7 @@ export class CardRepository implements CardRepositoryI {
 					.insertInto('card_activity_action')
 					.values({
 						id: uuidv4(),
-						action: item.action_type,
+						// action: item.action_type,
 						activity_id: card_activiy?.id!,
 						source: item.source
 					})
@@ -274,7 +315,7 @@ export class CardRepository implements CardRepositoryI {
 			.where('ca.card_id', '=', card_id)
 			.select([
 				sql<string>`ca.id`.as('activity_id'),
-				sql<CardActionType>`ca.activity_type`.as('activity_type'),
+				// sql<CardActionType>`ca.activity_type`.as('activity_type'),
 				sql<string>`ca.card_id`.as('card_id'),
 				sql<string>`ca.sender_user_id`.as('sender_id'),
 				sql<string>`caa.action`.as('action_type'),
@@ -294,12 +335,13 @@ export class CardRepository implements CardRepositoryI {
 				sender_id: row.sender_id,
 			}
 			if (row.action_type) {
-				const action = new CardActionActivity({
-					action_type: row.action_type as CardActionType
-				});
-				if (row.action_type == CardActionType.MoveList){
-					action.setMoveListValue(row.source as MoveListValue);
-				}
+				const action = new CardActionActivity({});
+				// const action = new CardActionActivity({
+				// 	action_type: row.action_type as CardActionType
+				// });
+				// if (row.action_type == CardActionType.MoveList){
+				// 	action.setMoveListValue(row.source as MoveListValue);
+				// }
 				result.push(new CardActivity(act, action));
 			} else if (row.text) {
 				result.push(new CardActivity(act, new CardComment({ text: row.text })));
@@ -320,7 +362,7 @@ export class CardRepository implements CardRepositoryI {
 			.selectFrom('card_activity_action as caa')
 			.innerJoin('card_activity as ca', 'caa.activity_id', 'ca.id')
 			.where('ca.card_id', '=', card_id)
-			.where('caa.action', '=', CardActionType.MoveList)
+			// .where('caa.action', '=', CardActionType.MoveList)
 
 		const total = await qry.select(({ fn }) => fn.count<number>('id').as('count')).executeTakeFirst();
 		paginate.setTotal(total?.count!);

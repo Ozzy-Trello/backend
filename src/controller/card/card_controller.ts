@@ -8,7 +8,7 @@ import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardR
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
-import { CardActionType, CardActivityType } from '@/types/custom_field';
+import { CardActivityType, ConditionType, TriggerTypes } from '@/types/custom_field';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
@@ -72,12 +72,12 @@ export class CardController implements CardControllerI {
       })
     }
 
-    if (checkCustomField.data?.trigger_id) {
-      let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
-      if (triggerRes.status_code != StatusCodes.OK){
-        warning = "trigger failed, error : " + triggerRes.message
-      }
-    }
+    // if (checkCustomField.data?.trigger_id) {
+    //   let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
+    //   if (triggerRes.status_code != StatusCodes.OK){
+    //     warning = "trigger failed, error : " + triggerRes.message
+    //   }
+    // }
 
     let assignCustomFieldRes = await this.custom_field_repo.updateAssignedCard(
       custom_field_id, card_id, data.data!
@@ -96,7 +96,7 @@ export class CardController implements CardControllerI {
     })
   }
 
-  async AddCustomField(card_id: string, custom_field_id: string, value: string | number, trigger?: CustomFieldTrigger): Promise<ResponseData<null>> {
+  async AddCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>> {
     let data = new CustomFieldCardDetail({card_id: card_id})
     if (!isValidUUID(card_id)){
       return new ResponseData({
@@ -109,23 +109,6 @@ export class CardController implements CardControllerI {
         message: "'custom_field_id' is not valid uuid",
         status_code: StatusCodes.BAD_REQUEST,
       })
-    }
-
-    if (trigger) {
-      let emptyAction = trigger.isEmptyAction();
-      if (emptyAction){
-        return new ResponseData({
-          message: "we need `target_list_id` or `message_telegram` or `label_card_id`",
-          status_code: StatusCodes.BAD_REQUEST,
-        })
-      }
-      let errorField = trigger.getErrorField();
-      if (errorField){
-        return new ResponseData({
-          message: errorField,
-          status_code: StatusCodes.BAD_REQUEST,
-        })
-      }
     }
 
     let checkCard = await this.card_repo.getCard({id: card_id});
@@ -157,17 +140,17 @@ export class CardController implements CardControllerI {
       data.value_user_id = checkSource.data?.value_user_id;
     }
 
-    if (trigger) {
-      let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
-      if (checkSourceVal.status_code != StatusCodes.OK){
-        return new ResponseData({
-          message: checkSourceVal.message,
-          status_code: checkSourceVal.status_code,
-        })
-      }
-    }
+    // if (trigger) {
+    //   let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
+    //   if (checkSourceVal.status_code != StatusCodes.OK){
+    //     return new ResponseData({
+    //       message: checkSourceVal.message,
+    //       status_code: checkSourceVal.status_code,
+    //     })
+    //   }
+    // }
 
-    let assignCustomFieldRes = await this.custom_field_repo.assignToCard(custom_field_id, data, trigger);
+    let assignCustomFieldRes = await this.custom_field_repo.assignToCard(custom_field_id, data);
     if (assignCustomFieldRes != StatusCodes.NO_CONTENT){
       if (assignCustomFieldRes == StatusCodes.CONFLICT) {
         return new ResponseData({
@@ -189,13 +172,13 @@ export class CardController implements CardControllerI {
           status_code: selectedCustomField.status_code,
         })
       }
-      let tiggerRes = await this.trigger_controller.doTrigger(selectedCustomField.data!.trigger_id!, value, {target_list_id: card_id} )
-      if (tiggerRes.status_code != StatusCodes.OK){
-        return new ResponseData({
-          message: tiggerRes.message,
-          status_code: tiggerRes.status_code,
-        })
-      }
+      // let tiggerRes = await this.trigger_controller.doTrigger(selectedCustomField.data!.trigger_id!, value, {target_list_id: card_id} )
+      // if (tiggerRes.status_code != StatusCodes.OK){
+      //   return new ResponseData({
+      //     message: tiggerRes.message,
+      //     status_code: tiggerRes.status_code,
+      //   })
+      // }
     }
 
     return new ResponseData({
@@ -302,10 +285,10 @@ export class CardController implements CardControllerI {
       })
     }
     
-    let workspace = await this.list_repo.getList({id: data.list_id})
-    if (workspace.status_code != StatusCodes.OK) {
+    let listCheck = await this.list_repo.getList({id: data.list_id})
+    if (listCheck.status_code != StatusCodes.OK) {
       let msg = "internal server error"
-      if (workspace.status_code == StatusCodes.NOT_FOUND){
+      if (listCheck.status_code == StatusCodes.NOT_FOUND){
         msg = "list is not found"
       }
       return new ResponseData({
@@ -329,6 +312,20 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       })
     }
+
+    this.trigger_controller.doTrigger({
+      type: ConditionType.CardInBoard,
+      workspace_id: listCheck.data?.workspace_id!,
+      condition: {
+        action: 'added',
+        by: 'anyone',
+        board: listCheck.data?.board_id!,
+      },
+      group_type: TriggerTypes.CardMove,
+      data: {
+        card_id: createResponse.data?.id
+      }
+    })
 
     return new ResponseData({
       message: "Card created successfully",
@@ -570,7 +567,7 @@ export class CardController implements CardControllerI {
         card_id: selectedCard.data?.id,
         sender_id: user_id,
       }, new CardActionActivity({
-        action_type: CardActionType.MoveList,
+        // action_type: CardActionType.MoveList,
         source: {
           origin_list_id: selectedCard.data?.list_id!,
           destination_list_id: data.list_id!

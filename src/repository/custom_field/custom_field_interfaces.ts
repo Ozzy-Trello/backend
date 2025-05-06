@@ -1,8 +1,8 @@
 import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { SourceType } from "@/types/custom_field";
-import { TriggerValue } from "@/types/custom_field";
+import { ActionsValue, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field";
+import { AutomationCondition } from '@/types/trigger';
 
 export interface CustomFieldRepositoryI {
   getCustomField(filter: filterCustomFieldDetail): Promise<ResponseData<CustomFieldDetail>>;
@@ -17,7 +17,7 @@ export interface CustomFieldRepositoryI {
   updateCustomValue(filter: filterCustomValueDetail, data: CustomValueDetailUpdate): Promise<number>;
   getListCustomValue(filter: filterCustomValueDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomValueDetail>>>;
 
-  assignToCard(id: string, payload: CustomFieldCardDetail, trigger?: CustomFieldTrigger): Promise<number>;
+  assignToCard(id: string, payload: CustomFieldCardDetail): Promise<number>;
   unAssignFromCard(id: string, card_id: string): Promise<number>;
   getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>>;
   getAssignCard(id: string, card_id: string): Promise<ResponseData<CardCustomFieldDetail>>;
@@ -71,10 +71,12 @@ export class CustomFieldDetailUpdate {
 }
 
 export class CustomFieldTrigger {
-  public conditional_value!: string;
+  public condition!: AutomationCondition;
+  public condition_type!: ConditionType;
+  public group_type!: TriggerTypes;
   public name?: string;
   public description?: string;
-  public action!: TriggerValue;
+  public action!: ActionsValue[];
   public all_card!: boolean;
 
   constructor(payload: Partial<CustomFieldTrigger>) {
@@ -85,22 +87,22 @@ export class CustomFieldTrigger {
   }
 
   public getErrorField(): string | null {
-    if (this.action.target_list_id && !isValidUUID(this.action.target_list_id!)) {
-			return "'target_list_id' is not valid uuid"
-		}
-    if (this.action.label_card_id && !isValidUUID(this.action.label_card_id!)) {
-			return "'label_card_id' is not valid uuid"
-		}
-    if (this.action.label_card_id) return "'label_card_id' not support yet"
-    if (this.action.message_telegram) return "'message_telegram' not support yet"
+    // if (this.action.target_list_id && !isValidUUID(this.action.target_list_id!)) {
+		// 	return "'target_list_id' is not valid uuid"
+		// }
+    // if (this.action.label_card_id && !isValidUUID(this.action.label_card_id!)) {
+		// 	return "'label_card_id' is not valid uuid"
+		// }
+    // if (this.action.label_card_id) return "'label_card_id' not support yet"
+    // if (this.action.message_telegram) return "'message_telegram' not support yet"
 		return null
 	}
 
   isEmptyAction(): boolean {
     let empty = true;
-    if (this.action.label_card_id != undefined) empty = false
-    if (this.action.target_list_id != undefined) empty = false
-    if (this.action.message_telegram != undefined) empty = false
+    // if (this.action.label_card_id != undefined) empty = false
+    // if (this.action.target_list_id != undefined) empty = false
+    // if (this.action.message_telegram != undefined) empty = false
 		return empty
 	}
 }
@@ -108,7 +110,7 @@ export class CustomFieldTrigger {
 export interface _trigger {
   id?: string;
   condition_value?: string;
-  action?: TriggerValue;
+  action?: ActionsValue;
 }
 
 export class CustomFieldDetail {
