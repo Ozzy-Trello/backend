@@ -233,9 +233,9 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
   async getCardAttachmentList(filter: filterCardAttachmentDetail, paginate: Paginate): Promise<ResponseListData<Array<CardAttachmentDetail>>> {
     try {
       let filterData = this.createFilter(filter);
-      
-      paginate.setTotal(await CardAttachment.count({ where: filterData }));
-      
+       
+      paginate.setTotal(await CardAttachment.count({ where: filterData })); 
+          
       // query attachment without includes
       const attachments = await CardAttachment.findAll({
         where: filterData,
@@ -361,6 +361,67 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "cover attachment detail",
+        data: result,
+      });
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+      }
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+    }
+  }
+
+  async getCoverAttachmentList(cardIds: string[]): Promise<ResponseData<Array<CardAttachmentDetail>>> {
+    try {
+      const filter = {
+        card_id: cardIds,
+        is_cover: true
+      };
+      
+      const attachments = await CardAttachment.findAll({ 
+        where: filter,
+      });
+
+      if (!attachments) {
+        return {
+          status_code: StatusCodes.NOT_FOUND,
+          message: "cover attachment not found",
+        };
+      }
+
+      const attachmentsIds = attachments?.map((attachment: any) => attachment.attachable_id);
+      
+      const files = await File.findAll({
+        where: {
+          id: {
+            [Op.in]: attachmentsIds
+          }
+        }
+      });
+
+      const fileMap = new Map(); // Create a map for quick lookup
+      files.forEach(file => {
+        fileMap.set(file.id, file);
+      });
+
+      const result = attachments.map((attachment: any) => {
+        const file = fileMap.get(attachment.attachable_id) || null;
+        return new CardAttachmentDetail({
+          id: attachment.id,
+          card_id: attachment.card_id,
+          attachable_type: attachment.attachable_type,
+          attachable_id: attachment.attachable_id,
+          is_cover: attachment.is_cover,
+          created_by: attachment.created_by,
+          created_at: attachment.created_at,
+          updated_at: attachment.updated_at,
+          file: file
+        });
+      });
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "card cover attachment list",
         data: result,
       });
     } catch (e) {

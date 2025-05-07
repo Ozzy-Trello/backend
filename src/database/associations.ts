@@ -10,18 +10,10 @@ export function initializeAssociations() {
   // Initialize card attachment associations
   initCardAttachmentAssociations();
   
-  // Setup reciprocal associations
-  File.hasMany(CardAttachment, {
-    foreignKey: 'file_id',
-    as: 'attachments'
-  });
-  
   Card.hasMany(CardAttachment, {
     foreignKey: 'card_id',
     as: 'attachments'
   });
-  console.log("CardAttachment", CardAttachment.associations);
-  console.log("File", File.associations);
   
   console.log('Database associations initialized successfully');
 }

@@ -181,8 +181,6 @@ export default class CardRestView implements CardRestViewI {
       list_id: req.header('list-id')?.toString(),
     }), paginate);
 
-    console.log("in view: ", accResponse);
-    
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({

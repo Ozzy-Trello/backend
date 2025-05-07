@@ -3,24 +3,33 @@ import { validate as isValidUUID } from 'uuid';
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CardActionActivity, CardActivity, CardDetail, CardRepositoryI } from '@/repository/card/card_interfaces';
+import { CardActionActivity, CardActivity, CardRepositoryI } from '@/repository/card/card_interfaces';
 import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse, CardMoveData } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
-import { CustomFieldCardDetail, CustomFieldRepositoryI, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
+import { CustomFieldCardDetail, CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
 import { CardActivityType, ConditionType, TriggerTypes } from '@/types/custom_field';
+import { CardAttachmentDetail, CardAttachmentRepositoryI } from '@/repository/card_attachment/card_attachment_interface';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI
   private list_repo: ListRepositoryI
   private custom_field_repo: CustomFieldRepositoryI
   private trigger_controller: TriggerControllerI
+  private card_attachmment_repo: CardAttachmentRepositoryI
 
-  constructor(card_repo: CardRepositoryI, list_repo: ListRepositoryI, custom_field_repo: CustomFieldRepositoryI, trigger_controller: TriggerControllerI) {
+  constructor(
+    card_repo: CardRepositoryI, 
+    list_repo: ListRepositoryI, 
+    custom_field_repo: CustomFieldRepositoryI, 
+    trigger_controller: TriggerControllerI,
+    card_attachmment_repo: CardAttachmentRepositoryI
+  ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
     this.trigger_controller = trigger_controller;
+    this.card_attachmment_repo = card_attachmment_repo;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -469,6 +478,23 @@ export class CardController implements CardControllerI {
     }
 
     let cards = await this.card_repo.getListCard(filter.toFilterCardDetail(), paginate);
+
+    const cardIds = cards.data?.map(card => card.id) || [];
+    const attachmentCovers = await this.card_attachmment_repo.getCoverAttachmentList(cardIds);
+    const attachmentCoversMap = new Map();
+    attachmentCovers?.data?.forEach(attachment => {
+      attachmentCoversMap.set(attachment.card_id, attachment);
+    });
+
+    // map other details to card item
+    cards.data?.forEach(card => {
+      // Set cover
+      const attachment = attachmentCoversMap.get(card.id);
+      if (attachment) {
+        card.cover = (attachment as CardAttachmentDetail).file.url;
+      }
+    });
+
     
     return new ResponseListData({
       message: "Card list",

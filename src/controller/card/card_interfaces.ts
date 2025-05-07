@@ -36,6 +36,7 @@ export class CardResponse {
 	location?: string;
 	order?: number;
 	list_id?: string;
+	cover?: string;
 	created_at?: string;
 	updated_at?: string;
 	
@@ -66,6 +67,7 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 		location: data?.location,
 		order: data.order,
 		list_id: data.list_id,
+		cover: data.cover,
 		created_at: data.created_at,
 		updated_at: data.updated_at,
 	})

@@ -158,6 +158,7 @@ export class CardDetail {
   public list_id!: string;
   public order?: number;
   public location?: string;
+  public cover?: string;
   public created_at?: string;
   public updated_at?: string;
 
