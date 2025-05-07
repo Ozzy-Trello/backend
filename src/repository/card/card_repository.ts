@@ -182,8 +182,8 @@ export class CardRepository implements CardRepositoryI {
 				order: raw.order, 
 				list_id: raw.list_id,
         location: raw.location ?? "",
-				created_at: raw?.created_at || "",
-				updated_at: raw?.updated_at || "",
+				created_at: raw?.created_at || undefined,
+				updated_at: raw?.updated_at || undefined,
 			}))
 		});
 

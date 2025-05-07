@@ -52,17 +52,17 @@ module.exports = {
           }
         },
         created_at: {
-          type: DataTypes.TIME,
+          type: 'TIMESTAMP',
           allowNull: false,
           defaultValue: Sequelize.NOW
         },
         updated_at: {
-          type: DataTypes.DATE,
+          type: 'TIMESTAMP',
           allowNull: false,
           defaultValue: Sequelize.NOW
         },
         deleted_at: {
-          type: DataTypes.TIME,
+          type: 'TIMESTAMP',
           allowNull: true
         }
       });

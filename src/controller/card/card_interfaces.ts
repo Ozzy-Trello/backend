@@ -3,9 +3,10 @@ import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
-import { AssignCardDetail, CustomFieldTrigger } from '@/repository/custom_field/custom_field_interfaces';
+import { AssignCardDetail } from '@/repository/custom_field/custom_field_interfaces';
 import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from '@/types/trigger';
+import { CardListTimeDetail } from '@/repository/card_list_time/card_list_time_interface';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -19,6 +20,7 @@ export interface CardControllerI {
 	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
 	UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
 	GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
+	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>>
 }
 
 export class CreateCardResponse {
@@ -37,8 +39,8 @@ export class CardResponse {
 	order?: number;
 	list_id?: string;
 	cover?: string;
-	created_at?: string;
-	updated_at?: string;
+	created_at?: Date;
+	updated_at?: Date;
 	
 	constructor(payload: Partial<CardResponse>) {
 		Object.assign(this, payload)

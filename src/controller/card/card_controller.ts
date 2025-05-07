@@ -10,26 +10,30 @@ import { CustomFieldCardDetail, CustomFieldRepositoryI } from '@/repository/cust
 import { TriggerControllerI } from '../trigger/trigger_interfaces';
 import { CardActivityType, ConditionType, TriggerTypes } from '@/types/custom_field';
 import { CardAttachmentDetail, CardAttachmentRepositoryI } from '@/repository/card_attachment/card_attachment_interface';
+import { CardListTimeDetail, CardListTimeRepositoryI } from '@/repository/card_list_time/card_list_time_interface';
 
 export class CardController implements CardControllerI {
-  private card_repo: CardRepositoryI
-  private list_repo: ListRepositoryI
-  private custom_field_repo: CustomFieldRepositoryI
-  private trigger_controller: TriggerControllerI
-  private card_attachmment_repo: CardAttachmentRepositoryI
+  private card_repo: CardRepositoryI;
+  private list_repo: ListRepositoryI;
+  private custom_field_repo: CustomFieldRepositoryI;
+  private trigger_controller: TriggerControllerI;
+  private card_attachmment_repo: CardAttachmentRepositoryI;
+  private card_list_time_repo: CardListTimeRepositoryI;
 
   constructor(
     card_repo: CardRepositoryI, 
     list_repo: ListRepositoryI, 
     custom_field_repo: CustomFieldRepositoryI, 
     trigger_controller: TriggerControllerI,
-    card_attachmment_repo: CardAttachmentRepositoryI
+    card_attachmment_repo: CardAttachmentRepositoryI,
+    card_list_time_repo: CardListTimeRepositoryI
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
     this.trigger_controller = trigger_controller;
     this.card_attachmment_repo = card_attachmment_repo;
+    this.card_list_time_repo = card_list_time_repo;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -322,6 +326,14 @@ export class CardController implements CardControllerI {
       })
     }
 
+    // insert time tracking record for inserted card in related list
+    this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
+      card_id: createResponse.data?.id!,
+      list_id: data.list_id,
+      entered_at: new Date(),
+    }));
+    
+    
     this.trigger_controller.doTrigger({
       type: ConditionType.CardInBoard,
       workspace_id: listCheck.data?.workspace_id!,
@@ -436,6 +448,21 @@ export class CardController implements CardControllerI {
           }
         })));
       }
+
+      // do async procedures
+      // update time tracking record of previous list
+      this.card_list_time_repo.updateTimeTrackingRecord({
+        card_id: filter.id,
+        list_id: sourceListId,
+        exited_at: new Date(),
+      });
+
+      // insert time tracking record for moved card in new list
+      this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
+        card_id: filter.id,
+        list_id: targetListId,
+        entered_at: new Date(),
+      }));
       
       // 5. Return the moved card data
       return new ResponseData({
@@ -691,4 +718,36 @@ export class CardController implements CardControllerI {
       warning: warning,
     })
   }
+
+  async	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>> {
+    if (!isValidUUID(card_id)){
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    let checkCard = await this.card_repo.getCard({id: card_id});
+    if (checkCard.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      })  
+    }
+
+    let res = await this.card_list_time_repo.getCardTimeInList(card_id);
+    if (res.status_code != StatusCodes.OK){
+      return new ResponseData({
+        message: res.message,
+        status_code: res.status_code
+      })
+    }
+
+    return new ResponseData({
+      message: "list of time tracking in this card",
+      status_code: StatusCodes.OK,
+      data: res.data!,
+    })
+  }
+
 }

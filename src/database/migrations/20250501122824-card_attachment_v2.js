@@ -64,15 +64,15 @@ module.exports = {
       },
       created_at: {
         allowNull: false,
-        type: DataTypes.DATE
+        type: 'TIMESTAMP'
       },
       updated_at: {
         allowNull: false,
-        type: DataTypes.DATE
+        type: 'TIMESTAMP',
       },
       deleted_at: {
         allowNull: true,
-        type: DataTypes.DATE
+        type: 'TIMESTAMP',
       }
     });
 
