@@ -32,6 +32,7 @@ import FileRestView from "@/views/rest/files_view";
 import { CardAttachmentRepository } from "@/repository/card_attachment/card_attachment_repository";
 import { CardAttachmentController } from "@/controller/card_attachment/card_attachment_controller";
 import CardAttachmentRestView from "@/views/rest/card_attachment_view";
+import { CardListTimeRepository } from "@/repository/card_list_time/card_list_time_repository";
 
 export default function (): Router {
     const root_router = Router();
@@ -46,6 +47,7 @@ export default function (): Router {
     const trigger_repo = new TriggerRepository();
     const file_repository = new FileRepository();
     const card_attachment_repository = new CardAttachmentRepository();
+    const card_list_time_history_repo = new CardListTimeRepository();
 
     const card_attachment_controller = new CardAttachmentController(card_attachment_repository, file_repository);
     const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo, board_repo);
@@ -55,7 +57,7 @@ export default function (): Router {
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
-    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller, card_attachment_repository);
+    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller, card_attachment_repository, card_list_time_history_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_repo, trigger_controller);
     const file_controller = new FileController(file_repository);
 
@@ -136,6 +138,7 @@ export default function (): Router {
         router_card.put("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.UpdateCustomField);
         router_card.delete("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.RemoveCustomField);
         router_card.get("/:id/custom-field", restJwt, card_rest_view.GetCustomField);
+        router_card.get("/:id/time-in-lists", restJwt, card_rest_view.GetCardTimeInList);
     }
 
     const router_custom_field = Router();

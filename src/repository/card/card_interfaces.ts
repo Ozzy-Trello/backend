@@ -159,8 +159,8 @@ export class CardDetail {
   public order?: number;
   public location?: string;
   public cover?: string;
-  public created_at?: string;
-  public updated_at?: string;
+  public created_at?: Date;
+  public updated_at?: Date;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
