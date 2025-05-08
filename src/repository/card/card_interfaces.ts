@@ -11,6 +11,7 @@ export interface CardRepositoryI {
   updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number>;
   getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>>;
   moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>>;
+  getMaxCardOrderInList(list_id: string): Promise<number>;
 
   getTotalCardInList(list_id: string): Promise<ResponseData<number>>;
 

@@ -1,12 +1,15 @@
 import { validate as isValidUUID } from 'uuid';
 
-import {filterListDetail, ListDetail, ListDetailUpdate, ListRepositoryI} from "@/repository/list/list_interfaces";
+import {filterListDetail, filterMoveList, ListDetail, ListDetailUpdate, ListRepositoryI} from "@/repository/list/list_interfaces";
 import List from "@/database/schemas/list";
 import {Error, Op} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {Paginate} from "@/utils/data_utils";
+import db from '@/database';
+import { Transaction } from 'kysely';
+import { Database } from '@/types/database';
 
 export class ListRepository implements ListRepositoryI {
 	createFilter(filter: filterListDetail): any {
@@ -55,12 +58,17 @@ export class ListRepository implements ListRepositoryI {
 
 	async createList(data: ListDetail): Promise<ResponseData<ListDetail>> {
 		try {
-			if(!data.card_limit) data.card_limit = 50
+
+			if(!data.card_limit) data.card_limit = 50;
+
+			let maxOrder = await this.getMaxListOrderInBoard(data.board_id!);
+			maxOrder = maxOrder + 10000;
+
 			const list = await List.create({
 				name: data.name!,
 				background: data.background!,
 				board_id: data.board_id!,
-				order: data.order,
+				order: maxOrder,
 				card_limit: data.card_limit
 			});
 			return new ResponseData({
@@ -154,5 +162,124 @@ export class ListRepository implements ListRepositoryI {
 			}
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
+	}
+
+
+	async moveList(filter: filterMoveList): Promise<ResponseData<ListDetail>> {
+		try {
+			// 1. Validate the list exists
+			if (!filter.id || !isValidUUID(filter.id)) {
+				return new ResponseData({
+					status_code: StatusCodes.BAD_REQUEST,
+					message: "List ID is invalid",
+				});
+			}
+			
+			// 2. Begin transaction
+			return await db.transaction().execute(async (tx: Transaction<Database>) => {
+				// Find the list
+				const list = await tx
+					.selectFrom('list')
+					.where('id', '=', filter.id!)
+					.selectAll()
+					.executeTakeFirst();
+				
+				if (!list) {
+					return new ResponseData({
+						status_code: StatusCodes.NOT_FOUND,
+						message: "List not found",
+					});
+				}
+				
+				// Get lists in the board to calculate new position
+				const listsInBoard = await tx
+					.selectFrom('list')
+					.where('board_id', '=', list.board_id)
+					.where('id', '!=', filter.id!) // Exclude the current list
+					.orderBy('order', 'asc')
+					.select(['id', 'order'])
+					.execute();
+				
+				let newOrder: number;
+				
+				// If target position is at the end or beyond lists length
+				if (filter.target_position === undefined ||
+						filter.target_position >= listsInBoard.length) {
+					// If moving to end, add 10000 to last list's order
+					newOrder = listsInBoard.length > 0
+						? listsInBoard[listsInBoard.length - 1].order + 10000
+						: 10000;
+				}
+				// If target position is at the beginning
+				else if (filter.target_position === 0) {
+					// Place at half of first list's order or 5000 if very low
+					newOrder = listsInBoard.length > 0
+						? Math.max(listsInBoard[0].order / 2, 5000)
+						: 10000;
+				}
+				// If target position is in the middle
+				else {
+					const prevList = listsInBoard[filter.target_position - 1];
+					const nextList = listsInBoard[filter.target_position];
+					
+					// Calculate a value between the two lists
+					const gap = nextList.order - prevList.order;
+					if (gap < 1000) {
+						// Weighted calculation for small gaps
+						newOrder = prevList.order + 500;
+					} else {
+						// Standard midpoint calculation when gap is large enough
+						newOrder = Math.floor((prevList.order + nextList.order) / 2);
+					}
+				}
+				
+				// Update the list with new order
+				await tx
+					.updateTable('list')
+					.set({ order: newOrder })
+					.where('id', '=', filter.id!)
+					.execute();
+				
+				const updatedList = await tx
+					.selectFrom('list')
+					.where('id', '=', filter.id!)
+					.selectAll()
+					.executeTakeFirst();
+				
+				return new ResponseData({
+					status_code: StatusCodes.OK,
+					message: "List moved successfully",
+					data: new ListDetail({
+						id: updatedList!.id,
+						name: updatedList!.name,
+						background: updatedList!.background,
+						order: updatedList!.order,
+						board_id: updatedList!.board_id,
+					})
+				});
+			});
+		} catch (e) {
+			console.error(e);
+			if (e instanceof Error) {
+				return new ResponseData({
+					status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+					message: e.message
+				});
+			}
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: "An unexpected error occurred"
+			});
+		}
+	}
+
+	async getMaxListOrderInBoard(board_id: string): Promise<number> {
+		const result = await db
+			.selectFrom('list')
+			.select((eb) => eb.fn.max('order').as('max_order'))
+			.where('board_id', '=', board_id)
+			.executeTakeFirst();
+
+		return result?.max_order ?? 0;
 	}
 }

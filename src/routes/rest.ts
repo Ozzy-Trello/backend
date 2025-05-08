@@ -125,6 +125,7 @@ export default function (): Router {
         router_list.get("/:id", restJwt, list_rest_view.GetList);
         router_list.put("/:id", restJwt, list_rest_view.UpdateList);
         router_list.delete("/:id", restJwt, list_rest_view.DeleteList);
+        router_list.post("/:id/move", restJwt, list_rest_view.MoveList);
     }
 
     const router_card = Router();
