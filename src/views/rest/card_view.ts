@@ -21,6 +21,7 @@ export default class CardRestView implements CardRestViewI {
     this.UpdateCustomField = this.UpdateCustomField.bind(this)
     this.GetCustomField = this.GetCustomField.bind(this)
     this.GetCardActivity = this.GetCardActivity.bind(this)
+    this.GetCardTimeInList = this.GetCardTimeInList.bind(this)
   }
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
@@ -302,6 +303,27 @@ export default class CardRestView implements CardRestViewI {
     res.status(delResponse.status_code).json({
       "data": delResponse.data,
       "message": delResponse.message,
+    })
+    return
+  }
+
+  async GetCardTimeInList(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.card_controller.GetCardTimeInList(req.params.id?.toString())
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
     })
     return
   }

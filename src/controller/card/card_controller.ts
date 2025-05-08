@@ -450,19 +450,24 @@ export class CardController implements CardControllerI {
       }
 
       // do async procedures
-      // update time tracking record of previous list
-      this.card_list_time_repo.updateTimeTrackingRecord({
-        card_id: filter.id,
-        list_id: sourceListId,
-        exited_at: new Date(),
-      });
+      if (sourceListId !== targetListId) {
+        // update time tracking record of previous list
+        const u = await this.card_list_time_repo.updateTimeTrackingRecord({
+          card_id: filter.id,
+          list_id: filter.previous_list_id,
+          exited_at: new Date(),
+        });
+  
+        // insert time tracking record for moved card in new list
+        this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
+          card_id: filter.id,
+          list_id: filter.target_list_id,
+          entered_at: new Date(),
+        }));
+        
 
-      // insert time tracking record for moved card in new list
-      this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
-        card_id: filter.id,
-        list_id: targetListId,
-        entered_at: new Date(),
-      }));
+        console.log("update time tracking record");
+      }
       
       // 5. Return the moved card data
       return new ResponseData({

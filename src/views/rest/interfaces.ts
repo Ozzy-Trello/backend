@@ -59,7 +59,8 @@ export interface CardRestViewI {
     UpdateCustomField(req: Request, res: Response): Promise<void>;
     RemoveCustomField(req: Request, res: Response): Promise<void>;
     GetCustomField(req: Request, res: Response): Promise<void>;
-    GetCardActivity(req: Request, res: Response): Promise<void>
+    GetCardActivity(req: Request, res: Response): Promise<void>;
+    GetCardTimeInList(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {

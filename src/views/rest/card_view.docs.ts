@@ -613,3 +613,81 @@
  *         description: Internal Server Error
  */
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CardTimeInListModel:
+ *       type: object
+ *       properties:
+ *         list_id:
+ *           type: string
+ *           description: ID of the list
+ *         list_name:
+ *           type: string
+ *           description: Name of the list
+ *         total_seconds:
+ *           type: number
+ *           description: Total time spent in the list in seconds
+ *         formatted_time:
+ *           type: string
+ *           description: Human-readable formatted time (e.g., "5 minutes", "2 hours", "3 days")
+ *       example:
+ *         list_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *         list_name: "In Progress"
+ *         total_seconds: 86400
+ *         formatted_time: "1 day"
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/time-in-lists:
+ *   get:
+ *     summary: Get time spent by a card in each list
+ *     tags: [Card]
+ *     description: Retrieves the total time a card has spent in each list it has been assigned to
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to get time tracking data
+ *         required: true
+ *         schema:
+ *           type: string
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/CardTimeInListModel'
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: "Card time in lists retrieved successfully"
+ *               data:
+ *                 - list_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                   list_name: "In Progress"
+ *                   total_seconds: 86400
+ *                   formatted_time: "1 day"
+ *                 - list_id: "a17ca47b-9e04-48b7-b623-feb3bfeeabd7"
+ *                   list_name: "To Do"
+ *                   total_seconds: 3600
+ *                   formatted_time: "1 hour"
+ *                 - list_id: "b27ca48c-4e54-49b7-a623-feb3bfeeacd7"
+ *                   list_name: "Done"
+ *                   total_seconds: 7200
+ *                   formatted_time: "2 hours"
+ *       400:
+ *         description: Bad Request - Invalid card ID
+ *       404:
+ *         description: Card not found
+ *       500:
+ *         description: Internal Server Error
+ */

@@ -1,7 +1,5 @@
-import { ResponseData, ResponseListData } from "@/utils/response_utils";
-import { Paginate } from "@/utils/data_utils";
+import { ResponseData } from "@/utils/response_utils";
 import { AttachmentType } from "@/types/card_attachment";
-import { ListDetail } from "../list/list_interfaces";
 
 export interface CardListTimeRepositoryI {
   createCardTimeInList(data: CardListTimeDetail): Promise<ResponseData<CardListTimeDetail>>;
