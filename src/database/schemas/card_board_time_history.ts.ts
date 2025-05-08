@@ -2,7 +2,6 @@ import { DataTypes, Model } from 'sequelize';
 import sequelize from '@/database/connections';
 import Card from './card';
 import Board from './board';
-import User from './user';
 
 interface CardBoardTimeHistoryAttributes {
   id: string;
@@ -64,7 +63,7 @@ CardBoardTimeHistory.init(
     }
   },
   {
-    tableName: 'card_board_history',
+    tableName: 'card_board_time_history',
     sequelize,
     timestamps: true,
     underscored: true,

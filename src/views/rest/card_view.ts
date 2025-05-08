@@ -1,5 +1,4 @@
 import { CardControllerI, CardCreateData, CardFilter, CardMoveData, UpdateCardData } from "@/controller/card/card_interfaces";
-import { CustomFieldTrigger } from "@/repository/custom_field/custom_field_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { CardRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -22,6 +21,7 @@ export default class CardRestView implements CardRestViewI {
     this.GetCustomField = this.GetCustomField.bind(this)
     this.GetCardActivity = this.GetCardActivity.bind(this)
     this.GetCardTimeInList = this.GetCardTimeInList.bind(this)
+    this.GetCardTimeInBoard = this.GetCardTimeInBoard.bind(this)
   }
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
@@ -309,6 +309,29 @@ export default class CardRestView implements CardRestViewI {
 
   async GetCardTimeInList(req: Request, res: Response): Promise<void> {
     let accResponse = await this.card_controller.GetCardTimeInList(req.params.id?.toString())
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
+    })
+    return
+  }
+
+  async GetCardTimeInBoard(req: Request, res: Response): Promise<void> {
+
+    let accResponse = await this.card_controller.GetCardTimeInBoard(req.params.id?.toString(), req.params.board_id?.toString());
+    
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({

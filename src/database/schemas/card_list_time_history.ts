@@ -84,7 +84,6 @@ export const initCardBoardHistoryAssociations = () => {
     foreignKey: 'list_id',
     as: 'lsit'
   });
-
 };
 
 export default CardListTimeHistory;
