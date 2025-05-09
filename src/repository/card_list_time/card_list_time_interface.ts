@@ -23,6 +23,7 @@ export class CardListTimeDetail {
   public list_id!: string;
   public entered_at!: Date;
   public exited_at!: Date;
+  public total_seconds?: number;
   public formatted_time_in_list?: string;
   public list_name?: string;
   
