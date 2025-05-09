@@ -24,6 +24,8 @@ export interface CardRepositoryI {
   newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
   countCards(filter: any): Promise<number>
+  newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
+  newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
 }
 
 export class CardActivity {
