@@ -79,7 +79,7 @@ export interface CardCustomFieldTable {
 }
 
 export interface CardTable {
-  id: Generated<string>;
+  id: string;
   list_id: string;
   name: string;
   description: string;
