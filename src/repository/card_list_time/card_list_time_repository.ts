@@ -5,7 +5,7 @@ import { v4 as uuidv4, validate as isValidUUID } from 'uuid';
 import { InternalServerError } from "@/utils/errors";
 import { StatusCodes } from "http-status-codes";
 import List from "@/database/schemas/list";
-import { readableDuration } from "@/utils/date_utils";
+import { getTotalSeconds, readableDuration } from "@/utils/date_utils";
 
 export class CardListTimeRepository implements CardListTimeRepositoryI {
   createFilter(filter: filterCardListTimeDetail): any {
@@ -101,12 +101,14 @@ export class CardListTimeRepository implements CardListTimeRepositoryI {
       const formattedListTimes = cardListTime.map(item => {
         const listName = listMap.get(item.list_id) || 'Unknown List';
         const formattedDuration = readableDuration(item.entered_at, item.exited_at);
+        const total_seconds = getTotalSeconds(item.entered_at, item.exited_at);
         return new CardListTimeDetail({
           id: item.id,
           card_id: item.card_id,
           list_id: item.list_id,
           entered_at: item.entered_at,
           exited_at: item?.exited_at || undefined,
+          total_seconds: total_seconds,
           formatted_time_in_list: formattedDuration,
           list_name: listName
         });

@@ -43,3 +43,23 @@ export function readableDuration(startDate: Date, endDate: Date | null = null, m
   
   return parts.join(', ');
 }
+
+
+/**
+ * Calculate the total number of seconds between two dates.
+ * @param startDate The starting date/time
+ * @param endDate The ending date/time (defaults to current time if null)
+ * @returns The total number of seconds between the two dates as a number
+ */
+export function getTotalSeconds(startDate: Date, endDate: Date | null = null): number {
+  // Use current time if no end date is provided
+  const end = endDate || new Date();
+  const start = new Date(startDate);
+  
+  // Calculate the difference in milliseconds and convert to seconds
+  const differenceInMilliseconds = end.getTime() - start.getTime();
+  const totalSeconds = Math.floor(differenceInMilliseconds / 1000);
+  
+  // Return zero if the result is negative (end date before start date)
+  return totalSeconds > 0 ? totalSeconds : 0;
+}
