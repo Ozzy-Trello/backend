@@ -691,3 +691,74 @@
  *       500:
  *         description: Internal Server Error
  */
+
+/**
+ * @swagger
+ * /v1/card/{id}/time-in-board/{board_id}:
+ *   get:
+ *     summary: Get time spent by a card in a specific board
+ *     tags: [Card]
+ *     description: Retrieves the total time a card has spent in a specific board
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to get time tracking data
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: board_id
+ *         in: path
+ *         description: ID of the board to get time tracking data
+ *         required: true
+ *         schema:
+ *           type: string
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     card_id:
+ *                       type: string
+ *                     board_id:
+ *                       type: string
+ *                     entered_at:
+ *                       type: string
+ *                       format: date-time
+ *                     exited_at:
+ *                       type: string
+ *                       format: date-time
+ *                     formatted_time_in_board:
+ *                       type: string
+ *                       description: Human-readable formatted time (e.g., "5 minutes", "2 hours", "3 days")
+ *                     board_name:
+ *                       type: string
+ *                       description: Name of the board
+ *                 message:
+ *                   type: string
+ *             example:
+ *               message: "Card time in board retrieved successfully"
+ *               data:
+ *                 id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                 card_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                 board_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                 entered_at: "2023-10-01T12:00:00Z"
+ *                 exited_at: "2023-10-02T12:00:00Z"
+ *                 formatted_time_in_board: "1 day"
+ *                 board_name: "Project Board"
+ *       400:
+ *         description: Bad Request - Invalid card ID or board ID
+ *       404:
+ *         description: Card or board not found
+ *       500:
+ *         description: Internal Server Error
+ */

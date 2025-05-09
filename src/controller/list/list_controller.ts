@@ -4,7 +4,7 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
-import { CreateListResponse, fromListDetailToListResponse, fromListDetailToListResponseList, ListControllerI, ListCreateData, ListFilter, ListResponse, UpdateListData } from '@/controller/list/list_interfaces';
+import { CreateListResponse, fromListDetailToListResponse, fromListDetailToListResponseList, ListControllerI, ListCreateData, ListFilter, ListMoveData, ListResponse, UpdateListData } from '@/controller/list/list_interfaces';
 import { BoardRepositoryI } from '@/repository/board/board_interfaces';
 
 export class ListController implements ListControllerI {
@@ -19,6 +19,7 @@ export class ListController implements ListControllerI {
     this.DeleteList = this.DeleteList.bind(this);
     this.UpdateList = this.UpdateList.bind(this);
     this.CreateList = this.CreateList.bind(this);
+    this.MoveList = this.MoveList.bind(this);
   }
 
   async CreateList(user_id: string, data: ListCreateData): Promise<ResponseData<CreateListResponse>> {
@@ -238,5 +239,61 @@ export class ListController implements ListControllerI {
       message: "List is updated successful",
       status_code: StatusCodes.NO_CONTENT,
     })
+  }
+
+  async MoveList(user_id:string, filter: ListMoveData): Promise<ResponseData<ListResponse>> {
+    try {
+      // 1. Validate list ID
+      if (!filter.id || !isValidUUID(filter.id)) {
+        return new ResponseData({
+          message: "List ID is invalid or missing",
+          status_code: StatusCodes.BAD_REQUEST
+        });
+      }
+  
+      // 2. Get the current list information before move
+      const card = await this.list_repo.getList({ id: filter.id });
+      if (card.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: card.message,
+          status_code: card.status_code
+        });
+      }
+  
+      // 3. Call the repository's moveList function
+      const moveResponse = await this.list_repo.moveList({
+        id: filter.id,
+        previous_position: filter.previous_position,
+        target_position: filter.target_position,
+        board_id: filter.board_id
+      });
+      
+      if (moveResponse.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: moveResponse.message,
+          status_code: moveResponse.status_code
+        });
+      }
+
+      
+      // 4. Return the moved card data
+      return new ResponseData({
+        message: "List moved successfully",
+        status_code: StatusCodes.OK,
+        data: moveResponse.data
+      });
+      
+    } catch (e) {
+      if (e instanceof Error) {
+        return new ResponseData({
+          message: e.message,
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR
+        });
+      }
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR
+      });
+    }
   }
 }

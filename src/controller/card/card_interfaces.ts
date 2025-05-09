@@ -7,6 +7,7 @@ import { AssignCardDetail } from '@/repository/custom_field/custom_field_interfa
 import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from '@/types/trigger';
 import { CardListTimeDetail } from '@/repository/card_list_time/card_list_time_interface';
+import { CardBoardTimeDetail } from '@/repository/card_board_time/card_board_time_interface';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -21,6 +22,7 @@ export interface CardControllerI {
 	UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
 	GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>>
+	GetCardTimeInBoard(card_id: string, board_id: string): Promise<ResponseData<CardBoardTimeDetail>>
 }
 
 export class CreateCardResponse {

@@ -10,6 +10,7 @@ export interface ListControllerI {
 	GetListList(filter: ListFilter, paginate: Paginate): Promise<ResponseListData<Array<ListResponse>>>
 	DeleteList(filter: ListFilter): Promise<ResponseData<null>>
 	UpdateList(filter: ListFilter, data: UpdateListData): Promise<ResponseData<null>>
+	MoveList(user_id: string, filter: ListMoveData): Promise<ResponseData<ListResponse>>
 }
 
 export class CreateListResponse {
@@ -106,6 +107,25 @@ export class ListFilter {
 		}
 		if ( this.board_id && !isValidUUID(this.board_id)) {
 			return "'board_id' is not valid uuid"
+		}
+		return null
+	}
+}
+
+export class ListMoveData {
+	id!: string;
+	previous_position?: number;
+	target_position?: number;
+	board_id?: string;
+
+	constructor(payload: Partial<ListMoveData>) {
+		Object.assign(this, payload)
+		this.getErrorfield = this.getErrorfield.bind(this)
+	}
+
+	getErrorfield(): string| null {
+		if ( this.id && !isValidUUID(this.id)) {
+			return "'id' is not valid uuid"
 		}
 		return null
 	}

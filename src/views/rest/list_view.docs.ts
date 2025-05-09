@@ -138,3 +138,54 @@
  *
  */
 
+/**
+ * @swagger
+ * /v1/list/{id}/move:
+ *   post:
+ *     summary: Move list
+ *     tags: [ List ]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/MoveListModel'
+ *     responses:
+ *       200:
+ *         description: List moved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetListModel'
+ *       500:
+ *         description: Internal Server Error
+ *
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "List ID is invalid or missing"
+ *                 status_code:
+ *                   type: integer
+ *                   example: 400
+ *       404:
+ *         description: Not Found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "List not found"
+ *                 status_code:
+ *                   type: integer
+ *                   example: 404
+ */

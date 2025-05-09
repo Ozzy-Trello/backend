@@ -1,4 +1,4 @@
-import { ListControllerI, ListCreateData, ListFilter, UpdateListData } from "@/controller/list/list_interfaces";
+import { ListControllerI, ListCreateData, ListFilter, ListMoveData, UpdateListData } from "@/controller/list/list_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { ListRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -14,6 +14,7 @@ export default class ListRestView implements ListRestViewI {
     this.GetListList = this.GetListList.bind(this)
     this.UpdateList = this.UpdateList.bind(this)
     this.DeleteList = this.DeleteList.bind(this)
+    this.MoveList = this.MoveList.bind(this)
   }
 
   async CreateList(req: Request, res: Response): Promise<void> {
@@ -141,6 +142,32 @@ export default class ListRestView implements ListRestViewI {
     res.status(delResponse.status_code).json({
       "data": delResponse.data,
       "message": delResponse.message,
+    })
+    return
+  }
+
+  async MoveList(req: Request, res: Response): Promise<void> {
+    let moveResponse = await this.list_controller.MoveList(req.auth!.user_id, new ListMoveData({
+      id: req.params.id?.toString(),
+      previous_position: req.body.previous_position,
+      target_position: req.body.target_position,
+      board_id: req.body.board_id.toString(),
+    }))
+    if (moveResponse.status_code !== StatusCodes.OK) {
+      if (moveResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(moveResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(moveResponse.status_code).json({
+        "message": moveResponse.message,
+      })
+      return
+    }
+    res.status(moveResponse.status_code).json({
+      "data": moveResponse.data,
+      "message": moveResponse.message,
     })
     return
   }

@@ -30,28 +30,3 @@ export class CardListTimeDetail {
     Object.assign(this, payload);
   }
 }
-
-export class CardAttachmentDetailUpdate {
-  public card_id?: string;
-  public attachable_type?: AttachmentType;
-  public attachable_id?: string;
-  public is_cover?: string;
-  
-  constructor(payload: Partial<CardAttachmentDetailUpdate>) {
-    Object.assign(this, payload);
-    this.isEmpty = this.isEmpty.bind(this);
-  }
-  
-  public toObject(): any {
-    const data: any = {};
-    if (this.card_id) data.card_id = this.card_id;
-    if (this.attachable_type) data.attachable_type = this.attachable_type;
-    if (this.attachable_id) data.attachable_id = this.attachable_id;
-    if (this.is_cover) data.is_cover = this.is_cover;
-    return data;
-  }
-  
-  isEmpty(): boolean {
-    return this.card_id === undefined;
-  }
-}

@@ -46,6 +46,7 @@ export interface ListRestViewI {
     GetListList(req: Request, res: Response): Promise<void>
     UpdateList(req: Request, res: Response): Promise<void>;
     DeleteList(req: Request, res: Response): Promise<void>;
+    MoveList(req: Request, res: Response): Promise<void>;
 }
 
 export interface CardRestViewI {
@@ -61,6 +62,7 @@ export interface CardRestViewI {
     GetCustomField(req: Request, res: Response): Promise<void>;
     GetCardActivity(req: Request, res: Response): Promise<void>;
     GetCardTimeInList(req: Request, res: Response): Promise<void>;
+    GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {

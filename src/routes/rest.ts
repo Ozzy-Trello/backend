@@ -33,6 +33,7 @@ import { CardAttachmentRepository } from "@/repository/card_attachment/card_atta
 import { CardAttachmentController } from "@/controller/card_attachment/card_attachment_controller";
 import CardAttachmentRestView from "@/views/rest/card_attachment_view";
 import { CardListTimeRepository } from "@/repository/card_list_time/card_list_time_repository";
+import { CardBoardTimeRepository } from "@/repository/card_board_time/card_board_time_repository";
 
 export default function (): Router {
     const root_router = Router();
@@ -48,6 +49,7 @@ export default function (): Router {
     const file_repository = new FileRepository();
     const card_attachment_repository = new CardAttachmentRepository();
     const card_list_time_history_repo = new CardListTimeRepository();
+    const card_board_time_history_repo = new CardBoardTimeRepository();
 
     const card_attachment_controller = new CardAttachmentController(card_attachment_repository, file_repository);
     const trigger_controller = new TriggerController(workspace_repo, trigger_repo, card_repo, list_repo, user_repo, board_repo);
@@ -57,7 +59,7 @@ export default function (): Router {
     const workspace_controller = new WorkspaceController(workspace_repo, role_repo, user_repo);
     const board_controller = new BoardController(board_repo, workspace_repo, role_repo);
     const list_controller = new ListController(list_repo, board_repo);
-    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller, card_attachment_repository, card_list_time_history_repo);
+    const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller, card_attachment_repository, card_list_time_history_repo, card_board_time_history_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_repo, trigger_controller);
     const file_controller = new FileController(file_repository);
 
@@ -123,6 +125,7 @@ export default function (): Router {
         router_list.get("/:id", restJwt, list_rest_view.GetList);
         router_list.put("/:id", restJwt, list_rest_view.UpdateList);
         router_list.delete("/:id", restJwt, list_rest_view.DeleteList);
+        router_list.post("/:id/move", restJwt, list_rest_view.MoveList);
     }
 
     const router_card = Router();
@@ -139,6 +142,7 @@ export default function (): Router {
         router_card.delete("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.RemoveCustomField);
         router_card.get("/:id/custom-field", restJwt, card_rest_view.GetCustomField);
         router_card.get("/:id/time-in-lists", restJwt, card_rest_view.GetCardTimeInList);
+        router_card.get("/:id/time-in-board/:board_id", restJwt, card_rest_view.GetCardTimeInBoard);
     }
 
     const router_custom_field = Router();

@@ -2,7 +2,7 @@ import { validate as isValidUUID, v4 as uuidv4 } from 'uuid';
 
 import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList, filterMoveCard} from "@/repository/card/card_interfaces";
 import Card from "@/database/schemas/card";
-import {Error, Op} from "sequelize";
+import {Error, Op, Sequelize} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
@@ -489,15 +489,7 @@ export class CardRepository implements CardRepositoryI {
 
 	async moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>> {
 		try {
-			// 1. Validate the card exists
-			if (!filter.id || !isValidUUID(filter.id)) {
-				return new ResponseData({
-					status_code: StatusCodes.BAD_REQUEST,
-					message: "Card ID is invalid",
-				});
-			}
-	
-			// 2. Begin transaction
+
 			return await db.transaction().execute(async (tx: Transaction<Database>) => {
 				// Find the card
 				const card = await tx
@@ -505,22 +497,21 @@ export class CardRepository implements CardRepositoryI {
 					.where('id', '=', filter.id!)
 					.selectAll()
 					.executeTakeFirst();
-	
+				
 				if (!card) {
 					return new ResponseData({
 						status_code: StatusCodes.NOT_FOUND,
 						message: "Card not found",
 					});
 				}
-	
+				
 				// Check if this is a move within the same list or between lists
 				const sourceListId = filter.previous_list_id || card.list_id;
 				const targetListId = filter.target_list_id || card.list_id;
 				const isSameList = sourceListId === targetListId;
-	
-				// Validate that both source and target lists exist
+				
+				// Validate that target list exists
 				if (!isSameList) {
-					// Check that target list exists
 					const targetList = await tx
 						.selectFrom('list')
 						.where('id', '=', targetListId)
@@ -534,39 +525,49 @@ export class CardRepository implements CardRepositoryI {
 						});
 					}
 				}
-	
-				// Get cards in the target list to calculate position
+				
+				// Get cards in the target list, excluding the card being moved (if it's in the same list)
 				const cardsInTargetList = await tx
 					.selectFrom('card')
 					.where('list_id', '=', targetListId)
+					.where((eb) => isSameList ? eb('id', '!=', filter.id!) : eb.val(true)) // Exclude the card if in same list
 					.orderBy('order', 'asc')
 					.select(['id', 'order'])
 					.execute();
-	
-				// Calculate new order value
+				
 				let newOrder: number;
 				
-				// If target position is at the end or list is empty
-				if (filter.target_position === undefined ||
-						filter.target_position >= cardsInTargetList.length ||
-						cardsInTargetList.length === 0) {
-					// If list is empty or moving to end, use a higher value
-					newOrder = cardsInTargetList.length > 0
-						? cardsInTargetList[cardsInTargetList.length - 1].order + 1000
-						: 1000;
+				// If there are no cards in the target list (after excluding the moved card if necessary)
+				if (cardsInTargetList.length === 0) {
+					newOrder = 10000; // Set to base order value
+				}
+				// If target position is at the end
+				else if (filter.target_position === undefined || filter.target_position >= cardsInTargetList.length) {
+					// Add 10000 to the last card's order
+					newOrder = cardsInTargetList[cardsInTargetList.length - 1].order + 10000;
 				}
 				// If target position is at the beginning
 				else if (filter.target_position === 0) {
-					newOrder = cardsInTargetList[0].order / 2;
+					// Put at half of the first card's order or 5000 if very low
+					newOrder = Math.max(cardsInTargetList[0].order / 2, 5000);
 				}
 				// If target position is in the middle
 				else {
-					// Place between the two surrounding cards
 					const prevCard = cardsInTargetList[filter.target_position - 1];
 					const nextCard = cardsInTargetList[filter.target_position];
-					newOrder = (prevCard.order + nextCard.order) / 2;
+					
+					// Calculate a value between the two cards
+					// If the gap is less than 1000,  use a weighted value to avoid precision issues
+					const gap = nextCard.order - prevCard.order;
+					if (gap < 1000) {
+						// Weighted calculation to create a new reasonable gap
+						newOrder = prevCard.order + 500;
+					} else {
+						// Standard midpoint calculation when gap is large enough
+						newOrder = Math.floor((prevCard.order + nextCard.order) / 2);
+					}
 				}
-	
+				
 				// Update the card with new list_id and order
 				await tx
 					.updateTable('card')
@@ -577,13 +578,13 @@ export class CardRepository implements CardRepositoryI {
 					.where('id', '=', filter.id!)
 					.execute();
 	
-				// Get updated card
+				
 				const updatedCard = await tx
 					.selectFrom('card')
 					.where('id', '=', filter.id!)
 					.selectAll()
 					.executeTakeFirst();
-	
+				
 				return new ResponseData({
 					status_code: StatusCodes.OK,
 					message: "Card moved successfully",
@@ -611,4 +612,15 @@ export class CardRepository implements CardRepositoryI {
 			});
 		}
 	}
+
+	async getMaxCardOrderInList(list_id: string): Promise<number> {
+		const result = await db
+			.selectFrom('card')
+			.select((eb) => eb.fn.max('order').as('max_order'))
+			.where('list_id', '=', list_id)
+			.executeTakeFirst();
+
+		return result?.max_order ?? 0;
+	}
+
 }

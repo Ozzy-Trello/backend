@@ -7,6 +7,7 @@ export interface ListRepositoryI {
   deleteList(filter: filterListDetail): Promise<number>;
   updateList(filter: filterListDetail, data: ListDetailUpdate): Promise<number>;
   getListList(filter: filterListDetail, paginate: Paginate): Promise<ResponseListData<Array<ListDetail>>>;
+  moveList(filter: filterMoveList): Promise<ResponseData<ListDetail>>;
 }
 
 export interface filterListDetail {
@@ -28,6 +29,13 @@ export interface filterListDetail {
   __notWorkspaceId?: string;
   __notBoardId?: string;
   __notCardLimit?: string;
+}
+
+export interface filterMoveList {
+  id?: string;
+  previous_position?: number;
+  target_position?: number;
+  board_id?: string;
 }
 
 export class ListDetailUpdate {
