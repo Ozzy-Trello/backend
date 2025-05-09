@@ -111,7 +111,7 @@ export class CardRepository implements CardRepositoryI {
 			.limit(1)
 			.selectAll()
 			.executeTakeFirst();
-		const newOrder = topCard ? topCard.order - 1 : 1;
+		const newOrder = topCard ? topCard.order - 10000 : 1;
 		return new ResponseData({
 			data: newOrder,
 			message: "top of list card",
@@ -120,16 +120,8 @@ export class CardRepository implements CardRepositoryI {
 	}
 
 	async newBottomOrderCard(list_id: string): Promise<ResponseData<number>> {
-		// Dapatkan kartu dengan order terkecil (paling atas) saat ini
-		const result = await db
-			.selectFrom('card')
-			.where('list_id', '=', list_id)
-			.select(({ fn }) => [
-				fn.max('order').as('maxOrder')
-			])
-			.executeTakeFirst();
-		const maxOrder = result?.maxOrder ?? 0;
-		const newOrder = maxOrder + 1;
+		const maxOrder = await this.getMaxCardOrderInList(list_id!);
+		const newOrder = maxOrder + 10000;
 
 		return new ResponseData({
 			data: newOrder,
