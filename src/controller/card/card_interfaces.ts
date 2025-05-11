@@ -17,6 +17,7 @@ export interface CardControllerI {
 	GetListCustomField(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardResponse>>>
 	UpdateCard(user_id: string, filter: CardFilter, data: UpdateCardData): Promise<ResponseData<null>>
 	GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
+	GetAllCards(paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 }
 
 export class CreateCardResponse {
