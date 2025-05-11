@@ -84,7 +84,8 @@ export default function (): Router {
     card_repo,
     list_repo,
     custom_field_repo,
-    trigger_controller
+    trigger_controller,
+    request_repo
   );
   const custom_field_controller = new CustomFieldController(
     custom_field_repo,

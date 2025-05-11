@@ -29,23 +29,27 @@ import {
 } from "@/repository/custom_field/custom_field_interfaces";
 import { TriggerControllerI } from "../trigger/trigger_interfaces";
 import { CardActionType, CardActivityType } from "@/types/custom_field";
+import { IRequestRepository } from "@/repository/request/request_interfaces";
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
   private list_repo: ListRepositoryI;
   private custom_field_repo: CustomFieldRepositoryI;
   private trigger_controller: TriggerControllerI;
+  private request_repo: IRequestRepository;
 
   constructor(
     card_repo: CardRepositoryI,
     list_repo: ListRepositoryI,
     custom_field_repo: CustomFieldRepositoryI,
-    trigger_controller: TriggerControllerI
+    trigger_controller: TriggerControllerI,
+    request_repo: IRequestRepository
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
     this.trigger_controller = trigger_controller;
+    this.request_repo = request_repo;
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -467,10 +471,16 @@ export class CardController implements CardControllerI {
       });
     }
 
+    const cardResponse = fromCardDetailToCardResponse(checkList.data!);
+    
+    // Get requests associated with this card
+    const requests = await this.request_repo.getRequestsByCardId(cardResponse.id);
+    cardResponse.requests = requests;
+
     return new ResponseData({
       message: checkList.message,
       status_code: checkList.status_code,
-      data: fromCardDetailToCardResponse(checkList.data!),
+      data: cardResponse,
     });
   }
 

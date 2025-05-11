@@ -2,12 +2,28 @@ import {
   CreateRequestDTO,
   IRequestRepository,
   RequestDTO,
-} from "@/controller/request/request_interfaces";
+} from "./request_interfaces";
 import db from "../../database";
 import { sql } from "kysely";
 
+type RequestRow = {
+  id: number;
+  card_id: string;
+  request_type: string;
+  requested_item_id: string;
+  request_amount: number;
+  is_verified: boolean;
+  adjustment_no: string | null;
+  description: string | null;
+  item_name: string | null;
+  adjustment_name: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  card_name: string | null;
+};
+
 export class RequestRepository implements IRequestRepository {
-  async createRequest(data: CreateRequestDTO) {
+  async createRequest(data: CreateRequestDTO): Promise<RequestRow> {
     // Create a values object with required fields
     const values: any = {
       card_id: data.card_id,
@@ -29,7 +45,39 @@ export class RequestRepository implements IRequestRepository {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    return result;
+    const card = await db
+      .selectFrom("card")
+      .where("id", "=", data.card_id)
+      .select(["name"])
+      .executeTakeFirst();
+
+    return {
+      ...result,
+      card_name: card?.name ?? null,
+    } as RequestRow;
+  }
+
+  async create(data: CreateRequestDTO): Promise<RequestDTO> {
+    const result = await this.createRequest(data);
+    return this.mapToRequestDTO(result);
+  }
+
+  private mapToRequestDTO(row: RequestRow): RequestDTO {
+    return {
+      id: Number(row.id),
+      card_id: row.card_id,
+      request_type: row.request_type,
+      requested_item_id: row.requested_item_id,
+      request_amount: row.request_amount,
+      is_verified: Boolean(row.is_verified),
+      adjustment_no: row.adjustment_no ?? undefined,
+      description: row.description ?? undefined,
+      item_name: row.item_name ?? undefined,
+      adjustment_name: row.adjustment_name ?? undefined,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      card_name: row.card_name ?? undefined,
+    };
   }
 
   async setRequestVerification(id: number, isVerified: boolean) {
@@ -76,7 +124,7 @@ export class RequestRepository implements IRequestRepository {
         ])
         .executeTakeFirstOrThrow();
 
-      return updatedRequest;
+      return this.mapToRequestDTO(updatedRequest as RequestRow);
     });
   }
 
@@ -124,25 +172,40 @@ export class RequestRepository implements IRequestRepository {
       .offset(offset)
       .execute();
 
-    const requests: RequestDTO[] = requestsData.map((row) => ({
-      id: Number(row.id),
-      card_id: row.card_id,
-      request_type: row.request_type,
-      requested_item_id: row.requested_item_id,
-      request_amount: row.request_amount,
-      is_verified: Boolean(row.is_verified),
-      adjustment_no: row.adjustment_no,
-      description: row.description,
-      item_name: row.item_name,
-      adjustment_name: row.adjustment_name,
-      createdAt: new Date(row.createdAt),
-      updatedAt: new Date(row.updatedAt),
-      card_name: row.card_name,
-    }));
-
+    const typedRequestsData = requestsData as unknown as RequestRow[];
     return {
-      requests,
+      requests: typedRequestsData.map(this.mapToRequestDTO),
       total,
     };
+  }
+
+  async getRequestsByCardId(cardId: string): Promise<RequestDTO[]> {
+    const requestsData = await db
+      .selectFrom("request")
+      .leftJoin("card", "request.card_id", "card.id")
+      .select([
+        "request.id",
+        "request.card_id",
+        "request.request_type",
+        "request.requested_item_id",
+        "request.request_amount",
+        "request.is_verified",
+        "request.adjustment_no",
+        "request.description",
+        "request.item_name",
+        "request.adjustment_name",
+        "request.createdAt",
+        "request.updatedAt",
+        "card.name as card_name",
+      ])
+      .where((eb) => eb.and([
+        eb("request.card_id", "=", cardId),
+        eb("request.is_verified", "=", true)
+      ]))
+      .orderBy("request.createdAt", "desc")
+      .execute();
+
+    const typedRequestsData = requestsData as unknown as RequestRow[];
+    return typedRequestsData.map(this.mapToRequestDTO);
   }
 }
