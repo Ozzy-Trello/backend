@@ -18,6 +18,7 @@ export default class CardRestView implements CardRestViewI {
     this.CreateCard = this.CreateCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
+    this.GetAllCards = this.GetAllCards.bind(this);
     this.MoveCard = this.MoveCard.bind(this);
     this.UpdateCard = this.UpdateCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -385,6 +386,37 @@ export default class CardRestView implements CardRestViewI {
     res.status(accResponse.status_code).json({
       data: accResponse.data,
       message: accResponse.message,
+    });
+    return;
+  }
+
+  async GetAllCards(req: Request, res: Response): Promise<void> {
+    let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
+    let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
+    let paginate = new Paginate(page, limit);
+    
+    // Create an empty filter to get all cards
+    let accResponse = await this.card_controller.GetListCard(
+      new CardFilter({}),
+      paginate
+    );
+
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(accResponse.status_code).json({
+        message: accResponse.message,
+      });
+      return;
+    }
+    res.status(accResponse.status_code).json({
+      data: accResponse.data,
+      message: "All cards retrieved successfully",
+      paginate: accResponse.paginate,
     });
     return;
   }

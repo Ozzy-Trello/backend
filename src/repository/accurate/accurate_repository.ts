@@ -84,7 +84,6 @@ export class AccurateRepository implements AccurateRepositoryI {
     });
     const filteredList: ItemCategory[] = response.data.d;
     const result: { [key: string]: ItemCategory } = {};
-    console.log(response.data, "<< ini res dari acurate");
     filteredList.forEach((item: ItemCategory) => {
       if (!item.parent || !item.parent.name || item.name === item.parent.name) {
         result[item.name] = {
@@ -188,10 +187,10 @@ export class AccurateRepository implements AccurateRepositoryI {
               "HPP Benang",
               "HPP Hang Tag",
               "HPP Plastik OPP",
-              "Beban Penyesuaian Aksesoris"
-            ]
-          }
-        }
+              "Beban Penyesuaian Aksesoris",
+            ],
+          },
+        },
       },
       headers: {
         Authorization: `Bearer ${latest.token}`,
@@ -237,52 +236,56 @@ export class AccurateRepository implements AccurateRepositoryI {
     });
   }
 
-  async getItemList(): Promise<Item[]> {
+  async getItemList(search?: string): Promise<Item[]> {
     const latest = await this.getLatestToken();
     if (!latest || !latest.token) {
       throw new Error("No AccurateAuth token/session found in DB");
     }
-    
+
+    const defaultValues = [
+      "Aksesoris Produk",
+      "Hangtag",
+      "Kancing",
+      "Label Size",
+      "Plastik OPP",
+      "Resleting",
+      "Bahan / Kain",
+      "Kain Cotton",
+      "Kain Lacost",
+      "Kain Lacoste",
+      "Komponen Produksi",
+      "Benang",
+      "Kain Keras",
+      "Krah & Manset",
+      "Perlengkapan Produksi",
+      "Rib",
+    ];
+
+    const searchValues = search && search.length > 0 ? [search] : defaultValues;
+
     const response = await AccurateHttpService.request<any>({
       url: this.zeusUrl + "item/list.do",
       method: "POST",
       body: {
         session: latest.db_session,
-        fields: "name,id,parent,no",
+        fields: "name,id,parent,no,itemCategory,itemUnit",
         sp: {
-          pageSize: 500
+          pageSize: 500,
         },
         filter: {
           leafOnly: true,
           keywords: {
             op: "CONTAIN",
-            val: [
-              "Aksesoris Produk",
-              "Hangtag",
-              "Kancing",
-              "Label Size",
-              "Plastik OPP",
-              "Resleting",
-              "Bahan / Kain",
-              "Kain Cotton",
-              "Kain Lacost",
-              "Kain Lacoste",
-              "Komponen Produksi",
-              "Benang",
-              "Kain Keras",
-              "Krah & Manset",
-              "Perlengkapan Produksi",
-              "Rib"
-            ]
-          }
-        }
+            val: searchValues,
+          },
+        },
       },
       headers: {
         Authorization: `Bearer ${latest.token}`,
         "Content-Type": "application/json",
       },
     });
-    
+
     return response.data.d;
   }
 }

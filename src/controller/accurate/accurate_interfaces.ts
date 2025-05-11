@@ -5,6 +5,6 @@ export interface IAccurateRepository {
   getItemCategoryDetail(id: number): Promise<any>;
   getItemDetail(id: number): Promise<any>;
   getGlaccountList(): Promise<any>;
-  getItemList(): Promise<any>;
+  getItemList(search?: string): Promise<any>;
   saveItemAdjustment(body: import("../../repository/accurate/accurate_interfaces").SaveItemAdjustmentBody): Promise<any>;
 }

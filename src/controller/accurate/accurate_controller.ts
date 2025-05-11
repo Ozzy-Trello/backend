@@ -115,6 +115,7 @@ export default class AccurateController {
   public async GetGlaccountList(req: Request, res: Response): Promise<any> {
     try {
       const result = await this.accurate_repo.getGlaccountList();
+      
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
         message: "Glaccount list fetched successfully",
@@ -131,9 +132,14 @@ export default class AccurateController {
     }
   }
 
-  public async GetItemList(_: Request, res: Response): Promise<any> {
+  public async GetItemList(req: Request, res: Response): Promise<any> {
     try {
-      const result = await this.accurate_repo.getItemList();
+      // Get search parameter from query string if it exists
+      const search = req.query.search as string | undefined;
+      
+      // Pass the search parameter to the repository method
+      const result = await this.accurate_repo.getItemList(search);
+      
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
         message: "Item list fetched successfully",

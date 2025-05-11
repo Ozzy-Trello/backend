@@ -46,6 +46,40 @@ export const Request = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    request_sent: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    request_received: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    production_recieved: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    warehouse_returned: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    warehouse_final_used_amount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    authorized_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    warehouse_user: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    production_user: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

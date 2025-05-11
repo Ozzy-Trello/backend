@@ -5,7 +5,7 @@ export interface AccurateRepositoryI {
   getItemCategoryList(): Promise<ItemCategory[]>;
   getItemCategoryDetail(id: number): Promise<ItemCategoryDetail>;
   getGlaccountList(): Promise<any>;
-  getItemList(): Promise<Item[]>;
+  getItemList(search?: string): Promise<Item[]>;
 }
 
 export interface AccurateAuthToken {

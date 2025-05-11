@@ -165,6 +165,14 @@ export interface RequestTable {
   description?: string;
   item_name?: string;
   adjustment_name?: string;
+  request_sent?: number;
+  request_received?: number;
+  production_recieved?: boolean;
+  warehouse_returned?: boolean;
+  warehouse_final_used_amount?: number;
+  authorized_by?: string;
+  warehouse_user?: string;
+  production_user?: string;
   createdAt: Date;
   updatedAt: Date;
 }

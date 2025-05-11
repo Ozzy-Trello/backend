@@ -189,6 +189,7 @@ export default function (): Router {
   {
     router_card.post("/", restJwt, card_rest_view.CreateCard);
     router_card.get("/", restJwt, card_rest_view.GetListCard);
+    router_card.get("/all", restJwt, card_rest_view.GetAllCards);
     router_card.get("/:id", restJwt, card_rest_view.GetCard);
     router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
     router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
@@ -335,26 +336,35 @@ export default function (): Router {
     router_accurate.post("/webhook", accurate_rest_view.Webhook);
     router_accurate.get(
       "/item-category-list",
+      restJwt,
       accurate_rest_view.GetItemCategoryList
     );
     router_accurate.get(
       "/item-category/:id",
+      restJwt,
       accurate_rest_view.GetItemCategoryDetail
     );
-    router_accurate.get("/item/:id", accurate_rest_view.GetItemDetail);
-    router_accurate.get("/item-list", accurate_rest_view.GetItemList);
-    router_accurate.get("/glaccount-list", accurate_rest_view.GetGlaccountList);
+    router_accurate.get("/item/:id", restJwt, accurate_rest_view.GetItemDetail);
+    router_accurate.get("/item-list", restJwt, accurate_rest_view.GetItemList);
+    router_accurate.get(
+      "/glaccount-list",
+      restJwt,
+      accurate_rest_view.GetGlaccountList
+    );
     router_accurate.post(
       "/item-adjustment",
+      restJwt,
       accurate_rest_view.SaveItemAdjustment
     );
   }
 
   const router_request = Router();
   {
-    router_request.post("/", request_rest_view.Create);
-    router_request.get("/", request_rest_view.GetAllRequests);
-    router_request.post("/:id/verify", request_rest_view.Verify);
+    router_request.post("/", restJwt, request_rest_view.Create);
+    router_request.get("/", restJwt, request_rest_view.GetAllRequests);
+    router_request.get("/card/:cardId", restJwt, request_rest_view.GetRequestsByCardId);
+    router_request.post("/:id/verify", restJwt, request_rest_view.Verify);
+    router_request.patch("/:id", restJwt, request_rest_view.Patch);
   }
 
   root_router.use("/auth", router_auth);

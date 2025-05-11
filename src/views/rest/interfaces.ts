@@ -40,41 +40,20 @@ export interface BoardRestViewI {
 }
 
 export interface ListRestViewI {
-<<<<<<< HEAD
-    CreateList(req: Request, res: Response): Promise<void>;
-    GetList(req: Request, res: Response): Promise<void>;
-    GetListList(req: Request, res: Response): Promise<void>
-    UpdateList(req: Request, res: Response): Promise<void>;
-    DeleteList(req: Request, res: Response): Promise<void>;
-    MoveList(req: Request, res: Response): Promise<void>;
-}
-
-export interface CardRestViewI {
-    CreateCard(req: Request, res: Response): Promise<void>;
-    GetCard(req: Request, res: Response): Promise<void>;
-    GetListCard(req: Request, res: Response): Promise<void>;
-    MoveCard(req: Request, res: Response): Promise<void>;
-    UpdateCard(req: Request, res: Response): Promise<void>;
-    DeleteCard(req: Request, res: Response): Promise<void>;
-    AddCustomField(req: Request, res: Response): Promise<void>;
-    UpdateCustomField(req: Request, res: Response): Promise<void>;
-    RemoveCustomField(req: Request, res: Response): Promise<void>;
-    GetCustomField(req: Request, res: Response): Promise<void>;
-    GetCardActivity(req: Request, res: Response): Promise<void>;
-    GetCardTimeInList(req: Request, res: Response): Promise<void>;
-    GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
-=======
   CreateList(req: Request, res: Response): Promise<void>;
   GetList(req: Request, res: Response): Promise<void>;
   GetListList(req: Request, res: Response): Promise<void>;
   UpdateList(req: Request, res: Response): Promise<void>;
   DeleteList(req: Request, res: Response): Promise<void>;
+  MoveList(req: Request, res: Response): Promise<void>;
 }
 
 export interface CardRestViewI {
   CreateCard(req: Request, res: Response): Promise<void>;
   GetCard(req: Request, res: Response): Promise<void>;
   GetListCard(req: Request, res: Response): Promise<void>;
+  GetAllCards(req: Request, res: Response): Promise<void>;
+  MoveCard(req: Request, res: Response): Promise<void>;
   UpdateCard(req: Request, res: Response): Promise<void>;
   DeleteCard(req: Request, res: Response): Promise<void>;
   AddCustomField(req: Request, res: Response): Promise<void>;
@@ -82,8 +61,8 @@ export interface CardRestViewI {
   RemoveCustomField(req: Request, res: Response): Promise<void>;
   GetCustomField(req: Request, res: Response): Promise<void>;
   GetCardActivity(req: Request, res: Response): Promise<void>;
-  GetAllCards(req: Request, res: Response): Promise<void>;
->>>>>>> 979d7c7 (resolve conflict)
+  GetCardTimeInList(req: Request, res: Response): Promise<void>;
+  GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {
@@ -95,25 +74,16 @@ export interface CustomFieldRestViewI {
 }
 
 export interface TriggerRestViewI {
-<<<<<<< HEAD
-    CreateTrigger(req: Request, res: Response): Promise<void>;
-    GetTrigger(req: Request, res: Response): Promise<void>;
-    GetListTrigger(req: Request, res: Response): Promise<void>
-    UpdateTrigger(req: Request, res: Response): Promise<void>;
-    DeleteTrigger(req: Request, res: Response): Promise<void>;
-}
-
-export interface FileViewI {
-    UploadFile(req: Request, res: Response): Promise<void>;
-    GetFiles(req: Request, res: Response): Promise<void>;
-    GetFile(req: Request, res: Response): Promise<void>;
-    DeleteFile(req: Request, res: Response): Promise<void>;
-}
-=======
   CreateTrigger(req: Request, res: Response): Promise<void>;
   GetTrigger(req: Request, res: Response): Promise<void>;
   GetListTrigger(req: Request, res: Response): Promise<void>;
   UpdateTrigger(req: Request, res: Response): Promise<void>;
   DeleteTrigger(req: Request, res: Response): Promise<void>;
 }
->>>>>>> 9797bd3 (wip create afccurate integration, create requests table)
+
+export interface FileViewI {
+  UploadFile(req: Request, res: Response): Promise<void>;
+  GetFiles(req: Request, res: Response): Promise<void>;
+  GetFile(req: Request, res: Response): Promise<void>;
+  DeleteFile(req: Request, res: Response): Promise<void>;
+}

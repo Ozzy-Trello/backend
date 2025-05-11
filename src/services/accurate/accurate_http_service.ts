@@ -34,12 +34,12 @@ export class AccurateHttpService {
     };
     try {
       const response: AccurateApiResponse<T> = await axios(config);
-      console.log(body, "<< in isi body");
       if (!response.data.s) {
         throw new Error(`Accurate API error: ${response.data.d}`);
       }
       return response;
     } catch (error: any) {
+      console.error(error);
       throw new Error(
         error.response?.data?.message ||
           error.message ||
