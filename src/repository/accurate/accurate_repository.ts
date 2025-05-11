@@ -188,10 +188,10 @@ export class AccurateRepository implements AccurateRepositoryI {
               "HPP Benang",
               "HPP Hang Tag",
               "HPP Plastik OPP",
-              "Beban Penyesuaian Aksesoris"
-            ]
-          }
-        }
+              "Beban Penyesuaian Aksesoris",
+            ],
+          },
+        },
       },
       headers: {
         Authorization: `Bearer ${latest.token}`,
@@ -242,7 +242,7 @@ export class AccurateRepository implements AccurateRepositoryI {
     if (!latest || !latest.token) {
       throw new Error("No AccurateAuth token/session found in DB");
     }
-    
+
     const response = await AccurateHttpService.request<any>({
       url: this.zeusUrl + "item/list.do",
       method: "POST",
@@ -250,7 +250,7 @@ export class AccurateRepository implements AccurateRepositoryI {
         session: latest.db_session,
         fields: "name,id,parent,no",
         sp: {
-          pageSize: 500
+          pageSize: 500,
         },
         filter: {
           leafOnly: true,
@@ -272,17 +272,17 @@ export class AccurateRepository implements AccurateRepositoryI {
               "Kain Keras",
               "Krah & Manset",
               "Perlengkapan Produksi",
-              "Rib"
-            ]
-          }
-        }
+              "Rib",
+            ],
+          },
+        },
       },
       headers: {
         Authorization: `Bearer ${latest.token}`,
         "Content-Type": "application/json",
       },
     });
-    
+
     return response.data.d;
   }
 }
