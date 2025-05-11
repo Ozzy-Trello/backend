@@ -1,6 +1,12 @@
-import { Generated } from 'kysely';
-import { CardActionValue, CardActivityType, ConditionType, MoveListValue, SourceType, TriggerTypes } from './custom_field';
-import { AutomationCondition } from './trigger';
+import { Generated } from "kysely";
+import {
+  CardActionValue,
+  CardActivityType,
+  ConditionType,
+  SourceType,
+  TriggerTypes,
+} from "./custom_field";
+import { AutomationCondition } from "./trigger";
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -8,7 +14,7 @@ export interface Database {
   workspace: WorkspaceTable;
   workspace_member: WorkspaceMemberTable;
   custom_field: CustomFieldTable;
-  custom_value :CustomValueTable;
+  custom_value: CustomValueTable;
   trigger: TriggerTable;
   card_custom_field: CardCustomFieldTable;
   card: CardTable;
@@ -17,6 +23,8 @@ export interface Database {
   card_activity: CardActivityTable;
   card_activity_action: CardActivityActionTable;
   card_activity_text: CardActionTextTable;
+  accurate_auth: AccurateAuth;
+  request: RequestTable;
 }
 
 export interface UserTable {
@@ -105,18 +113,18 @@ export interface TriggerTable {
 
 export interface BoardTable {
   id: Generated<string>;
-  workspace_id : string;
+  workspace_id: string;
   name: string;
-  description : string;
+  description: string;
   background: string;
 }
 
 export interface ListTable {
-  id : Generated<string>;
-  board_id : string;
+  id: Generated<string>;
+  board_id: string;
   order: number;
   name: string;
-  background : string;
+  background: string;
 }
 
 export interface CardActivityTable {
@@ -137,4 +145,26 @@ export interface CardActivityActionTable {
   activity_id: string;
   // action: CardActionType;
   source: CardActionValue;
+}
+
+export interface AccurateAuth {
+  id: Generated<string>;
+  token: string;
+  db_session: string;
+  expiry_date: Date;
+}
+
+export interface RequestTable {
+  id: Generated<number>;
+  card_id: string;
+  request_type: string;
+  requested_item_id: string;
+  request_amount: number;
+  is_verified: boolean;
+  adjustment_no?: string;
+  description?: string;
+  item_name?: string;
+  adjustment_name?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
