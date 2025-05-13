@@ -29,6 +29,10 @@ export interface CardControllerI {
     filter: CardFilter,
     paginate: Paginate
   ): Promise<ResponseListData<Array<CardResponse>>>;
+  SearchCard(
+    filter: CardSearch,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<CardResponse>>>;
   DeleteCard(filter: CardFilter): Promise<ResponseData<null>>;
   MoveCard(
     user_id: string,
@@ -88,6 +92,8 @@ export class CardResponse {
   cover?: string;
   created_at?: Date;
   updated_at?: Date;
+  formatted_time_in_list?: string;
+  formatted_time_in_board?: string;
 
   constructor(payload: Partial<CardResponse>) {
     Object.assign(this, payload);
@@ -119,6 +125,8 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
     cover: data.cover,
     created_at: data.created_at,
     updated_at: data.updated_at,
+    formatted_time_in_list: data.formatted_time_in_list,
+    formatted_time_in_board: data.formatted_time_in_board,
   });
 }
 
@@ -191,6 +199,7 @@ export class UpdateCardData {
 export class CardFilter {
   id?: string;
   name?: string;
+  board_id?: string;
   list_id?: string;
   description?: string;
   location?: string;
@@ -206,6 +215,7 @@ export class CardFilter {
     return {
       id: this.id,
       name: this.name,
+      board_id: this.board_id,
       list_id: this.list_id,
       description: this.description,
       location: this.location,
@@ -230,6 +240,27 @@ export class CardFilter {
       return "'list_id' is not valid uuid";
     }
     return null;
+  }
+}
+
+export class CardSearch {
+  name?: string;
+  description?: string;
+
+  constructor(payload: { name?: string; description?: string }) {
+    this.name = payload.name;
+    this.description = payload.description;
+  }
+
+  toFilterCardDetail(): filterCardDetail {
+    return {
+      __orName: this.name,
+      __orDescription: this.description,
+    };
+  }
+
+  isEmpty(): boolean {
+    return !this.name && !this.description;
   }
 }
 

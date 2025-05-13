@@ -189,7 +189,7 @@ export default function (): Router {
   {
     router_card.post("/", restJwt, card_rest_view.CreateCard);
     router_card.get("/", restJwt, card_rest_view.GetListCard);
-    router_card.get("/all", restJwt, card_rest_view.GetAllCards);
+    router_card.get("/search", restJwt, card_rest_view.SearchCard);
     router_card.get("/:id", restJwt, card_rest_view.GetCard);
     router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
     router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
@@ -362,7 +362,11 @@ export default function (): Router {
   {
     router_request.post("/", restJwt, request_rest_view.Create);
     router_request.get("/", restJwt, request_rest_view.GetAllRequests);
-    router_request.get("/card/:cardId", restJwt, request_rest_view.GetRequestsByCardId);
+    router_request.get(
+      "/card/:cardId",
+      restJwt,
+      request_rest_view.GetRequestsByCardId
+    );
     router_request.post("/:id/verify", restJwt, request_rest_view.Verify);
     router_request.patch("/:id", restJwt, request_rest_view.Patch);
   }

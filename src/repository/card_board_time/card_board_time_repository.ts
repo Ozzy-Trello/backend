@@ -114,6 +114,52 @@ export class CardBoardTimeRepository implements CardBoardTimeRepositoryI {
         data: cardBoardTimeDetails
       });
     } catch (e) {
+      console.error(':', e);
+      if (e instanceof Error) {
+        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+      }
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+    }
+  }
+
+  async getCardTimeInBoardList(cardIds: string[], boardId: string): Promise<ResponseData<Array<CardBoardTimeDetail>>> {
+    try {
+      console.log("========= in repo=============");
+      console.log("boardId: %o", boardId);
+      const cardBoardTimes = await CardBoardTimeHistory.findAll({
+        where: {
+          card_id: cardIds,
+          board_id: boardId
+        }
+      });
+
+      if (!cardBoardTimes) {
+        return new ResponseData({
+          status_code: StatusCodes.NOT_FOUND,
+          message: 'No time tracking record found'
+        });
+      }
+
+      let results: CardBoardTimeDetail[] = [];
+      cardBoardTimes.forEach((item) => {
+        const formattedDuration = readableDuration(item.entered_at, item.exited_at || new Date());
+        const cardBoardTimeDetails = new CardBoardTimeDetail({
+          id: item.id,
+          card_id: item.card_id,
+          board_id: item.board_id,
+          entered_at: item.entered_at,
+          exited_at: item?.exited_at || undefined,
+          formatted_time_in_board: formattedDuration,
+        });
+        results.push(cardBoardTimeDetails);
+      })
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: 'Card time in board retrieved successfully',
+        data: results
+      });
+    } catch (e) {
       console.error('Error retrieving card time in board:', e);
       if (e instanceof Error) {
         throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
@@ -121,4 +167,5 @@ export class CardBoardTimeRepository implements CardBoardTimeRepositoryI {
       throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
     }
   }
+
 }

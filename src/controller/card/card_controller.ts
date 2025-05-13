@@ -20,6 +20,7 @@ import {
   fromCustomFieldDetailToCustomFieldResponseCard,
   AssignCardResponse,
   CardMoveData,
+  CardSearch,
 } from "@/controller/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
@@ -496,6 +497,14 @@ export class CardController implements CardControllerI {
       });
     }
 
+    // if (filter.id && filter.board_id && filter.list_id && checkList.data) {
+    //   let card_in_board = await this.card_board_time_repo.getCardTimeInBoard(filter.id, filter.board_id);
+    //   checkList.data.formatted_time_in_board = card_in_board.data?.formatted_time_in_board;
+
+    //   let card_in_list = await this.card_list_time_repo.getCardTimeInCurrentList(filter.id, filter.list_id);
+    //   checkList.data.formatted_time_in_list = card_in_list.data?.formatted_time_in_list;
+    // }
+
     return new ResponseData({
       message: checkList.message,
       status_code: checkList.status_code,
@@ -633,6 +642,84 @@ export class CardController implements CardControllerI {
       }
     }
 
+    let cards = await this.card_repo.getListCard(
+      filter.toFilterCardDetail(),
+      paginate
+    );
+
+    const cardIds = cards.data?.map((card) => card.id) || [];
+    const attachmentCovers =
+      await this.card_attachmment_repo.getCoverAttachmentList(cardIds);
+    const attachmentCoversMap = new Map();
+    attachmentCovers?.data?.forEach((attachment) => {
+      attachmentCoversMap.set(attachment.card_id, attachment);
+    });
+
+    let timeInBoards = [];
+    const timeInBoardMap = new Map();
+    if (filter.board_id) {
+      if (isValidUUID(filter.board_id)) {
+        const result = await this.card_board_time_repo.getCardTimeInBoardList(
+          cardIds,
+          filter?.board_id
+        );
+        timeInBoards = result?.data || [];
+        if (timeInBoards) {
+          timeInBoards?.forEach((item) => {
+            timeInBoardMap.set(item.card_id, item.formatted_time_in_board);
+          });
+        }
+      }
+    }
+
+    let timeInLists = [];
+    const timeInListMap = new Map();
+    if (filter.list_id) {
+      const result = await this.card_list_time_repo.getCardTimeInListByCardList(
+        cardIds,
+        filter?.list_id
+      );
+      timeInLists = result?.data || [];
+      if (timeInLists) {
+        timeInLists?.forEach((item) => {
+          timeInListMap.set(item.card_id, item.formatted_time_in_list);
+        });
+      }
+    }
+
+    // map other details to card item
+    cards.data?.forEach((card) => {
+      // Set cover
+      const attachment = attachmentCoversMap.get(card.id);
+      if (attachment) {
+        card.cover = (attachment as CardAttachmentDetail)?.file?.url;
+      }
+
+      // set time in board
+      const timeInBoard = timeInBoardMap.get(card.id);
+      if (timeInBoard) card.formatted_time_in_board = timeInBoard;
+
+      // set time in list
+      const timeInList = timeInListMap.get(card.id);
+      if (timeInList) card.formatted_time_in_list = timeInList;
+    });
+
+    console.log("card is: %o", cards.data);
+
+    return new ResponseListData(
+      {
+        message: "Card list",
+        status_code: StatusCodes.OK,
+        data: fromCardDetailToCardResponseCard(cards.data!),
+      },
+      cards.paginate
+    );
+  }
+
+  async SearchCard(
+    filter: CardSearch,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<CardResponse>>> {
     let cards = await this.card_repo.getListCard(
       filter.toFilterCardDetail(),
       paginate

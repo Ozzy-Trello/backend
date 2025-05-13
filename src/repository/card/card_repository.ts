@@ -64,7 +64,8 @@ export class CardRepository implements CardRepositoryI {
     // OR conditions
     const orConditions = [];
     if (filter.__orId) orConditions.push(eb("id", "=", filter.__orId));
-    if (filter.__orName) orConditions.push(eb("name", "=", filter.__orName));
+    if (filter.__orName) orConditions.push(eb("name", "ilike", `%${filter.__orName}%`));
+    if (filter.__orDescription) orConditions.push(eb("description", "ilike", `%${filter.__orDescription}%`));
     if (filter.__orListId)
       orConditions.push(eb("list_id", "=", filter.__orListId));
 
@@ -78,7 +79,7 @@ export class CardRepository implements CardRepositoryI {
     if (filter.__notName)
       notConditions.push(eb("name", "!=", filter.__notName));
     if (filter.__notListId)
-      notConditions.push(eb("workspace_id", "!=", filter.__notListId));
+      notConditions.push(eb("list_id", "!=", filter.__notListId));
 
     if (notConditions.length > 0) {
       query = eb.and([query, ...notConditions]);
@@ -99,6 +100,8 @@ export class CardRepository implements CardRepositoryI {
       data: total?.total!,
     });
   }
+
+  // getListCard method is implemented below
 
   async deleteCard(filter: filterCardDetail): Promise<number> {
     try {
