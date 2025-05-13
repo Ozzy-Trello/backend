@@ -1,4 +1,4 @@
-import { CardControllerI, CardCreateData, CardFilter, CardMoveData, UpdateCardData } from "@/controller/card/card_interfaces";
+import { CardControllerI, CardCreateData, CardFilter, CardMoveData, CardSearch, UpdateCardData } from "@/controller/card/card_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { CardRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -12,6 +12,7 @@ export default class CardRestView implements CardRestViewI {
     this.CreateCard = this.CreateCard.bind(this)
     this.GetCard = this.GetCard.bind(this)
     this.GetListCard = this.GetListCard.bind(this)
+    this.SearchCard = this.SearchCard.bind(this)
     this.MoveCard = this.MoveCard.bind(this)
     this.UpdateCard = this.UpdateCard.bind(this)
     this.DeleteCard = this.DeleteCard.bind(this)
@@ -154,6 +155,7 @@ export default class CardRestView implements CardRestViewI {
     let accResponse = await this.card_controller.GetCard(new CardFilter({
       id: req.params.id?.toString(),
       list_id: req.header('list-id')?.toString(),
+      board_id: req.header('board-id')?.toString()
     }))
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -180,6 +182,43 @@ export default class CardRestView implements CardRestViewI {
     let paginate = new Paginate(page, limit);
     let accResponse = await this.card_controller.GetListCard(new CardFilter({
       list_id: req.header('list-id')?.toString(),
+      board_id: req.header('board-id')?.toString()
+    }), paginate);
+
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message,
+      "paginate": accResponse.paginate,
+    })
+    return
+  }
+
+  async SearchCard(req: Request, res: Response): Promise<void> {
+    console.log("SearchCard: in rest..");
+    let name = req.query.name?.toString() || "";
+    let description = req.query.description?.toString() || "";
+    let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
+    let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
+    let paginate = new Paginate(page, limit);
+
+    console.log("in view: name: ", name);
+    console.log("in view: desc: ", description);
+    
+    let accResponse = await this.card_controller.SearchCard(new CardSearch({
+      name: name,
+      description: description,
     }), paginate);
 
     if (accResponse.status_code !== StatusCodes.OK) {

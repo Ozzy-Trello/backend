@@ -43,14 +43,19 @@ export class CardRepository implements CardRepositoryI {
 	createKyFilter(eb: ExpressionBuilder<Database, any>, filter: filterCardDetail) {
 		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
 		
-		if (filter.id) query = eb.and([query, eb('id', '=', filter.id)]);
+		if (filter?.id) query = eb.and([query, eb('id', '=', filter.id)]);
 		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
-		if (filter.list_id) query = eb.and([query, eb('list_id', '=', filter.list_id)]);
+		if (filter?.list_id) query = eb.and([query, eb('list_id', '=', filter.list_id)]);
 	
 		// OR conditions
 		const orConditions = [];
 		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
-		if (filter.__orName) orConditions.push(eb('name', '=', filter.__orName));
+		if (filter.__orName) {
+			orConditions.push(eb('name', 'ilike', `%${filter.__orName}%`));
+		}
+		if (filter.description) {
+			orConditions.push(eb('description', 'ilike', `%${filter.__orDescription}%`));
+		}
 		if (filter.__orListId) orConditions.push(eb('list_id', '=', filter.__orListId));
 	
 		if (orConditions.length > 0) {
@@ -172,8 +177,10 @@ export class CardRepository implements CardRepositoryI {
 	}
 
 	async getListCard(filter: filterCardDetail, paginate: Paginate): Promise<ResponseListData<Array<CardDetail>>> {
+		
 		let result: Array<CardDetail> = [];
 		let qry = db.selectFrom("card").where((eb) => this.createKyFilter(eb, filter));
+
 		let total = await qry.select(({ fn }) => fn.count<number>("card.id").as('total')).executeTakeFirst();
 		paginate.setTotal(total?.total!)
 		

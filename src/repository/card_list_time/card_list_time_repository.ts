@@ -71,6 +71,58 @@ export class CardListTimeRepository implements CardListTimeRepositoryI {
     }
   }
 
+  async getCardTimeInCurrentList(cardId: string, listId: string): Promise<ResponseData<CardListTimeDetail>>{
+    try {
+      if (cardId && !isValidUUID(cardId)) {
+        return new ResponseData({
+          status_code: StatusCodes.BAD_REQUEST,
+          message: 'card_id is not a valid UUID'
+        });
+      }
+
+      const result = await CardListTimeHistory.findOne({
+        where: {
+          card_id: cardId,
+          list_id: listId
+        }
+      });
+
+      if (!result) {
+        return new ResponseData({
+        status_code: StatusCodes.NOT_FOUND,
+        message: 'Card time in list not found',
+      });
+      }
+      
+
+      // Format the data for better readability
+      const formattedDuration = readableDuration(result?.entered_at, result?.exited_at || new Date());
+      const total_seconds = getTotalSeconds(result.entered_at, result.exited_at);
+      const formattedListTime =  new CardListTimeDetail({
+        id: result.id,
+        card_id: result.card_id,
+        list_id: result.list_id,
+        entered_at: result.entered_at,
+        exited_at: result?.exited_at || undefined,
+        total_seconds: total_seconds,
+        formatted_time_in_list: formattedDuration,
+      });
+      
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: 'Card time in list retrieved successfully',
+        data: formattedListTime
+      });
+
+    } catch (e) {
+      console.error('Error getting card time in lists:', e);
+      if (e instanceof Error) {
+        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+      }
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+    }
+  }
+
   async getCardTimeInList(cardId: string): Promise<ResponseData<Array<CardListTimeDetail>>>{
     try {
       if (cardId && !isValidUUID(cardId)) {
@@ -111,6 +163,44 @@ export class CardListTimeRepository implements CardListTimeRepositoryI {
           total_seconds: total_seconds,
           formatted_time_in_list: formattedDuration,
           list_name: listName
+        });
+      });
+      
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: 'Card time in list retrieved successfully',
+        data: formattedListTimes
+      });
+
+    } catch (e) {
+      console.error('Error getting card time in lists:', e);
+      if (e instanceof Error) {
+        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+      }
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+    }
+  }
+
+  async getCardTimeInListByCardList (cardIds: string[], listId: string): Promise<ResponseData<Array<CardListTimeDetail>>>{
+    try {
+      const cardListTime = await CardListTimeHistory.findAll({
+        where: {
+          card_id: cardIds,
+          list_id: listId
+        }
+      });
+      
+      const formattedListTimes = cardListTime.map(item => {
+        const formattedDuration = readableDuration(item.entered_at, item.exited_at);
+        const total_seconds = getTotalSeconds(item.entered_at, item.exited_at);
+        return new CardListTimeDetail({
+          id: item.id,
+          card_id: item.card_id,
+          list_id: item.list_id,
+          entered_at: item.entered_at,
+          exited_at: item?.exited_at || undefined,
+          total_seconds: total_seconds,
+          formatted_time_in_list: formattedDuration,
         });
       });
       

@@ -171,8 +171,54 @@
  *     parameters:
  *       - name: list-id
  *         in: header
+ *         description: ID of list
+ *         required: true
+ *         schema:
+ *           type: string
+*       - name: board-id
+ *         in: header
  *         description: ID of board
  *         required: true
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *          type: number
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *          type: number
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         token: "this token"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/GetCardModel'
+ *       500:
+ *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /v1/card/search:
+ *   get:
+ *     summary: Search card
+ *     tags: [ Card ]
+ *     parameters:
+ *       - name: name
+ *         in: query
+ *         description: Name of the card
+ *         schema:
+ *           type: string
+ *       - name: description
+ *         in: query
+ *         description: Description of the card
  *         schema:
  *           type: string
  *       - name: page
@@ -208,6 +254,11 @@
  *         in: path
  *         description: ID of card to update
  *         required: true
+ *         schema:
+ *           type: string
+ *       - name: board-id
+ *         in: header
+ *         description: ID of board
  *         schema:
  *           type: string
  *     tags: [ Card ]
