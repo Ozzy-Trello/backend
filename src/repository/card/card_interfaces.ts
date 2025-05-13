@@ -113,6 +113,7 @@ export interface filterCardDetail {
   description?: string;
   list_id?: string;
   location?: string;
+  board_id?: string;
 
   __orId?: string;
   __orName?: string;
@@ -165,6 +166,8 @@ export class CardDetail {
   public cover?: string;
   public created_at?: Date;
   public updated_at?: Date;
+  public formatted_time_in_list?: string;
+  public formatted_time_in_board?: string;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

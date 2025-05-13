@@ -9,7 +9,7 @@ export interface CardAttachmentRepositoryI {
   getCardAttachmentList(filter: filterCardAttachmentDetail, paginate: Paginate): Promise<ResponseListData<Array<CardAttachmentDetail>>>;
   updateCardAttachment(filter: filterCardAttachmentDetail, data: CardAttachmentDetailUpdate): Promise<number>;
   getCoverAttachment(cardId: string): Promise<ResponseData<CardAttachmentDetail>>;
-  getCoverAttachmentList(cardIds: string[]): Promise<ResponseData<Array<CardAttachmentDetail>>>
+  getCoverAttachmentList(cardIds: string[]): Promise<ResponseData<Array<CardAttachmentDetail>>>;
 }
 
 export interface filterCardAttachmentDetail {

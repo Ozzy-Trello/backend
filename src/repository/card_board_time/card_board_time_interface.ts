@@ -4,6 +4,7 @@ export interface CardBoardTimeRepositoryI {
   createCardTimeInBoard(data: CardBoardTimeDetail): Promise<ResponseData<CardBoardTimeDetail>>;
   updateTimeTrackingRecord(data: filterCardBoardTimeDetail): Promise<ResponseData<CardBoardTimeDetail>>;
   getCardTimeInBoard(cardId: string, boardId: string): Promise<ResponseData<CardBoardTimeDetail>>;
+  getCardTimeInBoardList(cardIds: string[], boardIds: string): Promise<ResponseData<Array<CardBoardTimeDetail>>>;
 }
 
 export interface filterCardBoardTimeDetail {

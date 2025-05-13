@@ -132,7 +132,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
         created_by: result.data.created_by!,
         created_at: result.data.created_at!,
         updated_at: result.data.updated_at!,
-        file: result.data.file
+        file: result.data.file,
+        target_card: result.data.target_card
       });
       
       return {
@@ -194,7 +195,8 @@ export class CardAttachmentController implements CardAttachmentControllerI {
         created_by: attachment.created_by!,
         created_at: attachment.created_at!,
         updated_at: attachment.updated_at!,
-        file: attachment.file
+        file: attachment.file,
+        target_card: attachment.target_card
       }));
       
       return {

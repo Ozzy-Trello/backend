@@ -4,7 +4,9 @@ import { AttachmentType } from "@/types/card_attachment";
 export interface CardListTimeRepositoryI {
   createCardTimeInList(data: CardListTimeDetail): Promise<ResponseData<CardListTimeDetail>>;
   updateTimeTrackingRecord(data: filterCardListTimeDetail): Promise<ResponseData<CardListTimeDetail>>;
+  getCardTimeInCurrentList(cardId: string, listId: string): Promise<ResponseData<CardListTimeDetail>>;
   getCardTimeInList(cardId: string): Promise<ResponseData<Array<CardListTimeDetail>>>;
+  getCardTimeInListByCardList (cardIds: string[], listId: string): Promise<ResponseData<Array<CardListTimeDetail>>>;
 }
 
 export interface filterCardListTimeDetail {

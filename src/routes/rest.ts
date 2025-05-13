@@ -132,6 +132,7 @@ export default function (): Router {
     {
         router_card.post("/", restJwt, card_rest_view.CreateCard);
         router_card.get("/", restJwt, card_rest_view.GetListCard);
+        router_card.get("/search", restJwt, card_rest_view.SearchCard);
         router_card.get("/:id", restJwt, card_rest_view.GetCard);
         router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
         router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
