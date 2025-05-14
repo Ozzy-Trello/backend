@@ -8,7 +8,7 @@ import {StatusCodes} from "http-status-codes";
 import {InternalServerError} from "@/utils/errors";
 import {isFilterEmpty, Paginate} from "@/utils/data_utils";
 import db from '@/database';
-import { Database } from '@/types/database';
+import { CardTable, Database } from '@/types/database';
 import { ExpressionBuilder, Transaction, sql } from 'kysely';
 import { CardActionValue } from '@/types/custom_field';
 
@@ -87,6 +87,63 @@ export class CardRepository implements CardRepositoryI {
 		})
 	}
 
+	async newTopOrderCard(list_id: string): Promise<ResponseData<number>> {
+		const topCard = await db
+			.selectFrom('card')
+			.where('list_id', '=', list_id)
+			.orderBy('order', 'asc')
+			.limit(1)
+			.selectAll()
+			.executeTakeFirst();
+		const newOrder = topCard ? topCard.order - 10000 : 1;
+		return new ResponseData({
+			data: newOrder,
+			message: "top of list card",
+			status_code: StatusCodes.OK
+		})
+	}
+
+	async newBottomOrderCard(list_id: string): Promise<ResponseData<number>> {
+		const maxOrder = await this.getMaxCardOrderInList(list_id!);
+		const newOrder = maxOrder + 10000;
+
+		return new ResponseData({
+			data: newOrder,
+			message: "bottom of list card",
+			status_code: StatusCodes.OK
+		})
+	}
+
+	private async getCardsByListWithTrx(trx: Transaction<Database>, list_id: string): Promise<CardTable[]> {
+    return trx
+      .selectFrom('card').where('list_id', '=', list_id)
+			.orderBy('order', 'asc').selectAll().execute();
+  }
+
+	private async normalizeCardOrders(trx: Transaction<Database>, list_id: string): Promise<void> {
+    const cards = await this.getCardsByListWithTrx(trx, list_id);
+    const updatePromises = cards.map((card, index) => {
+      const newOrder = (index + 1) * 1000; // Beri jarak 1000 untuk setiap kartu
+      return trx
+        .updateTable('card')
+        .set({ order: newOrder })
+        .where('id', '=', String(card.id))
+        .execute();
+    });
+    
+    await Promise.all(updatePromises);
+  }
+
+	async getMaxCardOrderInList(list_id: string): Promise<number> {
+		const result = await db
+			.selectFrom('card')
+			.select((eb) => eb.fn.max('order').as('max_order'))
+			.where('list_id', '=', list_id)
+			.executeTakeFirst();
+
+		return result?.max_order ?? 0;
+	}
+
 	async deleteCard(filter: filterCardDetail): Promise<number> {
 		try {
 			const card = await Card.destroy({where: this.createFilter(filter)});
@@ -104,16 +161,40 @@ export class CardRepository implements CardRepositoryI {
 
 	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
 		try {
-
-			let maxOrder = await this.getMaxCardOrderInList(data.list_id!);
-			maxOrder = maxOrder + 10000;
-
-			const card = await Card.create({
-				name: data.name!,
-				list_id: data.list_id!,
-				description: "",
-				order: maxOrder
+			const card = await db.transaction().execute(async (trx) => {
+				const bottomOrder = await this.newBottomOrderCard(data.list_id)
+				if (bottomOrder.status_code != StatusCodes.OK) {
+					throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, bottomOrder.message)
+				}
+				
+				// Buat kartu baru dengan order di posisi paling atas
+				const newCard = await trx
+					.insertInto('card')
+					.values({
+						id: uuidv4(),
+						name: data.name!,
+						list_id: data.list_id,
+						description: data.description,
+						order: bottomOrder.data!,
+					})
+					.returningAll()
+					.executeTakeFirstOrThrow();
+	
+				// Periksa jika nilai order terlalu kecil (negatif yang besar), lakukan normalisasi
+				if (bottomOrder.data! < -1000) {
+					await this.normalizeCardOrders(trx, data.list_id);
+					// Ambil kartu yang baru diinsert setelah normalisasi
+					const updatedCard = await trx
+						.selectFrom('card')
+						.where('id', '=', newCard.id)
+						.selectAll()
+						.executeTakeFirstOrThrow();
+					
+					return updatedCard;
+				}
+				return newCard;
 			});
+
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create card success",
@@ -535,16 +616,6 @@ export class CardRepository implements CardRepositoryI {
 				message: "An unexpected error occurred"
 			});
 		}
-	}
-
-	async getMaxCardOrderInList(list_id: string): Promise<number> {
-		const result = await db
-			.selectFrom('card')
-			.select((eb) => eb.fn.max('order').as('max_order'))
-			.where('list_id', '=', list_id)
-			.executeTakeFirst();
-
-		return result?.max_order ?? 0;
 	}
 
 }

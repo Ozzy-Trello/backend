@@ -2,6 +2,12 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 
 export interface ListRepositoryI {
+  getTotalListInList(board_id: string): Promise<ResponseData<number>>
+  newTopOrderList(board_id: string): Promise<ResponseData<number>>
+  newBottomOrderList(board_id: string): Promise<ResponseData<number>>
+  getMaxListOrderInBoard(board_id: string): Promise<number>
+  getAdjacentListIds(list_id: string, board_id: string): Promise<ResponseData<{ previous_id: string | null; next_id: string | null }>>
+
   getList(filter: filterListDetail): Promise<ResponseData<ListDetail>>;
   createList(data: ListDetail): Promise<ResponseData<ListDetail>>;
   deleteList(filter: filterListDetail): Promise<number>;

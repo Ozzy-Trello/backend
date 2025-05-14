@@ -18,6 +18,9 @@ export interface CardRepositoryI {
   addActivity(filter: filterCardDetail, data: CardActivity): Promise<ResponseData<CardActivity>>;
   getCardActivities(card_id: string, paginate: Paginate): Promise<ResponseListData<CardActivity[]>>;
   getCardMoveListActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardActivityMoveList>>>;
+
+  newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
+  newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
 }
 
 export class CardActivity {
