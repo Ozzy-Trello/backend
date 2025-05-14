@@ -15,6 +15,7 @@ export interface TriggerRepositoryI {
 export interface filterTriggerDetail {
   id?: string;
   name?: string;
+  condition?: AutomationCondition;
   description?: string;
   workspace_id?: string;
 

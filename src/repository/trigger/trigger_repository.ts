@@ -17,6 +17,7 @@ export class TriggerRepository implements TriggerRepositoryI {
 		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
 		
 		if (filter.id) query = eb.and([query, eb('id', '=', filter.id)]);
+		if (filter.condition) query = eb.and([ query, sql`condition @> ${JSON.stringify(filter.condition)}::jsonb`]);
 		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
 		if (filter.workspace_id) query = eb.and([query, eb('workspace_id', '=', filter.workspace_id)]);
 	
@@ -103,7 +104,7 @@ export class TriggerRepository implements TriggerRepositoryI {
 		try {
 			const trigger = await db
 			.selectFrom('trigger')
-			.where("id", "=", filter.id!)
+			.where((eb) => this.createFilter(eb, filter))
 			.select([
 				sql<string>`trigger.id`.as('id'),
 				sql<string>`trigger.name`.as('name'),

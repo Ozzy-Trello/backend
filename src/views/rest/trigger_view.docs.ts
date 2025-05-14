@@ -15,7 +15,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               card_move:
+ *               type:
  *                 type: string
  *                 example: "card_move"
  *               condition:

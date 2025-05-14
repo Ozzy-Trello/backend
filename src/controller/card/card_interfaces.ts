@@ -383,7 +383,8 @@ export class TriggerDoData {
   condition!: AutomationCondition;
   filter?: any;
 	data?: {
-		card_id?: string
+		card_id?: string;
+		list_id?: string;
 	}
 
   constructor(payload: Partial<TriggerDoData>) {
