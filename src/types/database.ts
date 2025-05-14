@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { CardActionValue, CardActivityType, ConditionType, MoveListValue, SourceType, TriggerTypes } from './custom_field';
+import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from './trigger';
 
 export interface Database {
@@ -112,11 +112,12 @@ export interface BoardTable {
 }
 
 export interface ListTable {
-  id : Generated<string>;
+  id : string;
   board_id : string;
   order: number;
   name: string;
   background : string;
+  card_limit: number;
 }
 
 export interface CardActivityTable {
