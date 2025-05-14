@@ -88,6 +88,41 @@ export class CardRepository implements CardRepositoryI {
 		})
 	}
 
+	async newTopOrderCard(list_id: string): Promise<ResponseData<number>> {
+		const topCard = await db
+			.selectFrom('card')
+			.where('list_id', '=', list_id)
+			.orderBy('order', 'asc')
+			.limit(1)
+			.selectAll()
+			.executeTakeFirst();
+		const newOrder = topCard ? topCard.order - 1 : 1;
+		return new ResponseData({
+			data: newOrder,
+			message: "top of list card",
+			status_code: StatusCodes.OK
+		})
+	}
+
+	async newBottomOrderCard(list_id: string): Promise<ResponseData<number>> {
+		// Dapatkan kartu dengan order terkecil (paling atas) saat ini
+		const result = await db
+			.selectFrom('card')
+			.where('list_id', '=', list_id)
+			.select(({ fn }) => [
+				fn.max('order').as('maxOrder')
+			])
+			.executeTakeFirst();
+		const maxOrder = result?.maxOrder ?? 0;
+		const newOrder = maxOrder + 1;
+
+		return new ResponseData({
+			data: newOrder,
+			message: "bottom of list card",
+			status_code: StatusCodes.OK
+		})
+	}
+
 	private async getCardsByListWithTrx(trx: Transaction<Database>, list_id: string): Promise<CardTable[]> {
     return trx
       .selectFrom('card').where('list_id', '=', list_id)
@@ -131,41 +166,6 @@ export class CardRepository implements CardRepositoryI {
 			}
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
-	}
-
-	async newTopOrderCard(list_id: string): Promise<ResponseData<number>> {
-		const topCard = await db
-			.selectFrom('card')
-			.where('list_id', '=', list_id)
-			.orderBy('order', 'asc')
-			.limit(1)
-			.selectAll()
-			.executeTakeFirst();
-		const newOrder = topCard ? topCard.order - 1 : 1;
-		return new ResponseData({
-			data: newOrder,
-			message: "top of list card",
-			status_code: StatusCodes.OK
-		})
-	}
-
-	async newBottomOrderCard(list_id: string): Promise<ResponseData<number>> {
-		// Dapatkan kartu dengan order terkecil (paling atas) saat ini
-		const result = await db
-			.selectFrom('card')
-			.where('list_id', '=', list_id)
-			.select(({ fn }) => [
-				fn.max('order').as('maxOrder')
-			])
-			.executeTakeFirst();
-		const maxOrder = result?.maxOrder ?? 0;
-		const newOrder = maxOrder + 1;
-
-		return new ResponseData({
-			data: newOrder,
-			message: "bottom of list card",
-			status_code: StatusCodes.OK
-		})
 	}
 
 	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
