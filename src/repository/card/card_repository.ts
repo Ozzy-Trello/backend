@@ -168,41 +168,6 @@ export class CardRepository implements CardRepositoryI {
 		}
 	}
 
-	async newTopOrderCard(list_id: string): Promise<ResponseData<number>> {
-		const topCard = await db
-			.selectFrom('card')
-			.where('list_id', '=', list_id)
-			.orderBy('order', 'asc')
-			.limit(1)
-			.selectAll()
-			.executeTakeFirst();
-		const newOrder = topCard ? topCard.order - 1 : 1;
-		return new ResponseData({
-			data: newOrder,
-			message: "top of list card",
-			status_code: StatusCodes.OK
-		})
-	}
-
-	async newBottomOrderCard(list_id: string): Promise<ResponseData<number>> {
-		// Dapatkan kartu dengan order terkecil (paling atas) saat ini
-		const result = await db
-			.selectFrom('card')
-			.where('list_id', '=', list_id)
-			.select(({ fn }) => [
-				fn.max('order').as('maxOrder')
-			])
-			.executeTakeFirst();
-		const maxOrder = result?.maxOrder ?? 0;
-		const newOrder = maxOrder + 1;
-
-		return new ResponseData({
-			data: newOrder,
-			message: "bottom of list card",
-			status_code: StatusCodes.OK
-		})
-	}
-
 	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
 		try {
 			const card = await db.transaction().execute(async (trx) => {
@@ -258,30 +223,6 @@ export class CardRepository implements CardRepositoryI {
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
 	}
-
-	private async getCardsByListWithTrx(trx: Transaction<Database>, list_id: string): Promise<CardTable[]> {
-    return trx
-      .selectFrom('card').where('list_id', '=', list_id)
-			.orderBy('order', 'asc').selectAll().execute();
-  }
-
-	private async normalizeCardOrders(trx: Transaction<Database>, list_id: string): Promise<void> {
-    // Dapatkan semua kartu dalam urutan saat ini
-    const cards = await this.getCardsByListWithTrx(trx, list_id);
-    
-    // Atur ulang order dengan interval 100
-    const updatePromises = cards.map((card, index) => {
-      const newOrder = (index + 1) * 100; // Beri jarak 100 untuk setiap kartu
-      return trx
-        .updateTable('card')
-        .set({ order: newOrder })
-        .where('id', '=', String(card.id))
-        .execute();
-    });
-    
-    await Promise.all(updatePromises);
-  }
-
 
 	async getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>> {
 		try {
