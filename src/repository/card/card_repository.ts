@@ -88,31 +88,6 @@ export class CardRepository implements CardRepositoryI {
 		})
 	}
 
-	async getMaxCardOrderInList(list_id: string): Promise<number> {
-		const result = await db
-			.selectFrom('card')
-			.select((eb) => eb.fn.max('order').as('max_order'))
-			.where('list_id', '=', list_id)
-			.executeTakeFirst();
-
-		return result?.max_order ?? 0;
-	}
-
-	async deleteCard(filter: filterCardDetail): Promise<number> {
-		try {
-			const card = await Card.destroy({where: this.createFilter(filter)});
-			if (card <= 0) {
-				return StatusCodes.NOT_FOUND
-			}
-			return StatusCodes.NO_CONTENT
-		} catch (e) {
-			if (e instanceof Error) {
-				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
-			}
-			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
-		}
-	}
-
 	async newTopOrderCard(list_id: string): Promise<ResponseData<number>> {
 		const topCard = await db
 			.selectFrom('card')
@@ -146,6 +121,51 @@ export class CardRepository implements CardRepositoryI {
 			message: "bottom of list card",
 			status_code: StatusCodes.OK
 		})
+	}
+
+	private async getCardsByListWithTrx(trx: Transaction<Database>, list_id: string): Promise<CardTable[]> {
+    return trx
+      .selectFrom('card').where('list_id', '=', list_id)
+			.orderBy('order', 'asc').selectAll().execute();
+  }
+
+	private async normalizeCardOrders(trx: Transaction<Database>, list_id: string): Promise<void> {
+    const cards = await this.getCardsByListWithTrx(trx, list_id);
+    const updatePromises = cards.map((card, index) => {
+      const newOrder = (index + 1) * 1000; // Beri jarak 1000 untuk setiap kartu
+      return trx
+        .updateTable('card')
+        .set({ order: newOrder })
+        .where('id', '=', String(card.id))
+        .execute();
+    });
+    
+    await Promise.all(updatePromises);
+  }
+
+	async getMaxCardOrderInList(list_id: string): Promise<number> {
+		const result = await db
+			.selectFrom('card')
+			.select((eb) => eb.fn.max('order').as('max_order'))
+			.where('list_id', '=', list_id)
+			.executeTakeFirst();
+
+		return result?.max_order ?? 0;
+	}
+
+	async deleteCard(filter: filterCardDetail): Promise<number> {
+		try {
+			const card = await Card.destroy({where: this.createFilter(filter)});
+			if (card <= 0) {
+				return StatusCodes.NOT_FOUND
+			}
+			return StatusCodes.NO_CONTENT
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
+		}
 	}
 
 	async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
@@ -203,30 +223,6 @@ export class CardRepository implements CardRepositoryI {
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string)
 		}
 	}
-
-	private async getCardsByListWithTrx(trx: Transaction<Database>, list_id: string): Promise<CardTable[]> {
-    return trx
-      .selectFrom('card').where('list_id', '=', list_id)
-			.orderBy('order', 'asc').selectAll().execute();
-  }
-
-	private async normalizeCardOrders(trx: Transaction<Database>, list_id: string): Promise<void> {
-    // Dapatkan semua kartu dalam urutan saat ini
-    const cards = await this.getCardsByListWithTrx(trx, list_id);
-    
-    // Atur ulang order dengan interval 100
-    const updatePromises = cards.map((card, index) => {
-      const newOrder = (index + 1) * 100; // Beri jarak 100 untuk setiap kartu
-      return trx
-        .updateTable('card')
-        .set({ order: newOrder })
-        .where('id', '=', String(card.id))
-        .execute();
-    });
-    
-    await Promise.all(updatePromises);
-  }
-
 
 	async getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>> {
 		try {
