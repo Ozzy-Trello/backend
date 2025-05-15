@@ -647,5 +647,4 @@ export class CardRepository implements CardRepositoryI {
 			return 0;
 		}
 	}
-
 }
