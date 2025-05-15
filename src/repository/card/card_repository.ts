@@ -204,6 +204,7 @@ export class CardRepository implements CardRepositoryI {
 				return newCard;
 			});
 
+
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create card success",
