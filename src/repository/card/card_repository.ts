@@ -200,12 +200,12 @@ export class CardRepository implements CardRepositoryI {
 				status_code: StatusCodes.OK,
 				message: "create card success",
 				data: new CardDetail({
-					id: card.id,
-					type: card.type,
-					name: card.name,
-					description: card.description,
-					order: card.order,
-					dash_config: card.dash_config
+					id: (card as Card).id,
+					type: (card as Card).type,
+					name: (card as Card).name,
+					description: (card as Card).description,
+					order: (card as Card).order,
+					dash_config: (card as Card).dash_config
 				})
 			});
 		} catch (e) {
