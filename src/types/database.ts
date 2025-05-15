@@ -81,9 +81,11 @@ export interface CardCustomFieldTable {
 export interface CardTable {
   id: string;
   list_id: string;
+  type: string;
   name: string;
   description: string;
   order: number;
+  dash_config?: any;
 }
 
 export interface BoardMemberTable {

@@ -1,7 +1,6 @@
 import { validate as isValidUUID, v4 as uuidv4 } from 'uuid';
 
 import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList, filterMoveCard, filterCount} from "@/repository/card/card_interfaces";
-import Card from "@/database/schemas/card";
 import {Error, Op, Sequelize} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {StatusCodes} from "http-status-codes";
@@ -12,6 +11,7 @@ import { CardTable, Database } from '@/types/database';
 import { ExpressionBuilder, Transaction, sql } from 'kysely';
 import { CardActionValue } from '@/types/custom_field';
 import { CardType } from '@/types/card';
+import Card from '@/database/schemas/card';
 
 export class CardRepository implements CardRepositoryI {
 	createFilter(filter: filterCardDetail): any {
@@ -185,6 +185,8 @@ export class CardRepository implements CardRepositoryI {
 						list_id: data.list_id,
 						description: data.description,
 						order: bottomOrder.data!,
+						dash_config: data.dash_config,
+						type: data.type
 					})
 					.returningAll()
 					.executeTakeFirstOrThrow();
@@ -208,12 +210,12 @@ export class CardRepository implements CardRepositoryI {
 				status_code: StatusCodes.OK,
 				message: "create card success",
 				data: new CardDetail({
-					id: (card as Card).id,
-					type: (card as Card).type,
-					name: (card as Card).name,
-					description: (card as Card).description,
-					order: (card as Card).order,
-					dash_config: (card as Card).dash_config
+					id: card.id,
+					type: card.type,
+					name: card.name,
+					description: card.description,
+					order: card.order,
+					dash_config: card.dash_config
 				})
 			});
 		} catch (e) {
@@ -252,7 +254,7 @@ export class CardRepository implements CardRepositoryI {
 				description: card.description,
 				order: card.order,
 				list_id: card.list_id,
-				location: card?.location ?? ""
+				location: card?.location ?? "",
 			})
 
 			return new ResponseData({
