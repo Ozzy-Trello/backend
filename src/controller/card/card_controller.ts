@@ -1,9 +1,10 @@
 import { validate as isValidUUID } from 'uuid';
+import { Op } from 'sequelize';
 
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CardActionActivity, CardActivity, CardRepositoryI } from '@/repository/card/card_interfaces';
+import { CardActionActivity, CardActivity, CardDetail, CardRepositoryI } from '@/repository/card/card_interfaces';
 import { CreateCardResponse, fromCardDetailToCardResponse, fromCardDetailToCardResponseCard, CardControllerI, CardCreateData, CardFilter, CardResponse, UpdateCardData, fromCustomFieldDetailToCustomFieldResponseCard, AssignCardResponse, CardMoveData, CardSearch } from '@/controller/card/card_interfaces';
 import { ListRepositoryI } from '@/repository/list/list_interfaces';
 import { CustomFieldCardDetail, CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
@@ -12,6 +13,7 @@ import { CardActivityType, ConditionType, TriggerTypes } from '@/types/custom_fi
 import { CardAttachmentDetail, CardAttachmentRepositoryI } from '@/repository/card_attachment/card_attachment_interface';
 import { CardListTimeDetail, CardListTimeRepositoryI } from '@/repository/card_list_time/card_list_time_interface';
 import { CardBoardTimeDetail, CardBoardTimeRepositoryI } from '@/repository/card_board_time/card_board_time_interface';
+import { CardType } from '@/types/card';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
@@ -330,40 +332,42 @@ export class CardController implements CardControllerI {
       })
     }
 
-    /**
-     * Do async procedures after card created
-     * 1. track time in list
-     * 2. track time in board
-     * 3. trigger
-     */
+    if (data.type === CardType.Regular) {
+      /**
+       * Do async procedures after card created
+       * 1. track time in list
+       * 2. track time in board
+       * 3. trigger
+       */
 
-    // insert time tracking record for inserted card in related list
-    this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
-      card_id: createResponse.data?.id!,
-      list_id: data.list_id,
-      entered_at: createResponse.data?.created_at! || new Date(),
-    }));
-    
-    // insert time tracking record for inserted card in related board
-    this.card_board_time_repo.createCardTimeInBoard(new CardBoardTimeDetail({
-      card_id: createResponse.data?.id!,
-      board_id: listCheck.data?.board_id!,
-      entered_at: createResponse.data?.created_at || new Date(),
-    }));
-    
-    this.trigger_controller.doTrigger({
-      type: ConditionType.CardInBoard,
-      workspace_id: listCheck.data?.workspace_id!,
-      condition: {
-        action: 'added',
-        by: 'anyone',
-        board: listCheck.data?.board_id!,
-      },
-      group_type: TriggerTypes.CardMove,
-      data: {
-        card_id: createResponse.data?.id
-      }
-    })
+      // insert time tracking record for inserted card in related list
+      this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
+        card_id: createResponse.data?.id!,
+        list_id: data.list_id,
+        entered_at: createResponse.data?.created_at! || new Date(),
+      }));
+      
+      // insert time tracking record for inserted card in related board
+      this.card_board_time_repo.createCardTimeInBoard(new CardBoardTimeDetail({
+        card_id: createResponse.data?.id!,
+        board_id: listCheck.data?.board_id!,
+        entered_at: createResponse.data?.created_at || new Date(),
+      }));
+      
+      this.trigger_controller.doTrigger({
+        type: ConditionType.CardInBoard,
+        workspace_id: listCheck.data?.workspace_id!,
+        condition: {
+          action: 'added',
+          by: 'anyone',
+          board: listCheck.data?.board_id!,
+        },
+        group_type: TriggerTypes.CardMove,
+        data: {
+          card_id: createResponse.data?.id
+        }
+      })
+    }
 
     return new ResponseData({
       message: "Card created successfully",
@@ -878,4 +882,37 @@ export class CardController implements CardControllerI {
       data: res.data!,
     })
   }
+
+  async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+    try {
+      // Get the dashcard
+      const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+      
+      if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
+        return new ResponseData({
+          message: "Dashcard not found",
+          status_code: StatusCodes.NOT_FOUND,
+          data: 0
+        });
+      }
+      
+      // ANY - just count all non-dashcard cards
+      const count = await this.card_repo.countCards({
+        type: { [Op.ne]: 'dashcard' }
+      });
+      
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "Dashcard count retrieved successfully",
+        data: count
+      });
+    } catch (e) {
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        data: 0
+      });
+    }
+  }
+
 }

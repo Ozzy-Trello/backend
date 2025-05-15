@@ -813,3 +813,24 @@
  *       500:
  *         description: Internal Server Error
  */
+
+/**
+ * @swagger
+ * /v1/card/{id}/dashcard/count:
+ *   get:
+ *     summary: Get card count
+ *     tags: [Card]
+ *     description: Retrieves the card count
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card
+ *         required: true
+ *         schema:
+ *           type: string
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */

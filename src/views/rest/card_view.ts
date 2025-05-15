@@ -23,6 +23,7 @@ export default class CardRestView implements CardRestViewI {
     this.GetCardActivity = this.GetCardActivity.bind(this)
     this.GetCardTimeInList = this.GetCardTimeInList.bind(this)
     this.GetCardTimeInBoard = this.GetCardTimeInBoard.bind(this)
+    this.GetDashcardCount = this.GetDashcardCount.bind(this)
   }
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
@@ -128,9 +129,11 @@ export default class CardRestView implements CardRestViewI {
   async CreateCard(req: Request, res: Response): Promise<void> {
     let accResponse = await this.card_controller.CreateCard(req.auth!.user_id, new CardCreateData({ 
       name: req.body.name?.toString(),
-      description: req.body.description?.toString(),
+      description: req.body?.description?.toString(),
       list_id: req.body.list_id?.toString(),
+      type: req.body?.type?.toString(),
       order: 1,
+      dash_config: req.body?.dash_config
     }))
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -248,7 +251,10 @@ export default class CardRestView implements CardRestViewI {
       target_list_id: req.body.target_list_id?.toString(),
       previous_position: req.body.order ? parseInt(req.body.order) : 0,
       target_position: req.body.target_position ? parseInt(req.body.target_position.toString()) : 0,
-    }))
+    }));
+
+    console.log("in view: MoveCard: accResponse: %o",accResponse);
+
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -370,6 +376,35 @@ export default class CardRestView implements CardRestViewI {
   async GetCardTimeInBoard(req: Request, res: Response): Promise<void> {
 
     let accResponse = await this.card_controller.GetCardTimeInBoard(req.params.id?.toString(), req.params.board_id?.toString());
+    
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message
+    })
+    return
+  }
+
+  async GetDashcardCount(req: Request, res: Response): Promise<void> {
+    const cardId = req.params.id?.toString();
+    if (!cardId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        "message": "id header is required",
+      });
+      return;
+    }
+    let accResponse = await this.card_controller.GetDashcardCount(cardId);
     
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

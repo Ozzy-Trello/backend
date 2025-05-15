@@ -64,6 +64,7 @@ export interface CardRestViewI {
     GetCardActivity(req: Request, res: Response): Promise<void>;
     GetCardTimeInList(req: Request, res: Response): Promise<void>;
     GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
+    GetDashcardCount(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {
