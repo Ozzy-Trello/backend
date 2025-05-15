@@ -183,7 +183,7 @@ export class CardRepository implements CardRepositoryI {
 						id: uuidv4(),
 						name: data.name!,
 						list_id: data.list_id,
-						description: data.description,
+						description: "",
 						order: bottomOrder.data!,
 						dash_config: data.dash_config,
 						type: data.type
