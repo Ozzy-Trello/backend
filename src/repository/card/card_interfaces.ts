@@ -3,6 +3,8 @@ import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardActionValue, CardActivityType, MoveListValue } from "@/types/custom_field";
+import { date } from 'zod';
+import { DashCardConfig } from '@/controller/card/card_interfaces';
 
 export interface CardRepositoryI {
   getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>>;
@@ -18,6 +20,8 @@ export interface CardRepositoryI {
   addActivity(filter: filterCardDetail, data: CardActivity): Promise<ResponseData<CardActivity>>;
   getCardActivities(card_id: string, paginate: Paginate): Promise<ResponseListData<CardActivity[]>>;
   getCardMoveListActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardActivityMoveList>>>;
+
+  countCards(filter: any): Promise<number>
 }
 
 export class CardActivity {
@@ -137,6 +141,10 @@ export class CardDetailUpdate {
   public order?: number;
   public list_id?: string;
   public location?: string;
+  public start_date?: string;
+  public due_date?: string;
+  public due_date_reminder?: string;
+  public dash_config?: JSON;
 
   constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
@@ -149,6 +157,10 @@ export class CardDetailUpdate {
     if (this.order) data.order = this.order;
     if (this.list_id) data.list_id = this.list_id;
     if (this.location) data.location = this.location;
+    if (this.start_date) data.start_date = this.start_date;
+    if (this.due_date) data.due_date = this.due_date;
+    if (this.due_date_reminder) data.due_date_reminder = this.due_date_reminder;
+    if (this.dash_config) data.dash_config = this.dash_config;
     return data
   }
 }
@@ -158,20 +170,47 @@ export class CardDetail {
   public name?: string;
   public description!: string;
   public list_id!: string;
+  public type!: string;
   public order?: number;
   public location?: string;
   public cover?: string;
+  public start_date?: Date;
+  public due_date?: Date;
+  public due_date_reminder?: string;
+  public dash_config?: any; 
   public created_at?: Date;
   public updated_at?: Date;
   public formatted_time_in_list?: string;
   public formatted_time_in_board?: string;
-
+  
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
+  }
+  
+  getDashConfig(): DashCardConfig | null {
+    if (!this.dash_config) return null;
+    
+    try {
+      if (typeof this.dash_config === 'string') {
+        return DashCardConfig.fromJSON(this.dash_config);
+      } else {
+        return new DashCardConfig(this.dash_config);
+      }
+    } catch (e) {
+      console.error("Error parsing dash_config:", e);
+      return null;
+    }
   }
 }
 
 export interface CardActivityMoveList {
   date: string;
   list_id: string
+}
+
+export interface filterCount {
+  _starts_with_board?: string;
+  _matches_board?: string;
+  _starts_with_list?: string;
+  _matches_list?: string;
 }

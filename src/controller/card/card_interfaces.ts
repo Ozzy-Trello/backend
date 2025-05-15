@@ -8,6 +8,8 @@ import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTy
 import { AutomationCondition } from '@/types/trigger';
 import { CardListTimeDetail } from '@/repository/card_list_time/card_list_time_interface';
 import { CardBoardTimeDetail } from '@/repository/card_board_time/card_board_time_interface';
+import { any } from 'zod';
+import { CardType } from '@/types/card';
 
 export interface CardControllerI {
 	CreateCard(user_id: string, data: CardCreateData): Promise<ResponseData<CreateCardResponse>>
@@ -24,6 +26,7 @@ export interface CardControllerI {
 	GetCardActivity(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>>
 	GetCardTimeInBoard(card_id: string, board_id: string): Promise<ResponseData<CardBoardTimeDetail>>
+	GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>
 }
 
 export class CreateCardResponse {
@@ -41,9 +44,11 @@ export class CardResponse {
 	location?: string;
 	order?: number;
 	list_id?: string;
+	type?: string;
 	cover?: string;
 	created_at?: Date;
 	updated_at?: Date;
+	dash_config?: DashCardConfig;
 	formatted_time_in_list?: string;
 	formatted_time_in_board?: string;
 	
@@ -70,10 +75,12 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 	return new CardResponse({
 		id: data.id,
 		name: data.name!,
+		type: data.type,
 		description: data.description,
 		location: data?.location,
 		order: data.order,
 		list_id: data.list_id,
+		dash_config: data.dash_config,
 		cover: data.cover,
 		created_at: data.created_at,
 		updated_at: data.updated_at,
@@ -229,39 +236,92 @@ export class CardMoveData {
 
 
 export class CardCreateData {
-	name!: string;
-	description?: string;
-	list_id!: string;
-	order?: number;
-
-	constructor(payload: Partial<CardCreateData>) {
-		Object.assign(this, payload)
-		this.toCardDetail = this.toCardDetail.bind(this);
-		this.checkRequired = this.checkRequired.bind(this);
-		this.getErrorField = this.getErrorField.bind(this);
-	}
-
-	toCardDetail(): CardDetail {
-		return new CardDetail({
-			name: this.name,
-			description: this.description,
-			list_id: this.list_id,
-			order: this.order
-		})
-	}
-
-	checkRequired(): string | null{
-		if (this.list_id == undefined ) return 'list_id'
-		if (this.name == undefined ) return 'name'
-		return null
-	} 
-
-	getErrorField(): string | null {
-		if (this.list_id && !isValidUUID(this.list_id!)) {
-			return "'list_id' is not valid uuid"
-		}
-		return null
-	}
+  name!: string;
+  description?: string;
+  list_id!: string;
+  order?: number;
+  type?: string;
+  dash_config?: DashCardConfig | string;
+  
+  constructor(payload: Partial<CardCreateData>) {
+    Object.assign(this, payload);
+    
+    // Convert dash_config from string to DashCardConfig if needed
+    if (typeof this.dash_config === 'string') {
+      try {
+        this.dash_config = DashCardConfig.fromJSON(this.dash_config);
+      } catch (e) {
+        console.error("Invalid dash_config JSON:", e);
+        // You might want to handle this error differently
+      }
+    } else if (this.dash_config && !(this.dash_config instanceof DashCardConfig)) {
+      // If it's an object but not a DashCardConfig instance
+      this.dash_config = new DashCardConfig(this.dash_config as any);
+    }
+    
+    this.toCardDetail = this.toCardDetail.bind(this);
+    this.checkRequired = this.checkRequired.bind(this);
+    this.getErrorField = this.getErrorField.bind(this);
+  }
+  
+  toCardDetail(): CardDetail {
+    // Convert DashCardConfig to JSON string if it exists
+    let dashConfigJSON: string | undefined;
+    if (this.dash_config) {
+      if (this.dash_config instanceof DashCardConfig) {
+        dashConfigJSON = this.dash_config.toJSON();
+      } else if (typeof this.dash_config === 'string') {
+        dashConfigJSON = this.dash_config;
+      }
+    }
+    
+    return new CardDetail({
+      name: this.name,
+      description: this.description,
+      list_id: this.list_id,
+      order: this.order,
+      type: this.type,
+      dash_config: dashConfigJSON ? JSON.parse(dashConfigJSON) : undefined,
+    });
+  }
+  
+  checkRequired(): string | null {
+    if (this.list_id == undefined) return 'list_id';
+    if (this.name == undefined) return 'name';
+    if (this.type == undefined) return 'type';
+    
+    // Check if dashcard type requires dash_config
+    if (this.type === CardType.Dashcard && !this.dash_config) {
+      return 'dash_config';
+    }
+    
+    return null;
+  }
+  
+  getErrorField(): string | null {
+    if (this.list_id && !isValidUUID(this.list_id!)) {
+      return "'list_id' is not valid uuid";
+    }
+    
+    if (this.type === CardType.Dashcard && this.dash_config) {
+      let dashConfig: DashCardConfig;
+      
+      if (typeof this.dash_config === 'string') {
+        try {
+          dashConfig = DashCardConfig.fromJSON(this.dash_config);
+        } catch (e) {
+          return "Invalid dash_config JSON format";
+        }
+      } else {
+        dashConfig = this.dash_config as DashCardConfig;
+      }
+      
+      const dashConfigError = dashConfig.validate();
+      if (dashConfigError) return dashConfigError;
+    }
+    
+    return null;
+  }
 }
 
 export class CardActivity {
@@ -328,5 +388,48 @@ export class TriggerDoData {
 
   constructor(payload: Partial<TriggerDoData>) {
     Object.assign(this, payload);
+  }
+}
+
+export interface FilterConfig {
+  id?: string;
+  label: string;
+  type: string;
+  operator?: string;
+  value?: any;
+}
+
+export class DashCardConfig {
+  background_color: string;
+  filters: FilterConfig[];
+
+  constructor(data: {
+    background_color: string;
+    filters: FilterConfig[];
+  }) {
+    this.background_color = data.background_color;
+    this.filters = data.filters;
+  }
+
+  validate(): string | null {
+    if (!Array.isArray(this.filters)) return "Filters must be an array";
+    return null;
+  }
+	toJSON(): string {
+    return JSON.stringify({
+      background_color: this.background_color,
+      filters: this.filters
+    });
+	}
+	static fromJSON(jsonStr: string): DashCardConfig {
+    try {
+      const data = JSON.parse(jsonStr);
+      return new DashCardConfig({
+        background_color: data.background_color,
+        filters: data.filters
+      });
+    } catch (e) {
+      throw new Error("Invalid DashCardConfig JSON");
+    }
   }
 }

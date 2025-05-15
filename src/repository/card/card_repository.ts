@@ -1,6 +1,6 @@
 import { validate as isValidUUID, v4 as uuidv4 } from 'uuid';
 
-import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList, filterMoveCard} from "@/repository/card/card_interfaces";
+import {filterCardDetail, CardDetail, CardDetailUpdate, CardRepositoryI, CardActionActivity, CardComment, CardActivity, CardActivityMoveList, filterMoveCard, filterCount} from "@/repository/card/card_interfaces";
 import Card from "@/database/schemas/card";
 import {Error, Op, Sequelize} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
@@ -11,6 +11,7 @@ import db from '@/database';
 import { Database } from '@/types/database';
 import { ExpressionBuilder, Transaction, sql } from 'kysely';
 import { CardActionValue } from '@/types/custom_field';
+import { CardType } from '@/types/card';
 
 export class CardRepository implements CardRepositoryI {
 	createFilter(filter: filterCardDetail): any {
@@ -111,17 +112,26 @@ export class CardRepository implements CardRepositoryI {
 			const card = await Card.create({
 				name: data.name!,
 				list_id: data.list_id!,
+				type: data.type,
+				dash_config: data?.dash_config || undefined,
 				description: "",
 				order: maxOrder
 			});
+
+			if (data.type === CardType.Dashcard && data.dash_config) {
+				card.dash_config = data.dash_config;
+			}
+
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "create card success",
 				data: new CardDetail({
 					id: card.id,
+					type: card.type,
 					name: card.name,
 					description: card.description,
-					order: card.order
+					order: card.order,
+					dash_config: card.dash_config
 				})
 			});
 		} catch (e) {
@@ -185,14 +195,19 @@ export class CardRepository implements CardRepositoryI {
 		paginate.setTotal(total?.total!)
 		
 		let qryResult = await qry.selectAll().offset(paginate.getOffset()).limit(paginate.limit).orderBy("card.order asc").execute();
-		qryResult.map((raw: CardDetail) => {
+		(qryResult as CardDetail[]).map((raw: CardDetail) => {
 			result.push(new CardDetail({
 				id: raw.id,
 				name: raw.name,
 				description: raw.description,
 				order: raw.order, 
 				list_id: raw.list_id,
+				type: raw.type,
         location: raw.location ?? "",
+				start_date: raw?.start_date || undefined,
+				due_date: raw?.due_date || undefined,
+				due_date_reminder: raw.due_date_reminder || undefined,
+				dash_config: raw.dash_config || undefined,
 				created_at: raw?.created_at || undefined,
 				updated_at: raw?.updated_at || undefined,
 			}))
@@ -545,6 +560,18 @@ export class CardRepository implements CardRepositoryI {
 			.executeTakeFirst();
 
 		return result?.max_order ?? 0;
+	}
+	
+	async countCards(filter: any): Promise<number> {
+		try {
+			const count = await Card.count({
+				where: filter
+			});
+			return count;
+		} catch (e) {
+			console.error("Error counting cards:", e);
+			return 0;
+		}
 	}
 
 }
