@@ -42,6 +42,7 @@ export interface ItemAdjustmentDetail {
   itemAdjustmentType: string;
   quantity: number;
   itemNo: string;
+  itemUnitName: string;
 }
 
 export interface SaveItemAdjustmentBody {

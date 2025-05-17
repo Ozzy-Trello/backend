@@ -212,6 +212,7 @@ export class AccurateRepository implements AccurateRepositoryI {
       itemAdjustmentType: AdjustmentType;
       quantity: number;
       itemNo: string;
+      itemUnitName: string;
     }>;
     transDate: string;
   }): Promise<AccurateApiResponse<string[]>> {

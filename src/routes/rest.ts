@@ -36,6 +36,12 @@ import FileRestView from "@/views/rest/files_view";
 import { CardAttachmentRepository } from "@/repository/card_attachment/card_attachment_repository";
 import { CardAttachmentController } from "@/controller/card_attachment/card_attachment_controller";
 import CardAttachmentRestView from "@/views/rest/card_attachment_view";
+import { ChecklistRepository } from "@/repository/checklist/checklist_repository";
+import { ChecklistController } from "@/controller/checklist/checklist_controller";
+import ChecklistRestView from "@/views/rest/checklist_view";
+import { AdditionalFieldRepository } from "@/repository/additional-field/additional_field_repository";
+import { AdditionalFieldController } from "@/controller/additional-field/additional_field_controller";
+import AdditionalFieldRestView from "@/views/rest/additional_field_view";
 import { CardListTimeRepository } from "@/repository/card_list_time/card_list_time_repository";
 import { CardBoardTimeRepository } from "@/repository/card_board_time/card_board_time_repository";
 import WorkspaceRestView from "@/views/rest/workspace_view";
@@ -54,6 +60,8 @@ export default function (): Router {
   const trigger_repo = new TriggerRepository();
   const file_repository = new FileRepository();
   const card_attachment_repository = new CardAttachmentRepository();
+  const checklist_repository = new ChecklistRepository();
+  const additional_field_repository = new AdditionalFieldRepository();
   const card_list_time_history_repo = new CardListTimeRepository();
   const card_board_time_history_repo = new CardBoardTimeRepository();
   const accurate_repo = new AccurateRepository();
@@ -62,6 +70,13 @@ export default function (): Router {
   const card_attachment_controller = new CardAttachmentController(
     card_attachment_repository,
     file_repository
+  );
+
+  const checklist_controller = new ChecklistController(
+    checklist_repository
+  );
+  const additional_field_controller = new AdditionalFieldController(
+    additional_field_repository
   );
   const trigger_controller = new TriggerController(
     workspace_repo,
@@ -124,6 +139,13 @@ export default function (): Router {
   const file_rest_view = new FileRestView(file_controller);
   const card_attachment_rest_view = new CardAttachmentRestView(
     card_attachment_controller
+  );
+
+  const checklist_rest_view = new ChecklistRestView(
+    checklist_controller
+  );
+  const additional_field_rest_view = new AdditionalFieldRestView(
+    additional_field_controller
   );
 
   const accurate_rest_view = new AccurateRestView(accurate_controller);
@@ -331,6 +353,35 @@ export default function (): Router {
     );
   }
 
+  const router_checklist = Router();
+  {
+    router_checklist.post(
+      "/",
+      restJwt,
+      checklist_rest_view.CreateChecklist
+    );
+    router_checklist.get(
+      "/card/:cardId",
+      restJwt,
+      checklist_rest_view.GetChecklistsByCardId
+    );
+    router_checklist.get(
+      "/:id",
+      restJwt,
+      checklist_rest_view.GetChecklistById
+    );
+    router_checklist.put(
+      "/:id",
+      restJwt,
+      checklist_rest_view.UpdateChecklist
+    );
+    router_checklist.delete(
+      "/:id",
+      restJwt,
+      checklist_rest_view.DeleteChecklist
+    );
+  }
+
   const router_accurate = Router();
   {
     router_accurate.post("/webhook", accurate_rest_view.Webhook);
@@ -371,6 +422,35 @@ export default function (): Router {
     router_request.patch("/:id", restJwt, request_rest_view.Patch);
   }
 
+  const router_additional_field = Router();
+  {
+    router_additional_field.post(
+      "/",
+      restJwt,
+      additional_field_rest_view.CreateAdditionalField
+    );
+    router_additional_field.get(
+      "/card/:cardId",
+      restJwt,
+      additional_field_rest_view.GetAdditionalFieldsByCardId
+    );
+    router_additional_field.get(
+      "/:id",
+      restJwt,
+      additional_field_rest_view.GetAdditionalFieldById
+    );
+    router_additional_field.put(
+      "/:id",
+      restJwt,
+      additional_field_rest_view.UpdateAdditionalField
+    );
+    router_additional_field.delete(
+      "/:id",
+      restJwt,
+      additional_field_rest_view.DeleteAdditionalField
+    );
+  }
+
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);
   root_router.use("/workspace", router_workspace);
@@ -382,8 +462,10 @@ export default function (): Router {
   root_router.use("/custom-field", router_custom_field);
   root_router.use("/file", router_file);
   root_router.use("/card-attachment", router_card_attachment);
+  root_router.use("/checklist", router_checklist);
   root_router.use("/accurate", router_accurate);
   root_router.use("/request", router_request);
+  root_router.use("/additional-field", router_additional_field);
 
   return root_router;
 }

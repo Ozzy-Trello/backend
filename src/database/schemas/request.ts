@@ -80,6 +80,20 @@ export const Request = sequelize.define(
       type: DataTypes.UUID,
       allowNull: true,
     },
+    is_rejected: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    is_done: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    satuan: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

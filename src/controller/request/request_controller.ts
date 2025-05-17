@@ -56,6 +56,7 @@ export class RequestController {
         description,
         item_name,
         adjustment_name,
+        satuan,
       } = req.body;
       console.log(req.body, "<< in ireq body");
       // Get the user ID from the JWT token
@@ -71,6 +72,7 @@ export class RequestController {
         item_name,
         adjustment_name,
         production_user: userId, // Automatically set the production_user from JWT
+        satuan,
       });
       res.status(StatusCodes.CREATED).json({
         status_code: StatusCodes.CREATED,
@@ -90,11 +92,21 @@ export class RequestController {
     try {
       const page = parseInt(req.query.page?.toString() || "1");
       const limit = parseInt(req.query.limit?.toString() || "10");
-      const filter = req.query.filter;
+
+      // Parse the filter JSON if provided
+      let filterData: any = undefined;
+      if (req.query.filter && typeof req.query.filter === "string") {
+        try {
+          filterData = JSON.parse(decodeURIComponent(req.query.filter));
+        } catch (error) {
+          console.error("Error parsing filter JSON:", error);
+        }
+      }
+
       const { requests, total } = await this.requestRepo.getAllRequests(
         page,
         limit,
-        filter
+        filterData
       );
 
       res.status(StatusCodes.OK).json({
@@ -185,7 +197,9 @@ export class RequestController {
   }
   public async Patch(req: Request, res: Response): Promise<void> {
     try {
+      console.log(req.params.id, "<< ini isi id");
       const id = parseInt(req.params.id);
+      console.log(id, "<< ini converted id");
       if (isNaN(id)) {
         res.status(StatusCodes.BAD_REQUEST).json({
           status_code: StatusCodes.BAD_REQUEST,
@@ -195,6 +209,11 @@ export class RequestController {
       }
 
       const patch: Partial<RequestDTO> = req.body;
+
+      // Check if request is being marked as done
+      const isBeingMarkedAsDone = patch.is_done === true;
+
+      // First update the request in the database
       const updatedRequest = await this.requestRepo.patchRequest(id, patch);
 
       if (!updatedRequest) {
@@ -205,6 +224,69 @@ export class RequestController {
         return;
       }
 
+      // If request is being marked as done, call saveItemAdjustment
+      if (isBeingMarkedAsDone && updatedRequest.is_verified) {
+        try {
+          // Format date for Accurate API (DD/MM/YYYY)
+          const formattedDate = new Date()
+            .toISOString()
+            .slice(0, 10)
+            .split("-")
+            .reverse()
+            .join("/");
+
+          console.log(updatedRequest, "<< ini updated");
+
+          // Call saveItemAdjustment to record the adjustment in Accurate
+          const adjustItem = await this.accurateRepo.saveItemAdjustment({
+            adjustmentAccountNo: updatedRequest.adjustment_no || "",
+            description: `${updatedRequest.request_type}_${
+              updatedRequest.card_name || ""
+            }_${
+              updatedRequest.request_sent -
+              updatedRequest.warehouse_final_used_amount
+            } ${updatedRequest.satuan || "PCS"}_${
+              updatedRequest.description || ""
+            }`,
+            detailItem: [
+              {
+                itemAdjustmentType: AdjustmentType.OUT,
+                quantity:
+                  updatedRequest.request_sent -
+                  updatedRequest.warehouse_final_used_amount,
+                itemNo: updatedRequest.requested_item_id,
+                itemUnitName: updatedRequest.satuan,
+              },
+            ],
+            transDate: formattedDate,
+          });
+
+          // Return success response with adjustment information
+          res.status(StatusCodes.OK).json({
+            status_code: StatusCodes.OK,
+            message: "Request updated and adjustment processed successfully",
+            data: updatedRequest,
+            adjustment: adjustItem.data ? adjustItem.data.d : null,
+          });
+          return;
+        } catch (adjustmentError) {
+          // If adjustment fails, still keep the request updated but inform about the adjustment error
+          console.error(adjustmentError, "<< adjustment error");
+          res.status(StatusCodes.OK).json({
+            status_code: StatusCodes.OK,
+            message:
+              "Request updated but failed to process adjustment in Accurate",
+            data: updatedRequest,
+            adjustment_error:
+              adjustmentError instanceof Error
+                ? adjustmentError.message
+                : String(adjustmentError),
+          });
+          return;
+        }
+      }
+
+      // Standard success response for non-adjustment updates
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
         message: "Request updated successfully",

@@ -13,6 +13,9 @@ export interface CreateRequestDTO {
   authorized_by?: string;
   warehouse_user?: string;
   production_user?: string;
+  is_rejected?: boolean;
+  is_done?: boolean;
+  satuan?: string;
 }
 
 export interface RequestDTO {
@@ -40,6 +43,9 @@ export interface RequestDTO {
   production_user_name: string | null;
   warehouse_user_name: string | null;
   authorized_by_name: string | null;
+  is_rejected: boolean;
+  is_done: boolean;
+  satuan?: string | null;
 }
 
 export interface IRequestRepository {

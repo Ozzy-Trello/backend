@@ -173,6 +173,9 @@ export interface RequestTable {
   authorized_by?: string;
   warehouse_user?: string;
   production_user?: string;
+  is_rejected: boolean;
+  is_done: boolean;
+  satuan?: string;
   createdAt: Date;
   updatedAt: Date;
 }

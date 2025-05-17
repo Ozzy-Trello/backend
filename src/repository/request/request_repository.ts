@@ -3,11 +3,9 @@ import {
   IRequestRepository,
   RequestDTO,
 } from "@/controller/request/request_interfaces";
+import { Database, UserTable } from "@/types/database";
+import { Nullable, SelectExpression } from "kysely";
 import db from "../../database";
-import { Database } from "@/types/database";
-import { Kysely, SelectExpression, ExpressionBuilder, sql } from "kysely";
-import { Nullable } from "kysely";
-import { UserTable } from "@/types/database";
 
 // const selectedValue: readonly SelectExpression<Database, "request" | "card">[] =
 
@@ -60,10 +58,12 @@ export class RequestRepository implements IRequestRepository {
       production_user: row.production_user,
       production_user_name: row.production_user_name ?? null,
       warehouse_user_name: row.warehouse_user_name ?? null,
-      authorized_by_name: row.authorized_by_name ?? null
+      authorized_by_name: row.authorized_by_name ?? null,
+      is_rejected: Boolean(row.is_rejected),
+      is_done: Boolean(row.is_done),
+      satuan: row.satuan,
     }));
   }
-
 
   selectedValue: readonly SelectExpression<
     Database & { production_user: Nullable<UserTable> } & {
@@ -96,6 +96,11 @@ export class RequestRepository implements IRequestRepository {
       "request.authorized_by as authorized_by",
       "request.warehouse_user as warehouse_user",
       "request.production_user as production_user",
+      "request.is_rejected as is_rejected",
+      "request.is_done as is_done",
+      "request.satuan as satuan",
+      "request.request_sent as request_sent",
+      "request.request_received as request_received",
       "card.name as card_name",
       "production_user.username as production_user_name",
       "warehouse_user.username as warehouse_user_name",
@@ -123,6 +128,9 @@ export class RequestRepository implements IRequestRepository {
       authorized_by: data.authorized_by ?? null,
       warehouse_user: data.warehouse_user ?? null,
       production_user: data.production_user ?? null,
+      is_rejected: data.is_rejected ?? false,
+      is_done: data.is_done ?? false,
+      satuan: data.satuan ?? null,
     };
 
     const result = await db
@@ -194,9 +202,11 @@ export class RequestRepository implements IRequestRepository {
   async getAllRequests(
     page: number,
     limit: number,
-    filter?: any
+    filterData?: any
   ): Promise<{ requests: RequestDTO[]; total: number }> {
     const offset = (page - 1) * limit;
+
+    console.log(filterData, "<< ini isi filter");
 
     // Build base query
     let baseQuery = db
@@ -219,53 +229,69 @@ export class RequestRepository implements IRequestRepository {
       );
 
     // Apply filters if they exist
-    if (filter) {
-      if (filter.request_type) {
-        baseQuery = baseQuery.where(
-          "request.request_type",
-          "=",
-          filter.request_type
-        );
-      }
-      if (filter.is_verified !== undefined) {
+    if (filterData) {
+      // Process each filter field directly using type-safe column references
+      if (filterData.isVerified !== undefined) {
         baseQuery = baseQuery.where(
           "request.is_verified",
           "=",
-          filter.is_verified
+          filterData.isVerified
         );
       }
-      if (filter.card_id) {
-        baseQuery = baseQuery.where("request.card_id", "=", filter.card_id);
+
+      if (filterData.isRejected !== undefined) {
+        baseQuery = baseQuery.where(
+          "request.is_rejected",
+          "=",
+          filterData.isRejected
+        );
       }
-      if (filter.request_sent) {
-        if (filter.request_sent.from) {
-          baseQuery = baseQuery.where(
-            "request.createdAt",
-            ">=",
-            filter.request_sent.from
-          );
-        }
-        if (filter.request_sent.to) {
-          baseQuery = baseQuery.where(
-            "request.createdAt",
-            "<=",
-            filter.request_sent.to
-          );
-        }
+
+      if (filterData.isDone !== undefined) {
+        baseQuery = baseQuery.where("request.is_done", "=", filterData.isDone);
       }
-      if (filter.request_received) {
-        if (filter.request_received.from) {
+
+      if (filterData.requestType) {
+        baseQuery = baseQuery.where(
+          "request.request_type",
+          "=",
+          filterData.requestType
+        );
+      }
+
+      if (filterData.cardId) {
+        baseQuery = baseQuery.where("request.card_id", "=", filterData.cardId);
+      }
+
+      if (filterData.requestAmount) {
+        baseQuery = baseQuery.where(
+          "request.request_amount",
+          "=",
+          filterData.requestAmount
+        );
+      }
+
+      if (filterData.satuan) {
+        baseQuery = baseQuery.where("request.satuan", "=", filterData.satuan);
+      }
+
+      // Handle date range filters
+      if (
+        filterData.requestReceived &&
+        typeof filterData.requestReceived === "object"
+      ) {
+        if (filterData.requestReceived.from) {
           baseQuery = baseQuery.where(
             "request.updatedAt",
             ">=",
-            filter.request_received.from
+            filterData.requestReceived.from
           );
         }
-        if (filter.request_received.to) {
+        if (filterData.requestReceived.to) {
           baseQuery = baseQuery.where(
             "request.updatedAt",
             "<=",
-            filter.request_received.to
+            filterData.requestReceived.to
           );
         }
       }
@@ -301,6 +327,9 @@ export class RequestRepository implements IRequestRepository {
         "request.authorized_by",
         "request.warehouse_user",
         "request.production_user",
+        "request.is_rejected",
+        "request.is_done",
+        "request.satuan",
         "card.name as card_name",
         "production_user.username as production_user_name",
         "warehouse_user.username as warehouse_user_name",
@@ -310,6 +339,8 @@ export class RequestRepository implements IRequestRepository {
       .limit(limit)
       .offset(offset)
       .execute();
+
+    console.log(requestsData, "<< ini req data");
 
     const requests: RequestDTO[] = requestsData.map((row: any) => ({
       id: Number(row.id),
@@ -336,6 +367,9 @@ export class RequestRepository implements IRequestRepository {
       authorized_by: row.authorized_by,
       warehouse_user: row.warehouse_user,
       production_user: row.production_user,
+      is_rejected: Boolean(row.is_rejected),
+      is_done: Boolean(row.is_done),
+      satuan: row.satuan,
     }));
 
     return {
@@ -376,6 +410,7 @@ export class RequestRepository implements IRequestRepository {
           "request.authorized_by",
           "authorized_user.id"
         )
+        .where("request.id", "=", id)
         .select(this.selectedValue)
         .executeTakeFirstOrThrow();
 
