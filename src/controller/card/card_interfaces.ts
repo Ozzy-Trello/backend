@@ -18,6 +18,8 @@ export interface CardControllerI {
 	SearchCard(filter: CardSearch, paginate: Paginate): Promise<ResponseListData<Array<CardResponse>>>
 	DeleteCard(filter: CardFilter): Promise<ResponseData<null>>
 	MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>>
+	ArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>>
+	UnArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>>
 	AddCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
 	RemoveCustomField(card_id: string, custom_field_id: string): Promise<ResponseData<null>>
 	UpdateCustomField(card_id: string, custom_field_id: string, value: string | number): Promise<ResponseData<null>>
@@ -151,6 +153,7 @@ export class CardFilter {
 	list_id?: string
 	description?: string;
 	location?: string;
+	archive?: boolean;
 
 	constructor(payload: Partial<CardFilter>) {
 		Object.assign(this, payload);
@@ -166,12 +169,13 @@ export class CardFilter {
 			board_id: this.board_id,
 			list_id: this.list_id,
 			description: this.description,
-			location: this.location
+			location: this.location,
+			archive: this.archive
 		}
 	}
 
 	isEmpty(): boolean{
-		return this.id == undefined && this.name == undefined && this.list_id == undefined && this.description == undefined && this.location == undefined;
+		return this.id == undefined && this.name == undefined && this.list_id == undefined && this.description == undefined && this.location == undefined && this.archive == undefined;
 	}
 
 	getErrorfield(): string| null {

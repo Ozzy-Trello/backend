@@ -119,16 +119,19 @@ export interface filterCardDetail {
   list_id?: string;
   location?: string;
   board_id?: string;
+  archive?: boolean;
 
   __orId?: string;
   __orName?: string;
   __orDescription?: string;
   __orListId?: string;
+  __orArchive?: boolean;
 
   __notId?: string;
   __notName?: string;
   __notDescription?: string;
   __notListId?: string;
+  __notArchive?: boolean;
 }
 
 export interface filterMoveCard {
@@ -149,6 +152,7 @@ export class CardDetailUpdate {
   public due_date?: string;
   public due_date_reminder?: string;
   public dash_config?: JSON;
+  public archive?: boolean;
 
   constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
@@ -165,6 +169,7 @@ export class CardDetailUpdate {
     if (this.due_date) data.due_date = this.due_date;
     if (this.due_date_reminder) data.due_date_reminder = this.due_date_reminder;
     if (this.dash_config) data.dash_config = this.dash_config;
+    if (this.archive) data.archive = this.archive;
     return data
   }
 }
@@ -186,6 +191,7 @@ export class CardDetail {
   public updated_at?: Date;
   public formatted_time_in_list?: string;
   public formatted_time_in_board?: string;
+  public archive?: boolean;
   
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

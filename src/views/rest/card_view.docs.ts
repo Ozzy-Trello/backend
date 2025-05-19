@@ -399,6 +399,71 @@
 
 /**
  * @swagger
+ * /v1/card/{id}/archive:
+ *   post:
+ *     summary: Archive a card within a list or to another list
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to Archive
+ *         required: true
+ *         schema:
+ *           type: string
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card Archived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *             example:
+ *               message: sucess
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card or list not found
+ *       500:
+ *         description: Internal Server Error
+ */
+
+
+/**
+ * @swagger
+ * /v1/card/{id}/unarchive:
+ *   post:
+ *     summary: UnArchive a card within a list or to another list
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to UnArchive
+ *         required: true
+ *         schema:
+ *           type: string
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card UnArchived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *             example:
+ *               message: sucess
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card or list not found
+ *       500:
+ *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
  * /v1/card/{id}/custom-field:
  *   get:
  *     summary: get custom fields

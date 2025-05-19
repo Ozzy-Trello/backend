@@ -138,6 +138,8 @@ export default function (): Router {
         router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
         router_card.delete("/:id", restJwt, card_rest_view.DeleteCard);
         router_card.post("/:id/move", restJwt, card_rest_view.MoveCard);
+        router_card.post("/:id/archive", restJwt, card_rest_view.ArchiveCard);
+        router_card.post("/:id/unarchive", restJwt, card_rest_view.UnArchiveCard);
         router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);
         router_card.put("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.UpdateCustomField);
         router_card.delete("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.RemoveCustomField);

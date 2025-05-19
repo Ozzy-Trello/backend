@@ -22,14 +22,17 @@ export class CardRepository implements CardRepositoryI {
 		if (filter.id) whereClause.id = filter.id;
 		if (filter.name) whereClause.name = filter.name;
 		if (filter.list_id) whereClause.list_id = filter.list_id;
+		if (filter.archive) whereClause.archive = filter.archive;
 	
 		if (filter.__orId) orConditions.push({ id: filter.__orId });
 		if (filter.__orName) orConditions.push({ name: filter.__orName });
 		if (filter.__orListId) orConditions.push({ list_id: filter.__orListId });
+		if (filter.__orArchive) orConditions.push({ archive: filter.__orArchive });
 
 		if (filter.__notId) notConditions.push({ id: filter.__notId });
 		if (filter.__notName) notConditions.push({ name: filter.__notName });
 		if (filter.__notListId) notConditions.push({ list_id: filter.__notListId });
+		if (filter.__notArchive) notConditions.push({ archive: filter.__notArchive });
 
 		if (notConditions.length > 0) {
 			whereClause[Op.not] = notConditions;
@@ -43,21 +46,24 @@ export class CardRepository implements CardRepositoryI {
 
 	createKyFilter(eb: ExpressionBuilder<Database, any>, filter: filterCardDetail) {
 		let query = eb.and([]); // Inisialisasi sebagai kondisi AND kosong
-		
+		const orConditions = [];
+
 		if (filter?.id) query = eb.and([query, eb('id', '=', filter.id)]);
 		if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
 		if (filter?.list_id) query = eb.and([query, eb('list_id', '=', filter.list_id)]);
+		if (filter?.archive) query = eb.and([query, eb('archive', 'is', sql.lit(filter?.archive))]);
+		if (!filter?.archive) query = eb.and([query, sql`(archive IS ${sql.lit(false)} OR archive IS ${sql.lit(null)})`]);
 	
-		// OR conditions
-		const orConditions = [];
 		if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
-		if (filter.__orName) {
-			orConditions.push(eb('name', 'ilike', `%${filter.__orName}%`));
-		}
-		if (filter.description) {
-			orConditions.push(eb('description', 'ilike', `%${filter.__orDescription}%`));
-		}
+		if (filter.__orName) orConditions.push(eb('name', 'ilike', `%${filter.__orName}%`))
+		if (filter.description) orConditions.push(eb('description', 'ilike', `%${filter.__orDescription}%`))
 		if (filter.__orListId) orConditions.push(eb('list_id', '=', filter.__orListId));
+		if (filter?.archive) orConditions.push(eb('archive', 'is', sql.lit(filter?.archive)))
+		// if (filter?.archive) {
+		// 	orConditions.push(sql`archive IS ${sql.lit(false)} OR archive IS ${sql.lit(null)}`)
+		// } else {
+		// 	orConditions.push(eb('archive', 'is', sql.lit(true)))
+		// }
 	
 		if (orConditions.length > 0) {
 			query = eb.and([query, eb.or(orConditions)]);
@@ -68,6 +74,7 @@ export class CardRepository implements CardRepositoryI {
 		if (filter.__notId) notConditions.push(eb('id', '!=', filter.__notId));
 		if (filter.__notName) notConditions.push(eb('name', '!=', filter.__notName));
 		if (filter.__notListId) notConditions.push(eb('workspace_id', '!=', filter.__notListId));
+		if (filter.__notArchive) notConditions.push(eb('archive', 'is not', sql.lit(filter?.archive)));
 	
 		if (notConditions.length > 0) {
 			query = eb.and([query, ...notConditions]);
@@ -255,6 +262,7 @@ export class CardRepository implements CardRepositoryI {
 				order: card.order,
 				list_id: card.list_id,
 				location: card?.location ?? "",
+				archive: card?.archive,
 			})
 
 			return new ResponseData({
@@ -287,6 +295,7 @@ export class CardRepository implements CardRepositoryI {
 				order: raw.order, 
 				list_id: raw.list_id,
 				type: raw.type,
+				archive: raw.archive,
         location: raw.location ?? "",
 				start_date: raw?.start_date || undefined,
 				due_date: raw?.due_date || undefined,
@@ -306,14 +315,7 @@ export class CardRepository implements CardRepositoryI {
 
 	async updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number> {
 		try {
-			const filterData = this.createFilter(filter);
-			if (isFilterEmpty(filterData)) {
-				return StatusCodes.NOT_FOUND
-			}
-			const effected= await Card.update(data.toObject(), {where: filterData});
-			if (effected[0] ==0 ){
-				return StatusCodes.NOT_FOUND
-			}
+			await db.updateTable('card').set(data.toObject()).where((eb) => this.createKyFilter(eb, filter)).execute()
 			return StatusCodes.NO_CONTENT
 		} catch (e) {
 			if (e instanceof Error) {

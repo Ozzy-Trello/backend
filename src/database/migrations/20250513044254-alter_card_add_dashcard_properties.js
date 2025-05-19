@@ -5,7 +5,7 @@ module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.addColumn("card", "type", {
       type: Sequelize.STRING,
-      allowNull: false,
+      allowNull: true,
     });
     await queryInterface.addColumn("card", "start_date", {
       type: "TIMESTAMP",

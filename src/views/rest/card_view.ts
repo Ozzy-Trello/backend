@@ -9,6 +9,8 @@ export default class CardRestView implements CardRestViewI {
 
   constructor(card_controller: CardControllerI) {
     this.card_controller = card_controller;
+    this.ArchiveCard = this.ArchiveCard.bind(this)
+    this.UnArchiveCard = this.UnArchiveCard.bind(this)
     this.CreateCard = this.CreateCard.bind(this)
     this.GetCard = this.GetCard.bind(this)
     this.GetListCard = this.GetListCard.bind(this)
@@ -24,6 +26,46 @@ export default class CardRestView implements CardRestViewI {
     this.GetCardTimeInList = this.GetCardTimeInList.bind(this)
     this.GetCardTimeInBoard = this.GetCardTimeInBoard.bind(this)
     this.GetDashcardCount = this.GetDashcardCount.bind(this)
+  }
+  
+  async ArchiveCard(req: Request, res: Response): Promise<void> {
+    let updateResponse = await this.card_controller.ArchiveCard(req.auth!.user_id, req.params.id?.toString())
+    if (updateResponse.status_code !== StatusCodes.OK) {
+      if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(updateResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(updateResponse.status_code).json({
+        "message": updateResponse.message,
+      })
+      return
+    }
+    res.status(updateResponse.status_code).json({
+      "data": updateResponse.data,
+      "message": updateResponse.message,
+    })
+  }
+  
+  async UnArchiveCard(req: Request, res: Response): Promise<void> {
+    let updateResponse = await this.card_controller.UnArchiveCard(req.auth!.user_id, req.params.id?.toString())
+    if (updateResponse.status_code !== StatusCodes.OK) {
+      if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(updateResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(updateResponse.status_code).json({
+        "message": updateResponse.message,
+      })
+      return
+    }
+    res.status(updateResponse.status_code).json({
+      "data": updateResponse.data,
+      "message": updateResponse.message,
+    })
   }
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {

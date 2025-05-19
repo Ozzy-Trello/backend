@@ -12,6 +12,7 @@ interface CardAttributes {
     order : number;
     location?: string;
     start_date?: Date;
+    archive?: Boolean;
     due_date?: Date;
     due_date_reminder?: string;
     dash_config?: JSON;
@@ -29,6 +30,7 @@ class Card extends Model<CardAttributes, CardCreationAttributes> implements Card
     public description! : string;
     public order! : number;
     public location?: string;
+    public archive?: boolean;
     public start_date?: Date;
     public due_date?: Date;
     public due_date_reminder?: string;
@@ -71,6 +73,10 @@ Card.init(
         order: {
             type: new DataTypes.NUMBER,
             allowNull: false,
+        },
+        archive: {
+            type: new DataTypes.BOOLEAN,
+            allowNull: true,
         },
         start_date: {
             type: DataTypes.DATE,
