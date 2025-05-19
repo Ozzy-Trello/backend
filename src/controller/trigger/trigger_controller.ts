@@ -164,8 +164,8 @@ export class TriggerController implements TriggerControllerI {
       }
     }
 
-    for (const rollback of list_doing.reverse()) {
-      await rollback();
+    for (const task of list_doing.reverse()) {
+      await task();
     }
 
     return new ResponseData({

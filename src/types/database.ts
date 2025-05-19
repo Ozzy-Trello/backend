@@ -86,6 +86,7 @@ export interface CardTable {
   description: string;
   order: number;
   dash_config?: any;
+  archive?: boolean;
 }
 
 export interface BoardMemberTable {

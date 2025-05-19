@@ -55,6 +55,8 @@ export interface CardRestViewI {
     GetListCard(req: Request, res: Response): Promise<void>;
     SearchCard(req: Request, res: Response): Promise<void>;
     MoveCard(req: Request, res: Response): Promise<void>;
+    ArchiveCard(req: Request, res: Response): Promise<void>;
+    UnArchiveCard(req: Request, res: Response): Promise<void>;
     UpdateCard(req: Request, res: Response): Promise<void>;
     DeleteCard(req: Request, res: Response): Promise<void>;
     AddCustomField(req: Request, res: Response): Promise<void>;
