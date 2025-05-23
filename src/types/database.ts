@@ -1,6 +1,7 @@
 import { Generated } from 'kysely';
 import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from './trigger';
+import { PermissionStructure } from '@/utils/security_utils';
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -17,6 +18,7 @@ export interface Database {
   card_activity: CardActivityTable;
   card_activity_action: CardActivityActionTable;
   card_activity_text: CardActionTextTable;
+  role: RoleTable;
 }
 
 export interface UserTable {
@@ -141,4 +143,12 @@ export interface CardActivityActionTable {
   activity_id: string;
   // action: CardActionType;
   source: CardActionValue;
+}
+
+export interface RoleTable {
+  id: Generated<string>;
+  name: string;
+  description: string;
+  permissions: PermissionStructure;
+  default: boolean;
 }

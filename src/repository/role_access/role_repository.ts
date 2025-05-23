@@ -1,3 +1,5 @@
+import { validate as isValidUUID, v4 as uuidv4 } from 'uuid';
+
 import { Error, Op } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
@@ -6,6 +8,7 @@ import { Paginate } from "@/utils/data_utils";
 import Role from "@/database/schemas/role";
 import { filterRoleDetail, RoleDetail, RoleDetailUpdate, RoleRepositoryI } from "@/repository/role_access/role_interfaces";
 import { defaultPermission } from "@/utils/security_utils";
+import db from "@/database";
 
 export class RoleRepository implements RoleRepositoryI {
 	createFilter(filter: filterRoleDetail): any {
@@ -90,20 +93,25 @@ export class RoleRepository implements RoleRepositoryI {
 						message: "role is not found",
 					}
 				}
-				role = await Role.create({
-					description: "default workspace",
-					default: true,
-					name: "default",
-					permissions: defaultPermission
-				});
+				const role = await db
+					.insertInto('role')
+					.values({
+						id: uuidv4(),
+						name: "defautl",
+						description: "default role",
+						permissions: defaultPermission,
+						default: true,
+					})
+					.returningAll()
+					.executeTakeFirst();
 				statusCode = StatusCodes.CREATED
 			}
 			let result = new RoleDetail({
-				id: role.id,
-				name: role.name,
-				description: role.description,
-				permissions: role.permissions,
-				default: role.default,
+				id: role?.id,
+				name: role?.name,
+				description: role?.description,
+				permissions: role?.permissions,
+				default: role?.default,
 			})
 
 			return new ResponseData({
