@@ -306,6 +306,10 @@ export class CardCreateData {
     if (this.list_id && !isValidUUID(this.list_id!)) {
       return "'list_id' is not valid uuid";
     }
+
+		if (this.type && (this.type != CardType.Regular && this.type != CardType.Dashcard)) {
+			return "Invalid card type";
+		}
     
     if (this.type === CardType.Dashcard && this.dash_config) {
       let dashConfig: DashCardConfig;
@@ -322,7 +326,9 @@ export class CardCreateData {
       
       const dashConfigError = dashConfig.validate();
       if (dashConfigError) return dashConfigError;
-    }
+    } else if (this.type != CardType.Regular) {
+			return "Invalid card type";
+		}
     
     return null;
   }
