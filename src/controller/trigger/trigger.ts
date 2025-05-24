@@ -92,8 +92,8 @@ export class Trigger {
         for (const selected_action of trigger.data!.action) {
           if (selected_action.condition.action == "move" && card_target) {
             let prev_next_list;
-            if (selected_action.condition.id_list) {
-              const selected_prev_next_list = await this.list_repo.getAdjacentListIds(card_target.list_id, selected_action.condition.id_list!);
+            if (selected_action.condition.list_id) {
+              const selected_prev_next_list = await this.list_repo.getAdjacentListIds(card_target.list_id, selected_action.condition.list_id!);
               if (selected_prev_next_list.status_code == StatusCodes.OK) {
                 prev_next_list = selected_prev_next_list.data;
               }
@@ -142,8 +142,8 @@ export class Trigger {
           response.status_code = res.status_code;
           return response
         }
-        if (x_data.id_list){
-          const res = await this.list_repo.getList({id: String(x_data.id_list)});
+        if (x_data.list_id){
+          const res = await this.list_repo.getList({id: String(x_data.list_id)});
           response.message = res.message;
           response.status_code = res.status_code;
           return response
@@ -158,8 +158,8 @@ export class Trigger {
           response.status_code = res.status_code;
           return response
         }
-        if (x_data.id_list){
-          const res = await this.list_repo.getList({id: String(x_data.id_list)});
+        if (x_data.list_id){
+          const res = await this.list_repo.getList({id: String(x_data.list_id)});
           response.message = res.message;
           response.status_code = res.status_code;
           return response
@@ -345,8 +345,8 @@ export class Trigger {
       }
     }
 
-    if (condition.id_list){
-      const res = await this.list_repo.getList({id: String(condition.id_list)});
+    if (condition.list_id){
+      const res = await this.list_repo.getList({id: String(condition.list_id)});
       const resHandler = this.handleCheckConditionValueError(res);
       if (resHandler) {
         return resHandler;

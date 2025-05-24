@@ -1,14 +1,13 @@
 import { validate as isValidUUID } from 'uuid';
 
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces"
-import { filterTriggerDetail, TriggerDetail, TriggerDetailUpdate } from "@/repository/trigger/trigger_interfaces"
-import { ActionsValue, CardMoveActionTypes, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field"
+import { filterTriggerDetail, TriggerDetailUpdate } from "@/repository/trigger/trigger_interfaces"
+import { ActionsValue, ActionType, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field"
 import { Paginate } from "@/utils/data_utils"
 import { ResponseData, ResponseListData } from "@/utils/response_utils"
 import { StatusCodes } from 'http-status-codes';
 import { AutomationCondition } from '@/types/trigger';
 import { TriggerDoData } from '../card/card_interfaces';
-import { any } from 'zod';
 
 export interface TriggerControllerI {
   prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>>
@@ -38,7 +37,6 @@ export interface DoTriggerData {
     by: string
   }
 }
-
 
 export class CreateTriggerResponse {
 	id!: string;
@@ -145,50 +143,36 @@ export function validateDataByGroupType(payload: any): string | undefined {
     return "condition should be object"
   }
 
+  let keys = Object.keys(payload.condition).sort();
+  let expected_keys: any = [];
+
   switch(String(payload.group_type).toLowerCase()) {
     case TriggerTypes.CardMove: {
-      let keys = Object.keys(payload.condition).sort();
-      let expected_keys: any = [];
       switch(String(payload.type).toLowerCase()) {
         case ConditionType.CardInBoard: {
           expected_keys = ["board", "by", "action"].sort();
           break
         }
         case ConditionType.CardInList: {
-          expected_keys = ["type", "by", "id_list", "action"].sort();
+          expected_keys = ["by", "list_id", "action"].sort();
           break
         }
         case ConditionType.ListAction:
         case ConditionType.CardAction: {
-          expected_keys = ["type", "by", "action"].sort();
+          expected_keys = ["by", "action"].sort();
           break
         }
         case ConditionType.ListHasCard: {
-          expected_keys = ["type", "id_list", "condition"].sort();
+          expected_keys = ["list_id", "condition", "quantitative_comparison_operator", "quantity"].sort();
           break
         }
         default: {
           return `not support type`
         }
       }
-      if (String(keys) !== String(expected_keys)) {
-        return `we need ${expected_keys} condition for ${payload.type}`
-      }
-
-      if(payload.condition.board && !isValidUUID(payload.condition.board)) {
-        return "invalid condition.board uuid"
-      }
-      if(payload.condition.board_id && !isValidUUID(payload.condition.board_id)) {
-        return "invalid condition.board_id uuid"
-      }
-      if(payload.condition.list_id && !isValidUUID(payload.condition.list_id)) {
-        return "invalid condition.list_id uuid"  
-      }
       break
     }
     case TriggerTypes.CardChanges: {
-      let keys = Object.keys(payload.condition).sort();
-      let expected_keys: any = [];
       switch(String(payload.type).toLowerCase()) {
         case ConditionType.CardStatus: {
           expected_keys = ["status", "by"].sort();
@@ -203,43 +187,120 @@ export function validateDataByGroupType(payload: any): string | undefined {
           expected_keys = ["by", "action"].sort();
           break
         }
-        case ConditionType.MentionedUser: {
-          expected_keys = ["activity_id", "by", "user_id"].sort();
+        case ConditionType.UserInCardChange: {
+          expected_keys = ["action", "by", "user_id"].sort();
           break
         }
         default: {
           return `not support type`
         }
-      }
-      if (String(keys) !== String(expected_keys)) {
-        return `we need ${expected_keys} condition for ${payload.type}`
       }
       break
     }
     case TriggerTypes.Date: {
-      let keys = Object.keys(payload.condition).sort();
-      let expected_keys: any = [];
       switch(String(payload.type).toLowerCase()) {
         case ConditionType.DueDateSet: {
-          expected_keys = ["status", "by"].sort();
+          expected_keys = ["date_condition", "date", "by"].sort();
           break
         }
         case ConditionType.DateInCardName: {
-          expected_keys = ["label_id", "by", "action"].sort();
+          expected_keys = ["card_name", "card_desc", "card_name_or_desc", 
+            "containing_or_start_with_or_ending_with","date"].sort();
           break
         }
         default: {
           return `not support type`
         }
       }
-      if (String(keys) !== String(expected_keys)) {
-        return `we need ${expected_keys} condition for ${payload.type}`
+      break
+    }
+    case TriggerTypes.Checklist: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.ChecklistOnCard:
+        case ConditionType.ItemAdded: {
+          expected_keys = ["label_id", "by", "action"].sort();
+          break
+        }
+        case ConditionType.ChecklistCompleted: {
+          expected_keys = ["label_id", "by", "status"].sort();
+          break
+        }
+        case ConditionType.DueDateOnItem: {
+          expected_keys = ["date"].sort();
+          break
+        }
+        default: {
+          return `not support type`
+        }
+      }
+      break
+    }
+    case TriggerTypes.CardContent: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.CardTextStart: {
+          expected_keys = ["card_name", "card_desc", "card_name_or_desc", "start_with"].sort();
+          break
+        }
+        case ConditionType.CommentPosted: {
+          expected_keys = ["by"].sort();
+          break
+        }
+        case ConditionType.MentionInComment: {
+          expected_keys = ["user_id", "comment_id", "by"].sort();
+          break
+        }
+        default: {
+          return `not support type`
+        }
+      }
+      break
+    }
+    case TriggerTypes.Field: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.AllFieldsStatus: {
+          expected_keys = ["status"].sort();
+          break
+        }
+        case ConditionType.FieldsStatus: {
+          expected_keys = ["custom_field", "status"].sort();
+          break
+        }
+        case ConditionType.FieldSet:
+        case ConditionType.FieldChecked:
+        case ConditionType.FieldDateSet: {
+          expected_keys = ["custom_field", "by"].sort();
+          break
+        }
+        case ConditionType.FieldSetToValue: {
+          expected_keys = ["custom_field", "value", "by"].sort();
+          break
+        }
+        case ConditionType.FieldNumberCompare: {
+          expected_keys = ["custom_field", "operator", "number", "by"].sort();
+          break
+        }
+        default: {
+          return `not support type`
+        }
       }
       break
     }
     default : {
       return "group_type '" + payload.group_type + "' is not valid value"
     }
+  }
+  if (String(keys) !== String(expected_keys)) {
+    return `we need ${expected_keys} condition for ${payload.type}`
+  }
+
+  if(payload.condition && payload.condition.board && !isValidUUID(payload.condition.board)) {
+    return "invalid condition.board uuid"
+  }
+  if(payload.condition && payload.condition.board_id && !isValidUUID(payload.condition.board_id)) {
+    return "invalid condition.board_id uuid"
+  }
+  if(payload.condition && payload.condition.list_id && !isValidUUID(payload.condition.list_id)) {
+    return "invalid condition.list_id uuid"  
   }
   return undefined
 }
@@ -270,7 +331,7 @@ export function validateAction(actions: Array<any>) : string | undefined {
     switch(action.group_type) {
       case TriggerTypes.CardMove: {
         switch(String(action.type).toLowerCase()) {
-          case CardMoveActionTypes.Move: {
+          case ActionType.Move: {
             let required = undefined;
             if(action.condition.action == undefined) {
               return "action.condition.action is required"
