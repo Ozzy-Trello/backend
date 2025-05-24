@@ -66,7 +66,7 @@ export default function (): Router {
     const card_controller = new CardController(card_repo, list_repo, custom_field_repo, trigger_controller, card_attachment_repository, card_list_time_history_repo, card_board_time_history_repo);
     const custom_field_controller = new CustomFieldController(custom_field_repo, workspace_repo, trigger_repo, trigger_controller);
     const file_controller = new FileController(file_repository);
-    const label_controller = new LabelController(label_repo);
+    const label_controller = new LabelController(label_repo, workspace_repo);
 
     const trigger_rest_view = new TriggerRestView(trigger_controller);
     const account_rest_view = new AccountRestView(account_controller);

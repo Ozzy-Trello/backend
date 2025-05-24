@@ -5,6 +5,7 @@ export interface LabelAttributes {
   id: string;
   name: string;
   value?: string; // was color
+  workspace_id?: string; // was user_id
   value_type: 'color' | 'user' | 'custom_field'; // new enum field
   created_at?: Date;
   updated_at?: Date;
@@ -16,6 +17,7 @@ class Label extends Model<LabelAttributes, LabelCreationAttributes> implements L
   public id!: string;
   public name!: string;
   public value?: string;
+  public workspace_id?: string;
   public value_type!: 'color' | 'user' | 'custom_field';
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -40,6 +42,10 @@ Label.init(
       type: DataTypes.ENUM('color', 'user', 'custom_field'),
       allowNull: false,
       defaultValue: 'color',
+    },
+    workspace_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,

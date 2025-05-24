@@ -6,6 +6,7 @@ export interface filterLabelDetail {
   id?: string;
   name?: string;
   value?: string;
+  workspace_id?: string;
   value_type?: 'color' | 'user' | 'custom_field';
   __orId?: string;
   __orName?: string;

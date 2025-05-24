@@ -18,8 +18,8 @@ export default class LabelRestView implements LabelRestViewI {
     this.DeleteLabel = this.DeleteLabel.bind(this);
   }
   async CreateLabel(req: Request, res: Response): Promise<void> {
-    const { name, value, value_type } = req.body;
-    const result = await this.controller.CreateLabel({ name, value, value_type });
+    const { name, value, value_type, workspace_id } = req.body;
+    const result = await this.controller.CreateLabel({ name, value, value_type, workspace_id });
     res.status(result.status_code).json({
       data: result.data,
       message: result.message,

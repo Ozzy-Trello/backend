@@ -7,7 +7,6 @@ module.exports = {
       id: {
         type: Sequelize.UUID,
         primaryKey: true,
-        defaultValue: Sequelize.literal('uuid_generate_v4()'),
         allowNull: false,
       },
       name: {
@@ -22,6 +21,16 @@ module.exports = {
         type: Sequelize.ENUM('color', 'user', 'custom_field'),
         allowNull: false,
         defaultValue: 'color',
+      },
+      workspace_id: {
+        type: Sequelize.UUID,
+        allowNull: false,
+        references: {
+          model: 'workspace',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
       created_at: {
         type: Sequelize.DATE,

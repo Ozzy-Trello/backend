@@ -158,6 +158,7 @@ export interface LabelTable {
   id: string;
   name: string;
   value?: string;
+  workspace_id: string;
   value_type: 'color' | 'user' | 'custom_field';
   created_at?: Date;
   updated_at?: Date;

@@ -14,6 +14,7 @@ export class LabelRepository implements LabelRepositoryI {
     if (filter.name) query = eb.and([query, eb('name', '=', filter.name)]);
     if (filter.value) query = eb.and([query, eb('value', '=', filter.value)]);
     if (filter.value_type) query = eb.and([query, eb('value_type', '=', filter.value_type)]);
+    if (filter.workspace_id) query = eb.and([query, eb('workspace_id', '=', filter.workspace_id)]);
     // OR conditions
     const orConditions = [];
     if (filter.__orId) orConditions.push(eb('id', '=', filter.__orId));
@@ -43,6 +44,7 @@ export class LabelRepository implements LabelRepositoryI {
       name: data.name,
       value: data.value,
       value_type: data.value_type,
+      workspace_id: data.workspace_id!,
       created_at: now,
       updated_at: now,
     }).execute();
