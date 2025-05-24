@@ -147,6 +147,7 @@ export default function (): Router {
         router_card.get("/:id/time-in-lists", restJwt, card_rest_view.GetCardTimeInList);
         router_card.get("/:id/time-in-board/:board_id", restJwt, card_rest_view.GetCardTimeInBoard);
         router_card.get('/:id/dashcard/count', restJwt, card_rest_view.GetDashcardCount);
+        router_card.post('/:id/complete', restJwt, card_rest_view.CompleteCard);
     }
 
     const router_custom_field = Router();

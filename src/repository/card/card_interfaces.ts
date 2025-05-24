@@ -120,6 +120,7 @@ export interface filterCardDetail {
   location?: string;
   board_id?: string;
   archive?: boolean;
+  is_complete?: boolean; // Added
 
   __orId?: string;
   __orName?: string;
@@ -153,6 +154,8 @@ export class CardDetailUpdate {
   public due_date_reminder?: string;
   public dash_config?: JSON;
   public archive?: boolean;
+  public is_complete?: boolean; // Added
+  public completed_at?: Date;   // Added
 
   constructor(payload: Partial<CardDetailUpdate>) {
     Object.assign(this, payload);
@@ -170,6 +173,8 @@ export class CardDetailUpdate {
     if (this.due_date_reminder) data.due_date_reminder = this.due_date_reminder;
     if (this.dash_config) data.dash_config = this.dash_config;
     if (this.archive) data.archive = this.archive;
+    if (this.is_complete) data.is_complete = this.is_complete;
+    if (this.completed_at) data.completed_at = this.completed_at;
     return data
   }
 }
@@ -192,6 +197,8 @@ export class CardDetail {
   public formatted_time_in_list?: string;
   public formatted_time_in_board?: string;
   public archive?: boolean;
+  public is_complete?: boolean; // Added
+  public completed_at?: Date;   // Added
   
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);

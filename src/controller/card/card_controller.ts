@@ -913,6 +913,42 @@ export class CardController implements CardControllerI {
     })
   }
 
+  async CompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    let checkCard = await this.card_repo.getCard({ id: card_id });
+    if (checkCard.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      });
+    }
+    if (checkCard.data?.is_complete) {
+      return new ResponseData({
+        message: "Card is already complete",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      });
+    }
+    const updateResponse = await this.card_repo.updateCard(
+      { id: card_id },
+      new CardDetailUpdate({ is_complete: true, completed_at: new Date() })
+    );
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      });
+    }
+    return new ResponseData({
+      message: "Card marked as complete",
+      status_code: StatusCodes.OK,
+    });
+  }
+
   async	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>> {
     if (!isValidUUID(card_id)){
       return new ResponseData({

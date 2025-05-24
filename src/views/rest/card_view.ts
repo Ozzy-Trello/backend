@@ -26,6 +26,7 @@ export default class CardRestView implements CardRestViewI {
     this.GetCardTimeInList = this.GetCardTimeInList.bind(this)
     this.GetCardTimeInBoard = this.GetCardTimeInBoard.bind(this)
     this.GetDashcardCount = this.GetDashcardCount.bind(this)
+    this.CompleteCard = this.CompleteCard.bind(this)
   }
   
   async ArchiveCard(req: Request, res: Response): Promise<void> {
@@ -465,5 +466,16 @@ export default class CardRestView implements CardRestViewI {
       "message": accResponse.message
     })
     return
+  }
+
+  async CompleteCard(req: Request, res: Response): Promise<void> {
+    const user_id = req.auth!.user_id;
+    const card_id = req.params.id?.toString();
+    const result = await this.card_controller.CompleteCard(user_id, card_id);
+    if (result.status_code !== StatusCodes.OK) {
+      res.status(result.status_code).json({ message: result.message });
+      return;
+    }
+    res.status(result.status_code).json({ message: result.message });
   }
 }

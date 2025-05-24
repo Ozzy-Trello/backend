@@ -18,6 +18,8 @@ interface CardAttributes {
     dash_config?: JSON;
     created_at?: Date;
     updated_at?: Date;
+    is_complete?: boolean; // Added
+    completed_at?: Date;   // Added
 }
 
 interface CardCreationAttributes extends Optional<CardAttributes, 'id'> {}
@@ -35,6 +37,8 @@ class Card extends Model<CardAttributes, CardCreationAttributes> implements Card
     public due_date?: Date;
     public due_date_reminder?: string;
     public dash_config?: JSON;
+    public is_complete?: boolean; // Added
+    public completed_at?: Date;   // Added
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -92,6 +96,15 @@ Card.init(
         },
         dash_config: {
             type: DataTypes.JSONB,
+            allowNull: true,
+        },
+        is_complete: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
+        completed_at: {
+            type: DataTypes.DATE,
             allowNull: true,
         },
         created_at: {
