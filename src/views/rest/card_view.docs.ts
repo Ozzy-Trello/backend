@@ -1,3 +1,4 @@
+
 /**
  * @swagger
  * components:
@@ -171,13 +172,11 @@
  *       - name: list-id
  *         in: header
  *         description: ID of list
- *         required: true
  *         schema:
  *           type: string
 *       - name: board-id
  *         in: header
  *         description: ID of board
- *         required: true
  *         schema:
  *           type: string
  *       - name: page
@@ -897,76 +896,4 @@
  *     responses:
  *       200:
  *         description: Successful response
- */
-
-/**
- * @swagger
- * /v1/card/{id}/complete:
- *   post:
- *     summary: Mark card as complete
- *     tags: [ Card ]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: Card ID
- *     responses:
- *       200:
- *         description: Card marked as complete
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Card marked as complete
- *       400:
- *         description: Bad request
- *       404:
- *         description: Card not found
- *       406:
- *         description: Card is already complete
- *       500:
- *         description: Internal Server Error
- */
-
-/**
- * @swagger
- * /v1/card/{id}/incomplete:
- *   post:
- *     summary: Mark card as incomplete
- *     tags: [ Card ]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: Card ID
- *     responses:
- *       200:
- *         description: Card marked as incomplete
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Card marked as incomplete
- *       400:
- *         description: Bad request
- *       404:
- *         description: Card not found
- *       406:
- *         description: Card is already incomplete
- *       500:
- *         description: Internal Server Error
  */
