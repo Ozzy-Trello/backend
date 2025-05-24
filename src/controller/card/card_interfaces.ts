@@ -30,6 +30,7 @@ export interface CardControllerI {
 	GetCardTimeInBoard(card_id: string, board_id: string): Promise<ResponseData<CardBoardTimeDetail>>
 	GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>
 	CompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
+	IncompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
 }
 
 export class CreateCardResponse {
