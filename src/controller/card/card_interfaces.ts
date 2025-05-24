@@ -8,7 +8,6 @@ import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTy
 import { AutomationCondition } from '@/types/trigger';
 import { CardListTimeDetail } from '@/repository/card_list_time/card_list_time_interface';
 import { CardBoardTimeDetail } from '@/repository/card_board_time/card_board_time_interface';
-import { any } from 'zod';
 import { CardType } from '@/types/card';
 
 export interface CardControllerI {

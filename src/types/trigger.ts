@@ -27,7 +27,7 @@ export interface CardActionCondition {
 
 export interface ListHasCardCondition {
   action: "list_has_card";
-  id_list: string;
+  list_id: string;
 }
 
 export type AutomationCondition =
