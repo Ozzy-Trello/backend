@@ -15,21 +15,24 @@
  *           schema:
  *             type: object
  *             properties:
- *               type:
+ *               group_type:
  *                 type: string
  *                 example: "card_move"
+ *               type:
+ *                 type: string
+ *                 example: "when_a_card_<filter>_is_<action>_to_the_<board>_by_<by>"
  *               condition:
  *                 type: object
  *                 properties:
- *                   type:
- *                     type: string
- *                     example: "list_action"
- *                   by:
- *                     type: string
- *                     example: "every_one"
  *                   action:
  *                     type: string
  *                     example: "added"
+ *                   board:
+ *                     type: string
+ *                     example: "036e1ffa-b93f-453a-9ea6-3d1c56276cd9"
+ *                   by:
+ *                     type: string
+ *                     example: "every_one"
  *               workspace_id:
  *                 type: string
  *                 format: uuid
@@ -39,31 +42,21 @@
  *                 items:
  *                   type: object
  *                   properties:
- *                     type:
+ *                     group_type:
  *                       type: string
  *                       example: "card_move"
+ *                     type:
+ *                       type: string
+ *                       example: "<action>_the_card_to_a_specific_<position>_<optional_board>"
  *                     condition:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           type:
- *                             type: string
- *                             example: "copy"
- *                           include_comments:
- *                             type: boolean
- *                             example: true
- *                           positon:
- *                             type: string
- *                             example: "bottom"
- *                           id_list:
- *                             type: string
- *                             format: uuid
- *                             example: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
- *                           board_id:
- *                             type: string
- *                             format: uuid
- *                             example: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *                       type: object
+ *                       properties:
+ *                         action:
+ *                           type: string
+ *                           example: "move"
+ *                         position:
+ *                           type: string
+ *                           example: "top_of_list"
  *     responses:
  *       201:
  *         description: Automation rule created successfully

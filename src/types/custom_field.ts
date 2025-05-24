@@ -14,7 +14,7 @@ export enum TriggerTypes {
 
 export enum ConditionType {
   // Card Move
-  CardInBoard = 'when_a_card_<filter>is<action>to_the<board>by<by>',
+  CardInBoard = 'when_a_card_<filter>_is_<action>_to_the_<board>_by_<by>',
   CardInList = 'when_a_card_<filter>_is_<action>_list_<list>_<by>',
   CardAction = 'when_a_card_is_<action>_<by>',
   ListAction = 'when_a_list_is_<action>_<by>',
@@ -54,7 +54,7 @@ export enum ConditionType {
 }
 
 export enum CardMoveActionTypes {
-  Move = '<action>the_card_to_a_specific<position>_<optional_board>',
+  Move = '<action>_the_card_to_a_specific_<position>_<optional_board>',
 }
 
 export interface MoveListValue {
