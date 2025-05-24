@@ -11,6 +11,7 @@ import { TriggerDoData } from "../card/card_interfaces";
 import { ZeroAsyncFunction } from "@/types/trigger";
 import { ActionsValue, CardChangesConfig, CardMoveConfig, ConditionType, CopyCondition, MoveCondition, SourceType, UserActionCondition } from "@/types/custom_field";
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
+import { validateAction, validateDataByGroupType } from './trigger_interfaces';
 
 export class Trigger {
   private workspace_repo: WorkspaceRepositoryI;
@@ -222,6 +223,22 @@ export class Trigger {
         message: trigger.message,
         status_code: trigger.status_code,
       });
+    }
+
+    const errorAction = validateAction(trigger.data!.action);
+    if(errorAction) {
+      return new ResponseData({
+        message: errorAction,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    const errorsDataByGroupType = validateDataByGroupType(trigger.data!);
+    if(errorsDataByGroupType) {
+      return new ResponseData({
+        message: errorsDataByGroupType,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
     }
 
     // Bangun aksi trigger
