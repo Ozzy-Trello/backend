@@ -1,19 +1,24 @@
 import { validate as isValidUUID } from 'uuid';
+import { StatusCodes } from "http-status-codes";
 
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import { SourceType } from "@/types/custom_field";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
-import { CreateTriggerResponse, TriggerControllerI, TriggerCreateData, TriggerFilter, TriggerResponse, UpdateTriggerData } from "./trigger_interfaces";
-import { StatusCodes } from "http-status-codes";
+import { 
+  CreateTriggerResponse, TriggerControllerI, TriggerCreateData, 
+  TriggerFilter, TriggerResponse, UpdateTriggerData 
+} from "@/controller/trigger/trigger_interfaces";
+
 import { CardRepositoryI } from "@/repository/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
 import { TriggerRepositoryI } from "@/repository/trigger/trigger_interfaces";
-import { TriggerDoData } from "../card/card_interfaces";
+
+import { TriggerDoData } from "@/controller/card/card_interfaces";
 import { Paginate } from '@/utils/data_utils';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { BoardRepositoryI } from '@/repository/board/board_interfaces';
-import { Trigger } from './trigger';
+import { Trigger } from '@/controller/trigger/trigger';
 
 export class TriggerController implements TriggerControllerI {
   private workspace_repo: WorkspaceRepositoryI;
@@ -30,10 +35,10 @@ export class TriggerController implements TriggerControllerI {
   }
 
   async prepareDataSource(value: string | number, source_type: SourceType): Promise<ResponseData<CustomFieldCardDetail>> {
-    return this.trigger.prepareDataSource(value, source_type);
+    return this.trigger.PrepareDataSource(value, source_type);
   }
   async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {
-    return this.trigger.doTrigger(paylod);
+    return this.trigger.DoTrigger(paylod);
   }
 
   async CreateTrigger(data: TriggerCreateData): Promise<ResponseData<CreateTriggerResponse>> {  
@@ -58,7 +63,7 @@ export class TriggerController implements TriggerControllerI {
     }
     data.workspace_id = workspace.data?.id!
 
-    let checkData = await this.trigger.checkActionValue(data.action);
+    let checkData = await this.trigger.CheckActionValue(data.action);
     if (checkData.status_code != StatusCodes.OK){
       return new ResponseData({
         message: checkData.message,
@@ -66,7 +71,7 @@ export class TriggerController implements TriggerControllerI {
       })
     }
 
-    checkData = await this.trigger.checkConditionValue(data.condition);
+    checkData = await this.trigger.CheckConditionValue(data.condition);
     if (checkData.status_code != StatusCodes.OK){
       return new ResponseData({
         message: checkData.message,

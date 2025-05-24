@@ -28,11 +28,26 @@ export class Trigger {
     this.user_repo = user_repo;
     this.board_repo = board_repo;
     
-    this.doTrigger = this.doTrigger.bind(this);
-    this.prepareDataSource = this.prepareDataSource.bind(this);
+    this.CheckActionValue = this.CheckActionValue.bind(this);
+    this.CheckConditionValue = this.CheckConditionValue.bind(this);
+    this.DoTrigger = this.DoTrigger.bind(this);
+    this.PrepareDataSource = this.PrepareDataSource.bind(this);
+    
+    this.buildTriggerActions = this.buildTriggerActions.bind(this);
+    this.checkCardChangesTrigger = this.checkCardChangesTrigger.bind(this);
+    this.checkCardMoveTrigger = this.checkCardMoveTrigger.bind(this);
+    this.executeActions = this.executeActions.bind(this);
+    this.validateCard = this.validateCard.bind(this);
   }
 
-    // Helper: Validasi workspace
+  // Helper: Eksekusi semua aksi
+  private async executeActions(list_doing: ZeroAsyncFunction[]) {
+    for (const task of list_doing.reverse()) {
+      await task();
+    }
+  }
+
+  // Helper: Validasi workspace
   private async validateWorkspace(workspace_id: string): Promise<ResponseData<any> | undefined> {
     const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: workspace_id}));
     if (workspace.status_code != StatusCodes.OK) {
@@ -117,57 +132,7 @@ export class Trigger {
     return list_doing;
   }
 
-  // Helper: Eksekusi semua aksi
-  private async executeActions(list_doing: ZeroAsyncFunction[]) {
-    for (const task of list_doing.reverse()) {
-      await task();
-    }
-  }
-
-  // Fungsi utama
-  async doTrigger(payload: TriggerDoData): Promise<ResponseData<null>> {
-    // Validasi workspace
-    const workspaceError = await this.validateWorkspace(payload.workspace_id);
-    if (workspaceError) return workspaceError;
-
-    // Validasi card
-    let card_target: CardDetail | undefined;
-    if (payload.data?.card_id) {
-      const { card, error } = await this.validateCard(payload.data.card_id);
-      if (error) return error;
-      card_target = card;
-    }
-
-    // Validasi list
-    let list_target: ListDetail | undefined;
-    if (payload.data?.list_id) {
-      const { list, error } = await this.validateList(payload.data.list_id);
-      if (error) return error;
-      list_target = list;
-    }
-
-    // Ambil trigger
-    const trigger = await this.trigger_repo.getTrigger(payload);
-    if (trigger.status_code != StatusCodes.OK) {
-      return new ResponseData({
-        message: trigger.message,
-        status_code: trigger.status_code,
-      });
-    }
-
-    // Bangun aksi trigger
-    const list_doing = await this.buildTriggerActions(trigger, payload, card_target);
-
-    // Eksekusi aksi
-    await this.executeActions(list_doing);
-
-    return new ResponseData({
-      message: "succes",
-      status_code: StatusCodes.OK,
-    });
-  }
-
-  async checkCardMoveTrigger(data: CardMoveConfig): Promise<ResponseData<null>> {
+  private async checkCardMoveTrigger(data: CardMoveConfig): Promise<ResponseData<null>> {
     let response: ResponseData<null> = new ResponseData({})
     switch(data.condition.action){
       case 'copy':{
@@ -209,7 +174,7 @@ export class Trigger {
     })
   }
 
-  async checkCardChangesTrigger(data: CardChangesConfig): Promise<ResponseData<null>> {
+  private async checkCardChangesTrigger(data: CardChangesConfig): Promise<ResponseData<null>> {
     let response: ResponseData<null> = new ResponseData({})
     switch(data.condition.action){
       case "user_action": {
@@ -228,7 +193,51 @@ export class Trigger {
     })
   }
 
-  async checkActionValue(trigger_value: ActionsValue[]): Promise<ResponseData<null>> {
+  // Fungsi utama
+  async DoTrigger(payload: TriggerDoData): Promise<ResponseData<null>> {
+    // Validasi workspace
+    const workspaceError = await this.validateWorkspace(payload.workspace_id);
+    if (workspaceError) return workspaceError;
+
+    // Validasi card
+    let card_target: CardDetail | undefined;
+    if (payload.data?.card_id) {
+      const { card, error } = await this.validateCard(payload.data.card_id);
+      if (error) return error;
+      card_target = card;
+    }
+
+    // Validasi list
+    let list_target: ListDetail | undefined;
+    if (payload.data?.list_id) {
+      const { list, error } = await this.validateList(payload.data.list_id);
+      if (error) return error;
+      list_target = list;
+    }
+
+    // Ambil trigger
+    const trigger = await this.trigger_repo.getTrigger(payload);
+    if (trigger.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: trigger.message,
+        status_code: trigger.status_code,
+      });
+    }
+
+    // Bangun aksi trigger
+    const list_doing = await this.buildTriggerActions(trigger, payload, card_target);
+
+    // Eksekusi aksi
+    await this.executeActions(list_doing);
+
+    return new ResponseData({
+      message: "succes",
+      status_code: StatusCodes.OK,
+    });
+  }
+
+  // Fungsi untuk mengecek value dari trigger
+  async CheckActionValue(trigger_value: ActionsValue[]): Promise<ResponseData<null>> {
     let response: ResponseData<null> = new ResponseData({}) 
     for (let index = 0; index < trigger_value.length; index++) {
       const action = trigger_value[index];
@@ -275,36 +284,7 @@ export class Trigger {
     })
   }
 
-  async checkConditionValue(condition: any): Promise<ResponseData<null>> {
-    let response: ResponseData<null> = new ResponseData({}) 
-    if (condition.board_id){
-      const res = await this.board_repo.getBoard({id: String(condition.board_id)});
-      response.message = res.message;
-      response.status_code = res.status_code;
-      return response
-    }
-
-    if (condition.board){
-      const res = await this.board_repo.getBoard({id: String(condition.board)});
-      response.message = res.message;
-      response.status_code = res.status_code;
-      return response
-    }
-
-    if (condition.list){
-      const res = await this.board_repo.getBoard({id: String(condition.list)});
-      response.message = res.message;
-      response.status_code = res.status_code;
-      return response
-    }
-
-    if (condition.id_list){
-      const res = await this.list_repo.getList({id: String(condition.id_list)});
-      response.message = res.message;
-      response.status_code = res.status_code;
-      return response
-    }
-
+  private handleCheckConditionValueError(response: ResponseData<any>): ResponseData<null> | undefined {
     if (response.status_code == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "condition value is not found : " + response.message,
@@ -321,6 +301,42 @@ export class Trigger {
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       })
     }
+    return undefined
+  }
+
+  // Fungsi untuk mengecek condition dari trigger
+  async CheckConditionValue(condition: any): Promise<ResponseData<null>> {
+    if (condition.board_id){
+      const res = await this.board_repo.getBoard({id: String(condition.board_id)});
+      const resHandler = this.handleCheckConditionValueError(res);
+      if (resHandler) {
+        return resHandler;
+      }
+    }
+
+    if (condition.board){
+      const res = await this.board_repo.getBoard({id: String(condition.board)});
+      const resHandler = this.handleCheckConditionValueError(res);
+      if (resHandler) {
+        return resHandler;
+      }
+    }
+
+    if (condition.list){
+      const res = await this.board_repo.getBoard({id: String(condition.list)});
+      const resHandler = this.handleCheckConditionValueError(res);
+      if (resHandler) {
+        return resHandler;
+      }
+    }
+
+    if (condition.id_list){
+      const res = await this.list_repo.getList({id: String(condition.id_list)});
+      const resHandler = this.handleCheckConditionValueError(res);
+      if (resHandler) {
+        return resHandler;
+      }
+    }
     
     return new ResponseData({
       message: "OK",
@@ -328,7 +344,8 @@ export class Trigger {
     })
   }
 
-  async prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
+  // Fungsi untuk mengecek value dari trigger
+  async PrepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
     let result =  new CustomFieldCardDetail({})
     if(value && source_type == SourceType.User) {
       if (!(typeof value == "string" && isValidUUID(String(value)))) {

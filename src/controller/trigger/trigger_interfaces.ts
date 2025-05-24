@@ -12,9 +12,7 @@ import { TriggerDoData } from '../card/card_interfaces';
 export interface TriggerControllerI {
   prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>>
   doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>>
-  // doTrigger(trigger_id: string, value : string| number, trigger: ActionsValue): Promise<ResponseData<null>>
-  // checkConditionalValue(value : string| number, source_type: SourceType, trigger_value :ActionsValue[]): Promise<ResponseData<null>>
-
+  
   CreateTrigger(data: TriggerCreateData): Promise<ResponseData<CreateTriggerResponse>>
 	GetTrigger(filter: TriggerFilter): Promise<ResponseData<TriggerResponse>>
 	GetListTrigger(filter: TriggerFilter, paginate: Paginate): Promise<ResponseListData<Array<TriggerResponse>>>
@@ -417,63 +415,6 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
     status_code: StatusCodes.OK
   })
 }
-
-// export class TriggerCreateData {
-// 	name!: string;
-// 	description?: string;
-//   // source?: SourceType;
-// 	workspace_id!: string;
-// 	action!: TriggerValue;
-// 	condition_value?: string
-
-// 	constructor(payload: Partial<TriggerCreateData>) {
-// 		Object.assign(this, payload)
-// 		this.toTriggerDetail = this.toTriggerDetail.bind(this);
-// 		this.checkRequired = this.checkRequired.bind(this);
-// 		this.getErrorField = this.getErrorField.bind(this);
-// 		this.isEmptyAction = this.isEmptyAction.bind(this);
-// 	}
-
-// 	toTriggerDetail(): TriggerDetail {
-// 		return new TriggerDetail({
-// 			name: this.name,
-// 			description: this.description,
-// 			workspace_id: this.workspace_id,
-// 			action: this.action,
-// 			condition_value: this.condition_value,
-// 		})
-// 	}
-
-// 	checkRequired(): string | null{
-// 		if (this.workspace_id == undefined ) return 'workspace_id'
-// 		if (this.action == undefined ) return 'action'
-// 		return null
-// 	} 
-
-// 	getErrorField(): string | null {
-// 		if (this.workspace_id && !isValidUUID(this.workspace_id!)) {
-// 			return "'workspace_id' is not valid uuid"
-// 		}
-// 		if (this.action.target_list_id && !isValidUUID(this.action.target_list_id!)) {
-// 			return "'target_list_id' is not valid uuid"
-// 		}
-//     if (this.action.label_card_id && !isValidUUID(this.action.label_card_id!)) {
-// 			return "'label_card_id' is not valid uuid"
-// 		}
-//     if (this.action.label_card_id) return "'label_card_id' not support yet"
-//     if (this.action.message_telegram) return "'message_telegram' not support yet"
-// 		return null
-// 	}
-
-
-//   isEmptyAction(): boolean {
-//     let empty = true;
-//     if (this.action.label_card_id != undefined) empty = false
-//     if (this.action.target_list_id != undefined) empty = false
-//     if (this.action.message_telegram != undefined) empty = false
-// 		return empty
-// 	}
-// }
 
 export class TriggerCreateData {
   id?: string
