@@ -3,13 +3,13 @@ import { validate as isValidUUID } from 'uuid';
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import { CardChangesConfig, CardMoveConfig, CopyCondition, MoveCondition, SourceType, ActionsValue, UserActionCondition, ConditionType, TriggerTypes } from "@/types/custom_field";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
-import { CreateTriggerResponse, DoTriggerData, TriggerControllerI, TriggerCreateData, TriggerFilter, TriggerResponse, UpdateTriggerData } from "./trigger_interfaces";
+import { CreateTriggerResponse, TriggerControllerI, TriggerCreateData, TriggerFilter, TriggerResponse, UpdateTriggerData } from "./trigger_interfaces";
 import { StatusCodes } from "http-status-codes";
 import { CardDetail, CardDetailUpdate, CardRepositoryI } from "@/repository/card/card_interfaces";
 import { ListDetail, ListRepositoryI } from "@/repository/list/list_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
 import { TriggerRepositoryI } from "@/repository/trigger/trigger_interfaces";
-import { CardFilter, TriggerDoData } from "../card/card_interfaces";
+import { TriggerDoData } from "../card/card_interfaces";
 import { Paginate } from '@/utils/data_utils';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { BoardRepositoryI } from '@/repository/board/board_interfaces';
@@ -33,175 +33,142 @@ export class TriggerController implements TriggerControllerI {
 
     this.prepareDataSource = this.prepareDataSource.bind(this);
     this.doTrigger = this.doTrigger.bind(this);
-    // this.checkConditionalValue = this.checkConditionalValue.bind(this);
   }
 
-  async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {
-    let list_doing: ZeroAsyncFunction[] = [];
-    let card_target: CardDetail | undefined;
-    let list_target: ListDetail | undefined
-    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: paylod.workspace_id}));
+  // Helper: Validasi workspace
+  private async validateWorkspace(workspace_id: string): Promise<ResponseData<any> | undefined> {
+    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: workspace_id}));
     if (workspace.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: workspace.message,
         status_code: workspace.status_code,
-      })
+      });
     }
+    return undefined;
+  }
 
-    if (paylod.data && paylod.data.card_id) {
-      const selected_card = await this.card_repo.getCard({id: paylod.data.card_id})
-      if ( selected_card.status_code != StatusCodes.OK) {
-        return new ResponseData({
-          message: selected_card.message,
-          status_code: selected_card.status_code,
-        })
+  // Helper: Validasi card
+  private async validateCard(card_id?: string): Promise<{card?: CardDetail, error?: ResponseData<null>}> {
+    if (!card_id) return {};
+    const selected_card = await this.card_repo.getCard({id: card_id});
+    if (selected_card.status_code != StatusCodes.OK) {
+      return { error: new ResponseData({
+        message: selected_card.message,
+        status_code: selected_card.status_code,
+      })};
+    }
+    return { card: selected_card.data };
+  }
+
+  // Helper: Validasi list
+  private async validateList(list_id?: string): Promise<{list?: ListDetail, error?: ResponseData<null>}> {
+    if (!list_id) return {};
+    const selected_list = await this.list_repo.getList({id: list_id});
+    if (selected_list.status_code != StatusCodes.OK) {
+      return { error: new ResponseData({
+        message: selected_list.message,
+        status_code: selected_list.status_code,
+      })};
+    }
+    return { list: selected_list.data };
+  }
+
+  // Helper: Eksekusi aksi trigger
+  private async buildTriggerActions(trigger: any, paylod: TriggerDoData, card_target?: CardDetail): Promise<ZeroAsyncFunction[]> {
+    let list_doing: ZeroAsyncFunction[] = [];
+    if (paylod.type === ConditionType.CardInBoard) {
+      if (['added', 'created'].includes(paylod.condition.action)) {
+        for (const selected_action of trigger.data!.action) {
+          if (selected_action.condition.action == "move" && card_target) {
+            let prev_next_list;
+            if (selected_action.condition.id_list) {
+              const selected_prev_next_list = await this.list_repo.getAdjacentListIds(card_target.list_id, selected_action.condition.id_list!);
+              if (selected_prev_next_list.status_code == StatusCodes.OK) {
+                prev_next_list = selected_prev_next_list.data;
+              }
+            }
+            if (selected_action.condition.position == "top_of_list") {
+              list_doing.push(async() => {
+                const topOrder = await this.card_repo.newTopOrderCard(card_target.list_id);
+                if (topOrder.status_code == StatusCodes.OK) {
+                  await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({order: topOrder.data!}));
+                }
+              });
+            } else if (selected_action.condition.position == "bottom_of_list") {
+              list_doing.push(async() => {
+                const bottomOrder = await this.card_repo.newBottomOrderCard(card_target.list_id);
+                if (bottomOrder.status_code == StatusCodes.OK) {
+                  await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({order: bottomOrder.data!}));
+                }
+              });
+            }
+            if (selected_action.condition.position == "next_list" && prev_next_list?.next_id) {
+              list_doing.push(async() => {
+                await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({list_id: prev_next_list.next_id!}));
+              });
+            } else if (selected_action.condition.position == "prev_list" && prev_next_list?.previous_id) {
+              list_doing.push(async() => {
+                await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({list_id: prev_next_list.previous_id!}));
+              });
+            }
+          } else if (selected_action.condition.action == "copy" && card_target) {
+            // Implementasi copy jika sudah siap
+          }
+        }
       }
-      card_target = selected_card.data
+    }
+    return list_doing;
+  }
+
+  // Helper: Eksekusi semua aksi
+  private async executeActions(list_doing: ZeroAsyncFunction[]) {
+    for (const task of list_doing.reverse()) {
+      await task();
+    }
+  }
+
+  // Fungsi utama
+  async doTrigger(payload: TriggerDoData): Promise<ResponseData<null>> {
+    // Validasi workspace
+    const workspaceError = await this.validateWorkspace(payload.workspace_id);
+    if (workspaceError) return workspaceError;
+
+    // Validasi card
+    let card_target: CardDetail | undefined;
+    if (payload.data?.card_id) {
+      const { card, error } = await this.validateCard(payload.data.card_id);
+      if (error) return error;
+      card_target = card;
     }
 
-    if (paylod.data && paylod.data.list_id) {
-      const selected_list = await this.list_repo.getList({id: paylod.data.list_id})
-      if ( selected_list.status_code != StatusCodes.OK) {
-        return new ResponseData({
-          message: selected_list.message,
-          status_code: selected_list.status_code,
-        })
-      }
-      list_target = selected_list.data
+    // Validasi list
+    let list_target: ListDetail | undefined;
+    if (payload.data?.list_id) {
+      const { list, error } = await this.validateList(payload.data.list_id);
+      if (error) return error;
+      list_target = list;
     }
 
-    const trigger = await this.trigger_repo.getTrigger(paylod)
+    // Ambil trigger
+    const trigger = await this.trigger_repo.getTrigger(payload);
     if (trigger.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: trigger.message,
         status_code: trigger.status_code,
-      })
+      });
     }
 
-    switch(paylod.type){
-      case ConditionType.CardInBoard: {
-        if (paylod.condition.action in ['added', 'created'])  {
-          for (let index = 0; index < trigger.data!.action.length; index++) {
-            const selected_action = trigger.data!.action[index];
-            if (selected_action.condition.action == "move" && card_target != undefined) {
-              let prev_next_list : { previous_id: string | null; next_id: string | null; } | undefined
+    // Bangun aksi trigger
+    const list_doing = await this.buildTriggerActions(trigger, payload, card_target);
 
-              if(selected_action.condition.id_list) {
-                const selected_list = await this.list_repo.getList({id: selected_action.condition.id_list})
-                if (selected_list.status_code != StatusCodes.OK) {
-                  console.log(`trigger error for condition : ${selected_action.condition}`)
-                }
-                const selected_prev_next_list = await this.list_repo.getAdjacentListIds(card_target.list_id, selected_action.condition.id_list!);
-                if (selected_prev_next_list.status_code != StatusCodes.OK) {
-                  console.log(`trigger skipped for condition : ${selected_action.condition}`)
-                }
-                prev_next_list = selected_prev_next_list.data
-              }
-              
-              //have list id, and or board id target
-              if (selected_action.condition.position == "top_of_list") {
-                list_doing.push(async() => {
-                  const topOrder = await this.card_repo.newTopOrderCard(card_target.list_id);
-                  if (topOrder.status_code != StatusCodes.OK) {
-                    console.log(`trigger skipped for condition : ${selected_action.condition}`)
-                  }
-                  const res = await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({order: topOrder.data!}));
-                  if (res != StatusCodes.NO_CONTENT) {
-                    console.log(`trigger error for condition : ${selected_action.condition}`)
-                  }
-                })
-              } else if (selected_action.condition.position == "bottom_of_list") {
-                list_doing.push(async() => {
-                  const bottomOrder = await this.card_repo.newBottomOrderCard(card_target.list_id);
-                  if (bottomOrder.status_code != StatusCodes.OK) {
-                    console.log(`trigger skipped for condition : ${selected_action.condition}`)
-                  }
-                  const res = await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({order: bottomOrder.data!}));
-                  if (res != StatusCodes.NO_CONTENT) {
-                    console.log(`trigger error for condition : ${selected_action.condition}`)
-                  }
-                })
-              }
-
-              //beetween list
-              if (selected_action.condition.position == "next_list" && prev_next_list && prev_next_list?.next_id) {
-                list_doing.push(async() => {
-                  const res = await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({list_id: prev_next_list?.next_id!}));
-                  if (res != StatusCodes.NO_CONTENT) {
-                    console.log(`trigger error for condition : ${selected_action.condition}`)
-                  }
-                })
-              } else if (selected_action.condition.position == "prev_list" && prev_next_list && prev_next_list?.previous_id) {
-                list_doing.push(async() => {
-                  const res = await this.card_repo.updateCard({id: card_target.id}, new CardDetailUpdate({list_id: prev_next_list?.previous_id!}));
-                  if (res != StatusCodes.NO_CONTENT) {
-                    console.log(`trigger error for condition : ${selected_action.condition}`)
-                  }
-                })
-              }
-
-            } else if(selected_action.condition.action == "copy" && card_target != undefined) {
-              console.log("not ready for copy")
-            }
-          }
-        } else {
-          return new ResponseData({
-            message: `'${paylod.condition.action}' is not support condition for '${ConditionType.CardInBoard}'`,
-            status_code: StatusCodes.BAD_GATEWAY,
-          })
-        }
-
-        switch(paylod.group_type) {
-          case TriggerTypes.CardMove:
-          case TriggerTypes.CardChanges:
-        }
-      }
-      case ConditionType.CardInList, ConditionType.CardAction, ConditionType.ListAction, ConditionType.ListHasCard: {
-        return new ResponseData({
-          message: "not supported yet",
-          status_code: StatusCodes.BAD_REQUEST,
-        })
-      }
-    }
-
-    for (const task of list_doing.reverse()) {
-      await task();
-    }
+    // Eksekusi aksi
+    await this.executeActions(list_doing);
 
     return new ResponseData({
       message: "succes",
       status_code: StatusCodes.OK,
-    })
+    });
   }
-
-
-  // async doTrigger(trigger_id: string, value : string| number, trigger: ActionsValue): Promise<ResponseData<null>> {
-  //   let eventName = "move card";
-  //   let selectedTrigger =  await this.trigger_repo.getTrigger({id: trigger_id})
-  //   if(selectedTrigger.status_code != StatusCodes.OK){
-  //     return new ResponseData({
-  //       message: selectedTrigger.message,
-  //       status_code: selectedTrigger.status_code
-  //     })
-  //   }
-
-  //   // if ((selectedTrigger.data?.condition_value == String(value) || !selectedTrigger.data?.condition_value) && selectedTrigger.data?.action.target_list_id) {
-  //   //   const updateResponse = await this.card_repo.updateCard(new CardFilter({
-  //   //     id: trigger.target_list_id,
-  //   //   }), new CardDetailUpdate({list_id: selectedTrigger.data?.action!.target_list_id}));
-  //   //   if (updateResponse == StatusCodes.NOT_FOUND) {
-  //   //     return new ResponseData({
-  //   //       message: "Card is not found",
-  //   //       status_code: StatusCodes.NOT_FOUND,
-  //   //     })
-  //   //   }
-  //   // }
-
-  //   return new ResponseData({
-  //     message: eventName,
-  //     status_code: StatusCodes.OK,
-  //   })
-  // }
 
   async checkCardMoveTrigger(data: CardMoveConfig): Promise<ResponseData<null>> {
     let response: ResponseData<null> = new ResponseData({})
@@ -238,12 +205,6 @@ export class TriggerController implements TriggerControllerI {
         }
         break
       }
-      // case 'card_position':{
-      //   // no need to validation data here
-      // }
-      // case 'card_action':{
-      //   // no need to validation data here
-      // }
     }
     return new ResponseData({
       message: "success",
@@ -369,92 +330,6 @@ export class TriggerController implements TriggerControllerI {
       status_code: StatusCodes.OK,
     })
   }
-
-  // async checkActionValue(trigger_value: ActionsValue): Promise<ResponseData<null>> {
-  //   if(trigger_value.target_list_id) {
-  //     let checkList = await this.list_repo.getList({id: String(trigger_value.target_list_id)});      
-  //     if (checkList.status_code == StatusCodes.NOT_FOUND) {
-  //       return new ResponseData({
-  //         message: "trigger value is not valid, list is not found",
-  //         status_code: StatusCodes.BAD_REQUEST,
-  //       })      
-  //     } else if (checkList.status_code == StatusCodes.BAD_REQUEST) {
-  //       return new ResponseData({
-  //         message: "condition value is not valid, " + checkList.message,
-  //         status_code: StatusCodes.BAD_REQUEST,
-  //       })      
-  //     } else if (checkList.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-  //       return new ResponseData({
-  //         message: "internal server error",
-  //         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-  //       })      
-  //     }
-  //   }
-  //   if(trigger_value.label_card_id) {
-  //     let checkCard = await this.card_repo.getCard({id: String(trigger_value.label_card_id)});
-  //     if (checkCard.status_code == StatusCodes.NOT_FOUND) {
-  //       return new ResponseData({
-  //         message: "trigger value is not valid, card is not found",
-  //         status_code: StatusCodes.BAD_REQUEST,
-  //       })      
-  //     } else if (checkCard.status_code == StatusCodes.BAD_REQUEST) {
-  //       return new ResponseData({
-  //         message: "condition value is not valid, " + checkCard.message,
-  //         status_code: StatusCodes.BAD_REQUEST,
-  //       })      
-  //     } else if (checkCard.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-  //       return new ResponseData({
-  //         message: "internal server error",
-  //         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-  //       })
-  //     }
-  //   }
-  //   return new ResponseData({
-  //     message: "OK",
-  //     status_code: StatusCodes.OK,
-  //   })
-  // }
-
-  
-
-
-  // async checkConditionalValue(condition_value : string| number, source_type: SourceType, trigger_value :ActionsValue[]): Promise<ResponseData<null>> {
-  //   if(condition_value) {
-  //     switch(source_type) {
-  //       case SourceType.User : {
-  //         let checkUser = await this.user_repo.getUser({id: String(condition_value)});
-  //         if (checkUser.status_code == StatusCodes.NOT_FOUND) {
-  //           return new ResponseData({
-  //             message: "condition value is not valid, user is not found",
-  //             status_code: StatusCodes.BAD_REQUEST,
-  //           })      
-  //         } else if (checkUser.status_code == StatusCodes.BAD_REQUEST) {
-  //           return new ResponseData({
-  //             message: "condition value is not valid, " + checkUser.message,
-  //             status_code: StatusCodes.BAD_REQUEST,
-  //           })      
-  //         } else if (checkUser.status_code >= StatusCodes.INTERNAL_SERVER_ERROR) {
-  //           return new ResponseData({
-  //             message: "internal server error",
-  //             status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-  //           })      
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   let checkActionValue = await this.checkActionValue(trigger_value);
-  //   if (checkActionValue.status_code != StatusCodes.OK) {
-  //     return new ResponseData({
-  //       message: checkActionValue.message,
-  //       status_code: checkActionValue.status_code,
-  //     })
-  //   }
-  //   return new ResponseData({
-  //     message: "success",
-  //     status_code: StatusCodes.OK,
-  //   })
-  // }
 
   async prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
     let result =  new CustomFieldCardDetail({})
@@ -759,14 +634,6 @@ export class TriggerController implements TriggerControllerI {
           status_code: StatusCodes.NOT_FOUND,
         })
       }
-
-      // let checkBoard = await this.trigger_repo.getTrigger({ __notId: filter.id, __orName: data.name });
-      // if (checkBoard.status_code == StatusCodes.OK) {
-      //   return new ResponseData({
-      //     message: "this trigger name already taken by others",
-      //     status_code: StatusCodes.NOT_FOUND,
-      //   })
-      // }
     }
 
     const updateResponse = await this.trigger_repo.updateTrigger(filter.toFilterTriggerDetail(), data.toTriggerDetailUpdate());

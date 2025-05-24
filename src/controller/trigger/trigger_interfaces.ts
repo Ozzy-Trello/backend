@@ -228,10 +228,67 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
         break
       }
       case TriggerTypes.CardChanges: {
-        return new ResponseData({
-          message: "group_type '" + body.group_type + "' is not valid value",
-          status_code: StatusCodes.BAD_REQUEST,
-        })
+        let keys = Object.keys(body.condition).sort();
+        let expected_keys: any = [];
+        switch(String(body.type).toLowerCase()) {
+          case ConditionType.CardStatus: {
+            expected_keys = ["status", "by"].sort();
+            break
+          }
+          case ConditionType.LabelOnCard: {
+            expected_keys = ["label_id", "by", "action"].sort();
+            break
+          }
+          case ConditionType.AttachmentAdded:
+          case ConditionType.MemberAdded: {
+            expected_keys = ["by", "action"].sort();
+            break
+          }
+          case ConditionType.MentionedUser: {
+            expected_keys = ["activity_id", "by", "user_id"].sort();
+            break
+          }
+          default: {
+            return new ResponseData({
+              status_code: StatusCodes.BAD_REQUEST,
+              message: `not support type`
+            })
+          }
+        }
+        if (String(keys) !== String(expected_keys)) {
+          return new ResponseData({
+            status_code: StatusCodes.BAD_REQUEST,
+            message: `we need ${expected_keys} condition for ${body.type}`
+          })
+        }
+        break
+      }
+      case TriggerTypes.Date: {
+        let keys = Object.keys(body.condition).sort();
+        let expected_keys: any = [];
+        switch(String(body.type).toLowerCase()) {
+          case ConditionType.DueDateSet: {
+            expected_keys = ["status", "by"].sort();
+            break
+          }
+          case ConditionType.DateInCardName: {
+            expected_keys = ["label_id", "by", "action"].sort();
+            break
+          }
+          default: {
+            return new ResponseData({
+              status_code: StatusCodes.BAD_REQUEST,
+              message: `not support type`
+            })
+          }
+        }
+        if (String(keys) !== String(expected_keys)) {
+          return new ResponseData({
+            status_code: StatusCodes.BAD_REQUEST,
+            message: `we need ${expected_keys} condition for ${body.type}`
+          })
+        }
+        break
       }
       default : {
         return new ResponseData({
