@@ -113,6 +113,38 @@ export class TriggerFilter {
 }
 
 export function validateDataByGroupType(payload: any): string | undefined {
+  let required = undefined
+  if (payload.condition == undefined) {
+    required = "condition"
+  } else if (payload.type == undefined) {
+    required = "type"
+  } else if (payload.group_type == undefined) {
+    required = "group_type"
+  } else if (payload.workspace_id == undefined) {
+    required = "workspace_id"
+  } else if (payload.action == undefined) {
+    required = "action"
+  }
+  if (required != undefined) {
+    return "'" + required + "' is required"
+  }
+
+  if (!isValidUUID(payload.workspace_id!)) {
+    return "not valid workspace id"
+  }
+
+  if(typeof payload.group_type != "string") {
+    return "group_type should be string"
+  }
+
+  if(typeof payload.type != "string") {
+    return "type should be string"
+  }
+
+  if(typeof payload.condition != "object" || Array.isArray(payload.condition)) {
+    return "condition should be object"
+  }
+
   switch(String(payload.group_type).toLowerCase()) {
     case TriggerTypes.CardMove: {
       let keys = Object.keys(payload.condition).sort();
@@ -275,59 +307,6 @@ export function validateAction(actions: Array<any>) : string | undefined {
 }
 
 export function createTriggerCreateData(body: any): ResponseData<TriggerCreateData> {
-  const res =  new TriggerCreateData({})
-  { //check required
-    let required = undefined
-    if (body.condition == undefined) {
-      required = "condition"
-    } else if (body.type == undefined) {
-      required = "type"
-    } else if (body.group_type == undefined) {
-      required = "group_type"
-    } else if (body.workspace_id == undefined) {
-      required = "workspace_id"
-    } else if (body.action == undefined) {
-      required = "action"
-    }
-    if (required != undefined) {
-      return new ResponseData({
-        message: "'" + required + "' is required",
-        status_code: StatusCodes.BAD_REQUEST,
-      })
-    }
-  }
-
-  if (!isValidUUID(body.workspace_id!)) {
-    return new ResponseData({
-      message: "not valid workspace id",
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
-  res.workspace_id = body.workspace_id;
-
-  if(typeof body.group_type != "string") {
-    return new ResponseData({
-      message: "group_type should be string",
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
-  res.group_type = body.group_type;
-
-  if(typeof body.type != "string") {
-    return new ResponseData({
-      message: "type should be string",
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
-  res.type = body.type;
-
-  if(typeof body.condition != "object" || Array.isArray(body.condition)) {
-    return new ResponseData({
-      message: "condition should be object",
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
-  
   const errorsDataByGroupType = validateDataByGroupType(body);
   if(errorsDataByGroupType) {
     return new ResponseData({
@@ -335,8 +314,6 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
       status_code: StatusCodes.BAD_REQUEST,
     })
   }
-  
-  res.condition = body.condition;
   
   if(!Array.isArray(body.action)) {
     return new ResponseData({
@@ -352,8 +329,14 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
       status_code: StatusCodes.BAD_REQUEST,
     })
   }
-  res.action = body.action;
 
+  const res =  new TriggerCreateData({
+    workspace_id:  body.workspace_id,
+    group_type: body.group_type,
+    type: body.type,
+    condition: body.condition,
+    action: body.action,
+  })
   if (body.filter) {
     res.filter = body.filter;
   }

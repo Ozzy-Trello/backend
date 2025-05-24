@@ -43,9 +43,7 @@ export class Trigger {
 
   // Helper: Eksekusi semua aksi
   private async executeActions(list_doing: ZeroAsyncFunction[]) {
-    for (const task of list_doing.reverse()) {
-      await task();
-    }
+    Promise.all(list_doing.map(fn => fn()));
   }
 
   // Helper: Validasi workspace
