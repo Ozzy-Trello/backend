@@ -19,6 +19,7 @@ export interface Database {
   card_activity_action: CardActivityActionTable;
   card_activity_text: CardActionTextTable;
   role: RoleTable;
+  label: LabelTable;
 }
 
 export interface UserTable {
@@ -151,4 +152,13 @@ export interface RoleTable {
   description: string;
   permissions: PermissionStructure;
   default: boolean;
+}
+
+export interface LabelTable {
+  id: string;
+  name: string;
+  value?: string;
+  value_type: 'color' | 'user' | 'custom_field';
+  created_at?: Date;
+  updated_at?: Date;
 }
