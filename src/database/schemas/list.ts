@@ -6,8 +6,11 @@ interface ListAttributes {
     id : string;
     board_id: string;
     order: number;
+    card_limit?: number;
     name: string;
-    background : string;
+    background: string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 interface ListCreationAttributes extends Optional<ListAttributes, 'id'> {}
@@ -16,11 +19,12 @@ class List extends Model<ListAttributes, ListCreationAttributes> implements List
     public id! : string;
     public board_id! : string;
     public order!: number;
+    public card_limit?: number;
     public name!: string;
     public background! : string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 List.init(
@@ -36,6 +40,10 @@ List.init(
         order: {
             type: DataTypes.INTEGER,
         },
+        card_limit: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
         name: {
             type: new DataTypes.STRING(128),
             allowNull: false,
@@ -44,11 +52,25 @@ List.init(
             type: DataTypes.STRING(8),
             defaultValue: '#797979',
             allowNull: false,
-        }
+        },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
     },
     {
         tableName: 'list',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 )
 

@@ -6,6 +6,8 @@ interface TagAttributes {
     id : string;
     name: string;
     description : string;
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 
@@ -16,8 +18,8 @@ class Tag extends Model<TagAttributes, TagCreationAttributes> implements TagAttr
     public name!: string;
     public description! : string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    public readonly created_at!: Date;
+    public readonly updated_at!: Date;
 }
 
 Tag.init(
@@ -35,10 +37,24 @@ Tag.init(
             type: new DataTypes.TEXT,
             allowNull: false,
         },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW,
+        },
     },
     {
         tableName: 'tag',
         sequelize,
+        timestamps: true,
+        underscored: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
     }
 )
 

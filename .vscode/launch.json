@@ -11,11 +11,26 @@
             "args": [
                 "${workspaceFolder}/src/main.ts"
             ],
+            "runtimeVersion": "22.12.0",
             "runtimeArgs": [
                 "-r",
                 "ts-node/register"
             ],
             "cwd": "${workspaceRoot}",
+            "protocol": "inspector",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Run with npm",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeVersion": "22.12.0",
+            "runtimeArgs": [
+                "run",
+                "dev"
+            ],
+            "cwd": "${workspaceFolder}",
             "protocol": "inspector",
             "internalConsoleOptions": "openOnSessionStart"
         }
