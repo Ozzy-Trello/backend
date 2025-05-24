@@ -29,6 +29,8 @@ export interface CardControllerI {
 	GetCardTimeInList(card_id: string): Promise<ResponseData<Array<CardListTimeDetail>>>
 	GetCardTimeInBoard(card_id: string, board_id: string): Promise<ResponseData<CardBoardTimeDetail>>
 	GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>
+	CompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
+	IncompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
 }
 
 export class CreateCardResponse {
@@ -53,7 +55,8 @@ export class CardResponse {
 	dash_config?: DashCardConfig;
 	formatted_time_in_list?: string;
 	formatted_time_in_board?: string;
-	
+	is_complete?: boolean; // Added
+	completed_at?: Date;   // Added
 	constructor(payload: Partial<CardResponse>) {
 		Object.assign(this, payload)
 	}
@@ -118,6 +121,8 @@ export class UpdateCardData {
 	description?: string;
 	list_id?: string;
 	location?: string;
+	is_complete?: boolean; // Added
+	completed_at?: Date;   // Added
 
 	constructor(payload: Partial<UpdateCardData>) {
 		Object.assign(this, payload)
@@ -154,14 +159,13 @@ export class CardFilter {
 	description?: string;
 	location?: string;
 	archive?: boolean;
-
+	is_complete?: boolean; // Added
 	constructor(payload: Partial<CardFilter>) {
 		Object.assign(this, payload);
 		this.isEmpty = this.isEmpty.bind(this)
 		this.toFilterCardDetail = this.toFilterCardDetail.bind(this)
 		this.getErrorfield = this.getErrorfield.bind(this)
 	}
-
 	toFilterCardDetail(): filterCardDetail{
 		return {
 			id: this.id,
@@ -170,7 +174,8 @@ export class CardFilter {
 			list_id: this.list_id,
 			description: this.description,
 			location: this.location,
-			archive: this.archive
+			archive: this.archive,
+			is_complete: this.is_complete // Added
 		}
 	}
 
@@ -246,6 +251,8 @@ export class CardCreateData {
   order?: number;
   type?: string;
   dash_config?: DashCardConfig | string;
+  is_complete?: boolean; // Added
+  completed_at?: Date;   // Added
   
   constructor(payload: Partial<CardCreateData>) {
     Object.assign(this, payload);
@@ -306,6 +313,10 @@ export class CardCreateData {
     if (this.list_id && !isValidUUID(this.list_id!)) {
       return "'list_id' is not valid uuid";
     }
+
+		if (this.type && (this.type != CardType.Regular && this.type != CardType.Dashcard)) {
+			return "Invalid card type";
+		}
     
     if (this.type === CardType.Dashcard && this.dash_config) {
       let dashConfig: DashCardConfig;
@@ -322,7 +333,9 @@ export class CardCreateData {
       
       const dashConfigError = dashConfig.validate();
       if (dashConfigError) return dashConfigError;
-    }
+    } else if (this.type != CardType.Regular) {
+			return "Invalid card type";
+		}
     
     return null;
   }

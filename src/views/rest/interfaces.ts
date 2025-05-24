@@ -91,3 +91,11 @@ export interface FileViewI {
     GetFile(req: Request, res: Response): Promise<void>;
     DeleteFile(req: Request, res: Response): Promise<void>;
 }
+
+export interface LabelRestViewI {
+    CreateLabel(req: Request, res: Response): Promise<void>;
+    GetLabel(req: Request, res: Response): Promise<void>;
+    GetLabels(req: Request, res: Response): Promise<void>;
+    UpdateLabel(req: Request, res: Response): Promise<void>;
+    DeleteLabel(req: Request, res: Response): Promise<void>;
+}
