@@ -449,7 +449,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -474,7 +474,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -491,7 +491,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -512,7 +512,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -532,7 +532,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -562,7 +562,7 @@ export function validateDataByGroupType(payload: any): string | undefined {
           break
         }
         default: {
-          return `not support type`
+          return `not support type for ${payload.group_type}`
         }
       }
       break
@@ -575,14 +575,30 @@ export function validateDataByGroupType(payload: any): string | undefined {
     return `we need ${expected_keys} condition for ${payload.type}`
   }
 
-  if(payload.condition && payload.condition.board && !isValidUUID(payload.condition.board)) {
-    return "invalid condition.board uuid"
+  let must_number_condition = ["quantity", "number"];
+  let mustbe_uuid_condition = [
+    "by", "custom_field", "board", "board_id", "list_id", 
+    "comment_id", "user_id", "label_id",
+  ];
+  let must_string_condition = [
+    "action", "card_name", "card_desc", "card_name_or_desc", 
+    "containing_or_start_with_or_ending_with", "start_with", 
+    "status", "value", "operator",
+  ];
+  for (const key of must_number_condition) {
+    if (payload.condition[key] && typeof payload.condition[key] != "number") {
+      return `condition.${key} should be number`
+    }
   }
-  if(payload.condition && payload.condition.board_id && !isValidUUID(payload.condition.board_id)) {
-    return "invalid condition.board_id uuid"
+  for (const key of must_string_condition) {
+    if (payload.condition[key] && typeof payload.condition[key] != "string") {
+      return `condition.${key} should be string`
+    }
   }
-  if(payload.condition && payload.condition.list_id && !isValidUUID(payload.condition.list_id)) {
-    return "invalid condition.list_id uuid"  
+  for (const key of mustbe_uuid_condition) {
+    if (payload.condition[key] && !isValidUUID(payload.condition[key])) {
+      return `invalid condition.${key} uuid`
+    }
   }
   return undefined
 }
@@ -591,6 +607,8 @@ export function validateAction(actions: Array<any>) : string | undefined {
   for (let index = 0; index < actions.length; index++) {
     let required = undefined;
     const action = actions[index];
+    let keys = Object.keys(action.condition).sort();
+
     if(typeof action != "object" && !Array.isArray(action)) {
       return "items in action should be object"
     }
@@ -613,36 +631,144 @@ export function validateAction(actions: Array<any>) : string | undefined {
     switch(action.group_type) {
       case TriggerTypes.CardMove: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.Move: {
-            let required = undefined;
-            if(action.condition.action == undefined) {
-              return "action.condition.action is required"
-            }
-
-            if (typeof action.condition.action != "string") {
-              return required + " should be string"
+          case ActionType.MoveCardToList: {
+            const expected_keys: any = ["action", "position", "list_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
             }
 
             if (!["move", "copy"].includes(action.condition.action)) {
               return "action.condition.action not valid value"
-            } else if (!["top_of_list"].includes(action.condition.position)) {
-              return "action.condition.action not valid value"
-            }
-
-            if (action.condition.board_id && !isValidUUID(action.condition.board_id)) {
-              return "invalid uuid in action.condition.board_id"
-            }
-
-            if (action.condition.list_id && !isValidUUID(action.condition.list_id)) {
-              return "invalid uuid in action.condition.list_id"
+            } else if (!["top_of_list", "bottom_of_list"].includes(action.condition.position)) {
+              return "action.condition.position not valid value"
             }
 
             break
           }
+          case ActionType.MoveCardPosition: {
+            const expected_keys: any = ["action", "position", "list_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+
+            if (!["top_of_list", "bottom_of_list", "next_list", "prev_list"].includes(action.condition.position)) {
+              return "action.condition.position not valid value"
+            }
+            break
+          }
+          case ActionType.MoveToArchived: {
+            const expected_keys: any = ["action"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+
+            if (!["archive","unarchived"].includes(action.condition.action)) {
+              return "action.condition.action not valid value"
+            }
+            break
+          }
           default: {
-            return "action.type not valid value"
+            return "action.type not support for " + action.group_type
           }
         }
+      }
+      case TriggerTypes.AddRemove: {
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.AddCardToList: {}
+          case ActionType.MirrorTheCard: {}
+          case ActionType.AddLabelToCard: {}
+          case ActionType.AddLinkAttachmentToCard: {}
+          case ActionType.RemoveDueDateFromCard: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Date:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.MarkDueDateAsStatus: {}
+          case ActionType.SetDueDate: {}
+          case ActionType.MoveDueDate: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Checklist:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.AddChecklistToCard: {}
+          case ActionType.AddEmptyChecklistToCard: {}
+          case ActionType.AddItemToChecklist: {}
+          case ActionType.AssignCardToUser: {}
+          case ActionType.SetCardDueDate: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Member:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.JoinOrLeaveCard: {}
+          case ActionType.SubscribeToCard: {}
+          case ActionType.AddOrRemoveUser: {}
+          case ActionType.AddOrRemoveRandomUser: {}
+          case ActionType.RemoveAllMembersFromCard: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Content:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.RenameCard: {}
+          case ActionType.ChangeCardDescription: {}
+          case ActionType.PostComment: {}
+          case ActionType.SendEmailNotificiaton: {}
+          case ActionType.SendGetRequestToURL: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Field:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.ClearCustomField: {}
+          case ActionType.SetCustomFieldValue: {}
+          case ActionType.IncreaseCustomFieldNumberValue: {}
+          case ActionType.SetDateValueCustomField: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Sort:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.SortTheListBy: {}
+          case ActionType.SortTheListByCustomField: {}
+          case ActionType.SortTheListByLabel: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+    }
+
+    let mustbe_uuid_condition = ["list_id", "board_id", "card_id", "user_id", "custom_field", "by"];
+    let must_string_condition = ["action", "position", "name", "description", "field", "text"];
+    let must_number_condition = ["quantity", "number"];
+    for (const key of mustbe_uuid_condition) {
+      if (action.condition[key] && !isValidUUID(action.condition[key])) {
+        return `invalid action.condition.${key} uuid`
+      }
+    }
+    for (const key of must_string_condition) {
+      if (action.condition[key] && typeof action.condition[key] != "string") {
+        return `action.condition.${key} should be string`
+      }
+    }
+    for (const key of must_number_condition) {
+      if (action.condition[key] && typeof action.condition[key] != "number") {
+        return `action.condition.${key} should be number`
       }
     }
   }
