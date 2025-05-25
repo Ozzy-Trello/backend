@@ -9,9 +9,9 @@ import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { TriggerDoData } from "../card/card_interfaces";
 import { ZeroAsyncFunction } from "@/types/trigger";
-import { ActionsValue, CardChangesConfig, CardMoveConfig, ConditionType, CopyCondition, MoveCondition, SourceType, UserActionCondition } from "@/types/custom_field";
+import { ActionsValue, ActionType, CardChangesConfig, CardMoveConfig, ConditionType, CopyCondition, MoveCondition, SourceType, TriggerTypes, UserActionCondition } from "@/types/custom_field";
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
-import { validateAction, validateDataByGroupType } from './trigger_interfaces';
+import { TriggerCreateData } from './trigger_interfaces';
 
 export class Trigger {
   private workspace_repo: WorkspaceRepositoryI;
@@ -389,4 +389,430 @@ export class Trigger {
       data: result,
     })
   }
+}
+
+
+export function validateDataByGroupType(payload: any): string | undefined {
+  let required = undefined
+  if (payload.condition == undefined) {
+    required = "condition"
+  } else if (payload.type == undefined) {
+    required = "type"
+  } else if (payload.group_type == undefined) {
+    required = "group_type"
+  } else if (payload.workspace_id == undefined) {
+    required = "workspace_id"
+  } else if (payload.action == undefined) {
+    required = "action"
+  }
+  if (required != undefined) {
+    return "'" + required + "' is required"
+  }
+
+  if (!isValidUUID(payload.workspace_id!)) {
+    return "not valid workspace id"
+  }
+
+  if(typeof payload.group_type != "string") {
+    return "group_type should be string"
+  }
+
+  if(typeof payload.type != "string") {
+    return "type should be string"
+  }
+
+  if(typeof payload.condition != "object" || Array.isArray(payload.condition)) {
+    return "condition should be object"
+  }
+
+  let keys = Object.keys(payload.condition).sort();
+  let expected_keys: any = [];
+
+  switch(String(payload.group_type).toLowerCase()) {
+    case TriggerTypes.CardMove: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.CardInBoard: {
+          expected_keys = ["board", "by", "action"].sort();
+          break
+        }
+        case ConditionType.CardInList: {
+          expected_keys = ["by", "list_id", "action"].sort();
+          break
+        }
+        case ConditionType.ListAction:
+        case ConditionType.CardAction: {
+          expected_keys = ["by", "action"].sort();
+          break
+        }
+        case ConditionType.ListHasCard: {
+          expected_keys = ["list_id", "condition", "quantitative_comparison_operator", "quantity"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    case TriggerTypes.CardChanges: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.CardStatus: {
+          expected_keys = ["status", "by"].sort();
+          break
+        }
+        case ConditionType.LabelOnCard: {
+          expected_keys = ["label_id", "by", "action"].sort();
+          break
+        }
+        case ConditionType.AttachmentAdded:
+        case ConditionType.MemberAdded: {
+          expected_keys = ["by", "action"].sort();
+          break
+        }
+        case ConditionType.UserInCardChange: {
+          expected_keys = ["action", "by", "user_id"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    case TriggerTypes.Date: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.DueDateSet: {
+          expected_keys = ["date_condition", "date", "by"].sort();
+          break
+        }
+        case ConditionType.DateInCardName: {
+          expected_keys = ["card_name", "card_desc", "card_name_or_desc", 
+            "containing_or_start_with_or_ending_with","date"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    case TriggerTypes.Checklist: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.ChecklistOnCard:
+        case ConditionType.ItemAdded: {
+          expected_keys = ["label_id", "by", "action"].sort();
+          break
+        }
+        case ConditionType.ChecklistCompleted: {
+          expected_keys = ["label_id", "by", "status"].sort();
+          break
+        }
+        case ConditionType.DueDateOnItem: {
+          expected_keys = ["date"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    case TriggerTypes.CardContent: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.CardTextStart: {
+          expected_keys = ["card_name", "card_desc", "card_name_or_desc", "start_with"].sort();
+          break
+        }
+        case ConditionType.CommentPosted: {
+          expected_keys = ["by"].sort();
+          break
+        }
+        case ConditionType.MentionInComment: {
+          expected_keys = ["user_id", "comment_id", "by"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    case TriggerTypes.Field: {
+      switch(String(payload.type).toLowerCase()) {
+        case ConditionType.AllFieldsStatus: {
+          expected_keys = ["status"].sort();
+          break
+        }
+        case ConditionType.FieldsStatus: {
+          expected_keys = ["custom_field", "status"].sort();
+          break
+        }
+        case ConditionType.FieldSet:
+        case ConditionType.FieldChecked:
+        case ConditionType.FieldDateSet: {
+          expected_keys = ["custom_field", "by"].sort();
+          break
+        }
+        case ConditionType.FieldSetToValue: {
+          expected_keys = ["custom_field", "value", "by"].sort();
+          break
+        }
+        case ConditionType.FieldNumberCompare: {
+          expected_keys = ["custom_field", "operator", "number", "by"].sort();
+          break
+        }
+        default: {
+          return `not support type for ${payload.group_type}`
+        }
+      }
+      break
+    }
+    default : {
+      return "group_type '" + payload.group_type + "' is not valid value"
+    }
+  }
+  if (String(keys) !== String(expected_keys)) {
+    return `we need ${expected_keys} condition for ${payload.type}`
+  }
+
+  let must_number_condition = ["quantity", "number"];
+  let mustbe_uuid_condition = [
+    "by", "custom_field", "board", "board_id", "list_id", 
+    "comment_id", "user_id", "label_id",
+  ];
+  let must_string_condition = [
+    "action", "card_name", "card_desc", "card_name_or_desc", 
+    "containing_or_start_with_or_ending_with", "start_with", 
+    "status", "value", "operator",
+  ];
+  for (const key of must_number_condition) {
+    if (payload.condition[key] && typeof payload.condition[key] != "number") {
+      return `condition.${key} should be number`
+    }
+  }
+  for (const key of must_string_condition) {
+    if (payload.condition[key] && typeof payload.condition[key] != "string") {
+      return `condition.${key} should be string`
+    }
+  }
+  for (const key of mustbe_uuid_condition) {
+    if (payload.condition[key] && !isValidUUID(payload.condition[key])) {
+      return `invalid condition.${key} uuid`
+    }
+  }
+  return undefined
+}
+
+export function validateAction(actions: Array<any>) : string | undefined {
+  for (let index = 0; index < actions.length; index++) {
+    let required = undefined;
+    const action = actions[index];
+    let keys = Object.keys(action.condition).sort();
+
+    if(typeof action != "object" && !Array.isArray(action)) {
+      return "items in action should be object"
+    }
+
+    if (action.type == undefined) {
+      required = "type"
+    } else if (action.group_type == undefined) {
+      required = "group_type"
+    } else if (action.condition == undefined) {
+      required = "condition"
+    }
+    if (required != undefined) {
+      return "'" + required + "' is required in action items"
+    }
+
+    if(typeof action.condition != "object" || Array.isArray(action.condition)) {
+      return "action.condition should be object"
+    }
+
+    switch(action.group_type) {
+      case TriggerTypes.CardMove: {
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.MoveCardToList: {
+            const expected_keys: any = ["action", "position", "list_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+
+            if (!["move", "copy"].includes(action.condition.action)) {
+              return "action.condition.action not valid value"
+            } else if (!["top_of_list", "bottom_of_list"].includes(action.condition.position)) {
+              return "action.condition.position not valid value"
+            }
+
+            break
+          }
+          case ActionType.MoveCardPosition: {
+            const expected_keys: any = ["action", "position", "list_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+
+            if (!["top_of_list", "bottom_of_list", "next_list", "prev_list"].includes(action.condition.position)) {
+              return "action.condition.position not valid value"
+            }
+            break
+          }
+          case ActionType.MoveToArchived: {
+            const expected_keys: any = ["action"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+
+            if (!["archive","unarchived"].includes(action.condition.action)) {
+              return "action.condition.action not valid value"
+            }
+            break
+          }
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.AddRemove: {
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.AddCardToList: {}
+          case ActionType.MirrorTheCard: {}
+          case ActionType.AddLabelToCard: {}
+          case ActionType.AddLinkAttachmentToCard: {}
+          case ActionType.RemoveDueDateFromCard: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Date:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.MarkDueDateAsStatus: {}
+          case ActionType.SetDueDate: {}
+          case ActionType.MoveDueDate: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Checklist:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.AddChecklistToCard: {}
+          case ActionType.AddEmptyChecklistToCard: {}
+          case ActionType.AddItemToChecklist: {}
+          case ActionType.AssignCardToUser: {}
+          case ActionType.SetCardDueDate: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Member:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.JoinOrLeaveCard: {}
+          case ActionType.SubscribeToCard: {}
+          case ActionType.AddOrRemoveUser: {}
+          case ActionType.AddOrRemoveRandomUser: {}
+          case ActionType.RemoveAllMembersFromCard: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Content:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.RenameCard: {}
+          case ActionType.ChangeCardDescription: {}
+          case ActionType.PostComment: {}
+          case ActionType.SendEmailNotificiaton: {}
+          case ActionType.SendGetRequestToURL: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Field:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.ClearCustomField: {}
+          case ActionType.SetCustomFieldValue: {}
+          case ActionType.IncreaseCustomFieldNumberValue: {}
+          case ActionType.SetDateValueCustomField: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+      case TriggerTypes.Sort:{
+        switch(String(action.type).toLowerCase()) {
+          case ActionType.SortTheListBy: {}
+          case ActionType.SortTheListByCustomField: {}
+          case ActionType.SortTheListByLabel: {}
+          default: {
+            return "action.type not support for " + action.group_type
+          }
+        }
+      }
+    }
+
+    let mustbe_uuid_condition = ["list_id", "board_id", "card_id", "user_id", "custom_field", "by"];
+    let must_string_condition = ["action", "position", "name", "description", "field", "text"];
+    let must_number_condition = ["quantity", "number"];
+    for (const key of mustbe_uuid_condition) {
+      if (action.condition[key] && !isValidUUID(action.condition[key])) {
+        return `invalid action.condition.${key} uuid`
+      }
+    }
+    for (const key of must_string_condition) {
+      if (action.condition[key] && typeof action.condition[key] != "string") {
+        return `action.condition.${key} should be string`
+      }
+    }
+    for (const key of must_number_condition) {
+      if (action.condition[key] && typeof action.condition[key] != "number") {
+        return `action.condition.${key} should be number`
+      }
+    }
+  }
+  return
+}
+
+export function createTriggerCreateData(body: any): ResponseData<TriggerCreateData> {
+  const errorsDataByGroupType = validateDataByGroupType(body);
+  if(errorsDataByGroupType) {
+    return new ResponseData({
+      message: errorsDataByGroupType,
+      status_code: StatusCodes.BAD_REQUEST,
+    })
+  }
+  
+  if(!Array.isArray(body.action)) {
+    return new ResponseData({
+      message: "action should be array",
+      status_code: StatusCodes.BAD_REQUEST,
+    })
+  }
+
+  const errorAction = validateAction(body.action);
+  if(errorAction) {
+    return new ResponseData({
+      message: errorAction,
+      status_code: StatusCodes.BAD_REQUEST,
+    })
+  }
+
+  const res =  new TriggerCreateData({
+    workspace_id:  body.workspace_id,
+    group_type: body.group_type,
+    type: body.type,
+    condition: body.condition,
+    action: body.action,
+  })
+  if (body.filter) {
+    res.filter = body.filter;
+  }
+
+  return new ResponseData({
+    data: res,
+    message: "success",
+    status_code: StatusCodes.OK
+  })
 }
