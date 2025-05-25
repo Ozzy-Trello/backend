@@ -1,11 +1,8 @@
-import { validate as isValidUUID } from 'uuid';
-
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces"
 import { filterTriggerDetail, TriggerDetailUpdate } from "@/repository/trigger/trigger_interfaces"
-import { ActionsValue, ActionType, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field"
+import { ActionsValue, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field"
 import { Paginate } from "@/utils/data_utils"
 import { ResponseData, ResponseListData } from "@/utils/response_utils"
-import { StatusCodes } from 'http-status-codes';
 import { AutomationCondition } from '@/types/trigger';
 import { TriggerDoData } from '../card/card_interfaces';
 
