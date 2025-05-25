@@ -33,3 +33,6 @@ seed:
 
 seed-undo:
 	npm run sequelize -- db:seed:undo:all
+
+test:
+	npm test
