@@ -1,5 +1,5 @@
-import { createTriggerCreateData } from "./trigger_interfaces";
 import { StatusCodes } from "http-status-codes";
+import { createTriggerCreateData } from "./trigger";
 
 describe("createTriggerCreateData", () => {
   it("should return OK and data for valid input", () => {
@@ -98,5 +98,24 @@ describe("createTriggerCreateData", () => {
     const result = createTriggerCreateData(body);
     expect(result.status_code).toBe(StatusCodes.BAD_REQUEST);
     expect(result.message).toMatch(/action.condition should be object/);
+  });
+
+  it("should return BAD_REQUEST if action.condition is not object", () => {
+    const body = {
+      workspace_id: "b7e6a1e2-8c2e-4b7a-9c1a-2b7e6a1e2a1e",
+      group_type: "aaaacard_move",
+      type: "when_a_card_<filter>_is_<action>_to_the_<board>_by_<by>",
+      condition: { action: "added", board: "b7e6a1e2-8c2e-4b7a-9c1a-2b7e6a1e2a1e", by: "user" },
+      action: [
+        {
+          type: "<action>_the_card_to_a_specific_<position>_<optional_board>",
+          group_type: "card_move",
+          condition: "not-an-object"
+        }
+      ]
+    };
+    const result = createTriggerCreateData(body);
+    expect(result.status_code).toBe(StatusCodes.BAD_REQUEST);
+    expect(result.message).toMatch(/group_type 'aaaacard_move' is not valid value/);
   });
 });
