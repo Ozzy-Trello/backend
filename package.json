@@ -33,7 +33,8 @@
     "lint": "eslint .",
     "build": "tsc",
     "sequelize": "node -r ts-node/register -r module-alias/register ./node_modules/.bin/sequelize",
-    "sequelize-auto": "node -r ts-node/register -r module-alias/register ./node_modules/.bin/sequelize-auto"
+    "sequelize-auto": "node -r ts-node/register -r module-alias/register ./node_modules/.bin/sequelize-auto",
+    "test": "jest"
   },
   "engines": {
     "node": ">=22.12.0"
