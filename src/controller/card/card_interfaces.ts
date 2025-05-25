@@ -314,7 +314,7 @@ export class CardCreateData {
     }
 
 		if (this.type && (this.type != CardType.Regular && this.type != CardType.Dashcard)) {
-			return "Invalid card type";
+			return "only 'regular' and 'dashcard' types are allowed";
 		}
     
     if (this.type === CardType.Dashcard && this.dash_config) {
@@ -333,7 +333,7 @@ export class CardCreateData {
       const dashConfigError = dashConfig.validate();
       if (dashConfigError) return dashConfigError;
     } else if (this.type != CardType.Regular) {
-			return "Invalid card type";
+			return "only 'regular' and 'dashcard' types are allowed";
 		}
     
     return null;
