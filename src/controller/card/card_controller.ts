@@ -1085,4 +1085,22 @@ export class CardController implements CardControllerI {
     }
   }
 
+  async MakeMirrorCard(user_id: string, card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    if (!isValidUUID(target_list_id)) {
+      return new ResponseData({
+        message: "'list_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    // Optionally: validasi card utama dan list target exist (bisa pakai repo)
+    const result = await this.card_repo.copyCardWithMirror(card_id, target_list_id);
+    return result;
+  }
+
 }

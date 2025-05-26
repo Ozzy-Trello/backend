@@ -30,6 +30,7 @@ export interface CardControllerI {
 	GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>
 	CompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
 	IncompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>> // Added
+	MakeMirrorCard(user_id: string, card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>>;
 }
 
 export class CreateCardResponse {

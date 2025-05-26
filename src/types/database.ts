@@ -89,7 +89,16 @@ export interface CardTable {
   description: string;
   order: number;
   dash_config?: any;
+  location?: string;
   archive?: boolean;
+  start_date?: Date;
+  due_date?: Date;
+  due_date_reminder?: string;
+  is_complete?: boolean;
+  completed_at?: Date;
+  mirror_id?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface BoardMemberTable {

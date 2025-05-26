@@ -1,5 +1,5 @@
 import { createTriggerCreateData } from "@/controller/trigger/trigger";
-import { TriggerControllerI, TriggerCreateData, TriggerFilter, UpdateTriggerData } from "@/controller/trigger/trigger_interfaces";
+import { TriggerControllerI, TriggerFilter, UpdateTriggerData } from "@/controller/trigger/trigger_interfaces";
 import { Paginate } from "@/utils/data_utils";
 import { TriggerRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";

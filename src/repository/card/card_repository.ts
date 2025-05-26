@@ -315,8 +315,37 @@ export class CardRepository implements CardRepositoryI {
 
 	async updateCard(filter: filterCardDetail, data: CardDetailUpdate): Promise<number> {
 		try {
-			await db.updateTable('card').set(data.toObject()).where((eb) => this.createKyFilter(eb, filter)).execute()
-			return StatusCodes.NO_CONTENT
+			// Cek apakah card adalah mirror
+			const card = await db.selectFrom('card').where('id', '=', filter.id!).selectAll().executeTakeFirst();
+			if (card && card.mirror_id) {
+				throw new InternalServerError(StatusCodes.BAD_REQUEST, 'Tidak bisa mengubah mirror card');
+			}
+			// Update card utama
+			await db.updateTable('card').set(data.toObject()).where((eb) => this.createKyFilter(eb, filter)).execute();
+
+			// Cek apakah card ini card utama (bukan mirror)
+			const mainCard = await db.selectFrom('card').where('id', '=', filter.id!).selectAll().executeTakeFirst();
+			if (mainCard && !mainCard.mirror_id) {
+				// Siapkan data yang boleh di-mirror
+				const mirrorUpdate: Partial<CardTable> = {
+					name: data.name,
+					description: data.description,
+					dash_config: data.dash_config,
+					location: data.location,
+					archive: data.archive,
+					start_date: data.start_date ? new Date(data.start_date) : undefined,
+					due_date: data.due_date ? new Date(data.due_date) : undefined,
+					due_date_reminder: data.due_date_reminder,
+					is_complete: data.is_complete,
+					completed_at: data.completed_at ? new Date(data.completed_at) : undefined,
+				};
+				// Update semua mirror card
+				await db.updateTable('card')
+					.set(mirrorUpdate)
+					.where('mirror_id', '=', filter.id!)
+					.execute();
+			}
+			return StatusCodes.NO_CONTENT;
 		} catch (e) {
 			if (e instanceof Error) {
 				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message)
@@ -648,6 +677,89 @@ export class CardRepository implements CardRepositoryI {
 			console.error("Error counting cards:", e);
 			return 0;
 		}
+	}
+
+	async copyCardWithMirror(card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>> {
+		// Ambil data card utama
+		const mainCardRes = await this.getCard({ id: card_id });
+		if (mainCardRes.status_code !== StatusCodes.OK || !mainCardRes.data) {
+			return new ResponseData({
+				message: mainCardRes.message || 'Card utama tidak ditemukan',
+				status_code: mainCardRes.status_code,
+			});
+		}
+		const mainCard = mainCardRes.data;
+		// Dapatkan order paling bawah di list target
+		const bottomOrderRes = await this.newBottomOrderCard(target_list_id);
+		if (bottomOrderRes.status_code !== StatusCodes.OK) {
+			return new ResponseData({
+				message: bottomOrderRes.message,
+				status_code: bottomOrderRes.status_code,
+			});
+		}
+		// Insert card baru (mirror)
+		const newCardId = uuidv4();
+		const insertRes = await db
+			.insertInto('card')
+			.values({
+				id: newCardId,
+				name: mainCard.name!,
+				description: mainCard.description,
+				list_id: target_list_id,
+				type: mainCard.type,
+				order: bottomOrderRes.data!,
+				dash_config: mainCard.dash_config,
+				location: mainCard.location,
+				archive: false,
+				start_date: mainCard.start_date,
+				due_date: mainCard.due_date,
+				due_date_reminder: mainCard.due_date_reminder,
+				is_complete: mainCard.is_complete,
+				completed_at: mainCard.completed_at,
+				mirror_id: mainCard.id,
+			})
+			.returning(['id'])
+			.executeTakeFirst();
+		if (!insertRes) {
+			return new ResponseData({
+				message: 'Gagal membuat mirror card',
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+			});
+		}
+		const fullCard = await db
+			.selectFrom('card')
+			.where('id', '=', insertRes.id)
+			.selectAll()
+			.executeTakeFirst();
+		if (!fullCard) {
+			return new ResponseData({
+				message: 'Gagal mengambil detail card baru',
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+			});
+		}
+		return new ResponseData({
+			data: new CardDetail({
+				id: fullCard.id,
+				name: fullCard.name,
+				description: fullCard.description,
+				order: fullCard.order,
+				list_id: fullCard.list_id,
+				type: fullCard.type,
+				dash_config: fullCard.dash_config,
+				location: fullCard.location ?? "",
+				archive: fullCard.archive,
+				start_date: fullCard.start_date,
+				due_date: fullCard.due_date,
+				due_date_reminder: fullCard.due_date_reminder,
+				is_complete: fullCard.is_complete,
+				completed_at: fullCard.completed_at,
+				mirror_id: fullCard.mirror_id,
+				created_at: fullCard.created_at,
+				updated_at: fullCard.updated_at,
+			}),
+			message: 'success',
+			status_code: StatusCodes.CREATED,
+		});
 	}
 
 }

@@ -223,18 +223,18 @@ export class Trigger {
       });
     }
 
-    const errorAction = validateAction(trigger.data!.action);
-    if(errorAction) {
-      return new ResponseData({
-        message: errorAction,
-        status_code: StatusCodes.BAD_REQUEST,
-      })
-    }
-
     const errorsDataByGroupType = validateDataByGroupType(trigger.data!);
     if(errorsDataByGroupType) {
       return new ResponseData({
         message: errorsDataByGroupType,
+        status_code: StatusCodes.BAD_REQUEST,
+      })
+    }
+
+    const errorAction = validateAction(trigger.data!.action);
+    if(errorAction) {
+      return new ResponseData({
+        message: errorAction,
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
