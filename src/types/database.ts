@@ -20,6 +20,7 @@ export interface Database {
   card_activity_text: CardActionTextTable;
   role: RoleTable;
   label: LabelTable;
+  card_member: CardMemberTable;
 }
 
 export interface UserTable {
@@ -171,4 +172,11 @@ export interface LabelTable {
   value_type: 'color' | 'user' | 'custom_field';
   created_at?: Date;
   updated_at?: Date;
+}
+
+export interface CardMemberTable {
+  id: string;
+  card_id: string;
+  user_id: string;
+  created_at: Date;
 }
