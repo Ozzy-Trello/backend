@@ -20,6 +20,7 @@ interface CardAttributes {
     updated_at?: Date;
     is_complete?: boolean; // Added
     completed_at?: Date;   // Added
+    mirror_id?: string | null; // Mirror card support
 }
 
 interface CardCreationAttributes extends Optional<CardAttributes, 'id'> {}
@@ -39,6 +40,7 @@ class Card extends Model<CardAttributes, CardCreationAttributes> implements Card
     public dash_config?: JSON;
     public is_complete?: boolean; // Added
     public completed_at?: Date;   // Added
+    public mirror_id?: string | null; // Mirror card support
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -105,6 +107,10 @@ Card.init(
         },
         completed_at: {
             type: DataTypes.DATE,
+            allowNull: true,
+        },
+        mirror_id: {
+            type: DataTypes.UUID,
             allowNull: true,
         },
         created_at: {

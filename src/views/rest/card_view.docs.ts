@@ -1,4 +1,3 @@
-
 /**
  * @swagger
  * components:
@@ -201,6 +200,8 @@
  *       500:
  *         description: Internal Server Error
  */
+
+
 
 /**
  * @swagger
@@ -896,4 +897,48 @@
  *     responses:
  *       200:
  *         description: Successful response
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/make-mirror:
+ *   post:
+ *     summary: Create a mirror of a card
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to mirror
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - list_id
+ *             properties:
+ *               list_id:
+ *                 type: string
+ *                 description: ID of the target list where the mirror card will be created
+ *             example:
+ *               list_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card mirrored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCardModel'
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card not found
+ *       500:
+ *         description: Internal Server Error
  */

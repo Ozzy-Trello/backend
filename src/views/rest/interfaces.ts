@@ -67,6 +67,13 @@ export interface CardRestViewI {
     GetCardTimeInList(req: Request, res: Response): Promise<void>;
     GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
     GetDashcardCount(req: Request, res: Response): Promise<void>;
+    MakeMirrorCard(req: Request, res: Response): Promise<void>;
+}
+
+export interface CardMemberRestViewI {
+    getMembers(req: Request, res: Response): Promise<void>;
+    addMembers(req: Request, res: Response): Promise<void>;
+    removeMember(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {
@@ -99,3 +106,4 @@ export interface LabelRestViewI {
     UpdateLabel(req: Request, res: Response): Promise<void>;
     DeleteLabel(req: Request, res: Response): Promise<void>;
 }
+

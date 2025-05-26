@@ -28,6 +28,7 @@ export default class CardRestView implements CardRestViewI {
     this.GetDashcardCount = this.GetDashcardCount.bind(this)
     this.CompleteCard = this.CompleteCard.bind(this)
     this.IncompleteCard = this.IncompleteCard.bind(this)
+    this.MakeMirrorCard = this.MakeMirrorCard.bind(this)
   }
   
   async ArchiveCard(req: Request, res: Response): Promise<void> {
@@ -489,5 +490,27 @@ export default class CardRestView implements CardRestViewI {
       return;
     }
     res.status(result.status_code).json({ message: result.message });
+  }
+
+  async MakeMirrorCard(req: Request, res: Response): Promise<void> {
+    const cardId = req.params.id?.toString();
+    const targetListId = req.body.list_id?.toString();
+    if (!cardId || !targetListId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "'id' param dan 'list_id' di body harus diisi",
+      });
+      return;
+    }
+    const result = await this.card_controller.MakeMirrorCard(req.auth!.user_id, cardId, targetListId);
+    if (result.status_code !== StatusCodes.CREATED) {
+      res.status(result.status_code).json({
+        message: result.message,
+      });
+      return;
+    }
+    res.status(result.status_code).json({
+      data: result.data,
+      message: result.message,
+    });
   }
 }

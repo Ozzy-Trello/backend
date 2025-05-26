@@ -26,6 +26,7 @@ export interface CardRepositoryI {
   countCards(filter: any): Promise<number>
   newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
+  copyCardWithMirror(card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>>;
 }
 
 export class CardActivity {
@@ -199,9 +200,12 @@ export class CardDetail {
   public archive?: boolean;
   public is_complete?: boolean; // Added
   public completed_at?: Date;   // Added
+  public mirror_id?: string | null;
+  public is_mirror: boolean = false;
   
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
+    this.is_mirror = !!payload.mirror_id;
   }
   
   getDashConfig(): DashCardConfig | null {
@@ -230,4 +234,48 @@ export interface filterCount {
   _matches_board?: string;
   _starts_with_list?: string;
   _matches_list?: string;
+}
+
+export class CardResponse {
+  id!: string;
+  name?: string;
+  description?: string;
+  location?: string;
+  order?: number;
+  list_id?: string;
+  type?: string;
+  cover?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  dash_config?: DashCardConfig;
+  formatted_time_in_list?: string;
+  formatted_time_in_board?: string;
+  is_complete?: boolean; // Added
+  completed_at?: Date;   // Added
+  is_mirror: boolean = false;
+  mirror_id?: string | null;
+  constructor(payload: Partial<CardResponse>) {
+    Object.assign(this, payload)
+    this.is_mirror = !!payload.mirror_id;
+  }
+}
+
+export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
+  return new CardResponse({
+    id: data.id,
+    name: data.name!,
+    type: data.type,
+    description: data.description,
+    location: data?.location,
+    order: data.order,
+    list_id: data.list_id,
+    dash_config: data.dash_config,
+    cover: data.cover,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    formatted_time_in_list: data.formatted_time_in_list,
+    formatted_time_in_board: data.formatted_time_in_board,
+    is_mirror: data.is_mirror,
+    mirror_id: data.mirror_id,
+  })
 }

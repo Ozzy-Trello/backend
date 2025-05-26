@@ -20,6 +20,7 @@ export interface Database {
   card_activity_text: CardActionTextTable;
   role: RoleTable;
   label: LabelTable;
+  card_member: CardMemberTable;
 }
 
 export interface UserTable {
@@ -89,7 +90,16 @@ export interface CardTable {
   description: string;
   order: number;
   dash_config?: any;
+  location?: string;
   archive?: boolean;
+  start_date?: Date;
+  due_date?: Date;
+  due_date_reminder?: string;
+  is_complete?: boolean;
+  completed_at?: Date;
+  mirror_id?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface BoardMemberTable {
@@ -162,4 +172,11 @@ export interface LabelTable {
   value_type: 'color' | 'user' | 'custom_field';
   created_at?: Date;
   updated_at?: Date;
+}
+
+export interface CardMemberTable {
+  id: string;
+  card_id: string;
+  user_id: string;
+  created_at: Date;
 }
