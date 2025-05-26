@@ -636,13 +636,11 @@ export function validateAction(actions: Array<any>) : string | undefined {
             if (String(keys) !== String(expected_keys)) {
               return `we need ${expected_keys} fields for ${action.type}`
             }
-
             if (!["move", "copy"].includes(action.condition.action)) {
               return "action.condition.action not valid value"
             } else if (!["top_of_list", "bottom_of_list"].includes(action.condition.position)) {
               return "action.condition.position not valid value"
             }
-
             break
           }
           case ActionType.MoveCardPosition: {
@@ -650,7 +648,6 @@ export function validateAction(actions: Array<any>) : string | undefined {
             if (String(keys) !== String(expected_keys)) {
               return `we need ${expected_keys} fields for ${action.type}`
             }
-
             if (!["top_of_list", "bottom_of_list", "next_list", "prev_list"].includes(action.condition.position)) {
               return "action.condition.position not valid value"
             }
@@ -661,7 +658,6 @@ export function validateAction(actions: Array<any>) : string | undefined {
             if (String(keys) !== String(expected_keys)) {
               return `we need ${expected_keys} fields for ${action.type}`
             }
-
             if (!["archive","unarchived"].includes(action.condition.action)) {
               return "action.condition.action not valid value"
             }
@@ -671,85 +667,281 @@ export function validateAction(actions: Array<any>) : string | undefined {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
       case TriggerTypes.AddRemove: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.AddCardToList: {}
-          case ActionType.MirrorTheCard: {}
-          case ActionType.AddLabelToCard: {}
-          case ActionType.AddLinkAttachmentToCard: {}
-          case ActionType.RemoveDueDateFromCard: {}
+          case ActionType.AddCardToList: {
+            const expected_keys: any = ["name", "position", "list_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.MirrorTheCard: {
+            const expected_keys: any = ["position", "list_id", "board_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AddLabelToCard: {
+            const expected_keys: any = ["label_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AddLinkAttachmentToCard: {
+            const expected_keys: any = ["link"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.RemoveDueDateFromCard: {
+            // Tidak ada field khusus
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Date:{
+      case TriggerTypes.Date: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.MarkDueDateAsStatus: {}
-          case ActionType.SetDueDate: {}
-          case ActionType.MoveDueDate: {}
+          case ActionType.MarkDueDateAsStatus: {
+            const expected_keys: any = ["status"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SetDueDate: {
+            const expected_keys: any = ["date"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.MoveDueDate: {
+            const expected_keys: any = ["date"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Checklist:{
+      case TriggerTypes.Checklist: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.AddChecklistToCard: {}
-          case ActionType.AddEmptyChecklistToCard: {}
-          case ActionType.AddItemToChecklist: {}
-          case ActionType.AssignCardToUser: {}
-          case ActionType.SetCardDueDate: {}
+          case ActionType.AddChecklistToCard: {
+            const expected_keys: any = ["add_or_remove", "checklist_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AddEmptyChecklistToCard: {
+            const expected_keys: any = ["checklist_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AddItemToChecklist: {
+            const expected_keys: any = ["item_name", "checklist_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AssignCardToUser: {
+            const expected_keys: any = ["user_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SetCardDueDate: {
+            const expected_keys: any = ["date"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Member:{
+      case TriggerTypes.Member: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.JoinOrLeaveCard: {}
-          case ActionType.SubscribeToCard: {}
-          case ActionType.AddOrRemoveUser: {}
-          case ActionType.AddOrRemoveRandomUser: {}
-          case ActionType.RemoveAllMembersFromCard: {}
+          case ActionType.JoinOrLeaveCard: {
+            const expected_keys: any = ["join_or_leave"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SubscribeToCard: {
+            // Tidak ada field khusus
+            break;
+          }
+          case ActionType.AddOrRemoveUser: {
+            const expected_keys: any = ["add_or_remove", "user_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.AddOrRemoveRandomUser: {
+            const expected_keys: any = ["add_or_remove", "user_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.RemoveAllMembersFromCard: {
+            // Tidak ada field khusus
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Content:{
+      case TriggerTypes.Content:
+      case TriggerTypes.CardContent: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.RenameCard: {}
-          case ActionType.ChangeCardDescription: {}
-          case ActionType.PostComment: {}
-          case ActionType.SendEmailNotificiaton: {}
-          case ActionType.SendGetRequestToURL: {}
+          case ActionType.RenameCard: {
+            const expected_keys: any = ["name"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.ChangeCardDescription: {
+            const expected_keys: any = ["description"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.PostComment: {
+            const expected_keys: any = ["text"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SendEmailNotificiaton: {
+            const expected_keys: any = ["email", "subject", "text"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SendGetRequestToURL: {
+            const expected_keys: any = ["url"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Field:{
+      case TriggerTypes.Field: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.ClearCustomField: {}
-          case ActionType.SetCustomFieldValue: {}
-          case ActionType.IncreaseCustomFieldNumberValue: {}
-          case ActionType.SetDateValueCustomField: {}
+          case ActionType.ClearCustomField: {
+            const expected_keys: any = ["custom_field_id"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SetCustomFieldValue: {
+            const expected_keys: any = ["custom_field_id", "value"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.IncreaseCustomFieldNumberValue: {
+            const expected_keys: any = ["custom_field_id", "value"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SetDateValueCustomField: {
+            const expected_keys: any = ["custom_field_id", "date"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
       }
-      case TriggerTypes.Sort:{
+      case TriggerTypes.Sort: {
         switch(String(action.type).toLowerCase()) {
-          case ActionType.SortTheListBy: {}
-          case ActionType.SortTheListByCustomField: {}
-          case ActionType.SortTheListByLabel: {}
+          case ActionType.SortTheListBy: {
+            const expected_keys: any = ["field", "order"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SortTheListByCustomField: {
+            const expected_keys: any = ["custom_field_id", "order"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
+          case ActionType.SortTheListByLabel: {
+            const expected_keys: any = ["label_id", "order"].sort();
+            if (String(keys) !== String(expected_keys)) {
+              return `we need ${expected_keys} fields for ${action.type}`
+            }
+            break;
+          }
           default: {
             return "action.type not support for " + action.group_type
           }
         }
+        break;
+      }
+      case TriggerTypes.CardChanges: {
+        // Contoh validasi sederhana untuk CardChanges
+        if (!action.condition || typeof action.condition !== "object") {
+          return "action.condition should be object for CardChanges"
+        }
+        if (!action.condition.user_id || typeof action.condition.user_id !== "string") {
+          return "action.condition.user_id is required and should be string for CardChanges"
+        }
+        if (!action.condition.by || typeof action.condition.by !== "string") {
+          return "action.condition.by is required and should be string for CardChanges"
+        }
+        break;
+      }
+      default: {
+        return "action.group_type not supported: " + action.group_type;
       }
     }
 
