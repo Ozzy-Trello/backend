@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
+import { CardActionValue, CardActivityType, ConditionType, EnumCustomFieldType, EnumCustomFieldSource, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from './trigger';
 import { PermissionStructure } from '@/utils/security_utils';
 
@@ -50,7 +50,11 @@ export interface CustomFieldTable {
   workspace_id: string;
   trigger_id?: string;
   description: string;
-  source: SourceType;
+  source: EnumCustomFieldSource;
+  type: EnumCustomFieldType;
+  is_show_at_front: boolean;
+  options?: any;
+  order: number;
 }
 
 export interface BoardCustomFieldTable {

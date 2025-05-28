@@ -4,7 +4,7 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardDetail, CardDetailUpdate, filterCardDetail } from "@/repository/card/card_interfaces";
 import { AssignCardDetail } from '@/repository/custom_field/custom_field_interfaces';
-import { CardActionValue, CardActivityType, ConditionType, SourceType, TriggerTypes } from '@/types/custom_field';
+import { CardActionValue, CardActivityType, ConditionType, EnumCustomFieldSource, TriggerTypes } from '@/types/custom_field';
 import { AutomationCondition } from '@/types/trigger';
 import { CardListTimeDetail } from '@/repository/card_list_time/card_list_time_interface';
 import { CardBoardTimeDetail } from '@/repository/card_board_time/card_board_time_interface';
@@ -68,7 +68,7 @@ export class AssignCardResponse {
 	description?: string;
 	value?: null | string | number;
 	order!: number;
-	source!: SourceType;
+	source!: EnumCustomFieldSource;
 	location?: string;
 
 	constructor(payload: Partial<AssignCardResponse>) {
@@ -263,7 +263,6 @@ export class CardCreateData {
         this.dash_config = DashCardConfig.fromJSON(this.dash_config);
       } catch (e) {
         console.error("Invalid dash_config JSON:", e);
-        // You might want to handle this error differently
       }
     } else if (this.dash_config && !(this.dash_config instanceof DashCardConfig)) {
       // If it's an object but not a DashCardConfig instance

@@ -3,7 +3,7 @@ import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CustomFieldDetail, CustomFieldDetailUpdate, filterCustomFieldDetail } from "@/repository/custom_field/custom_field_interfaces";
-import { SourceType } from '@/types/custom_field';
+import { EnumCustomFieldType, EnumCustomFieldSource } from '@/types/custom_field';
 
 export interface CustomFieldControllerI {
 	CreateCustomField(user_id: string, data: CustomFieldCreateData): Promise<ResponseData<CreateCustomFieldResponse>>
@@ -25,11 +25,26 @@ export class CustomFieldResponse {
 	id!: string;
 	name?: string;
 	description?: string;
-	source?: SourceType;
+	source?: EnumCustomFieldSource;
 	trigger_id?: string;
+	type!: EnumCustomFieldType;
+	is_show_at_front!: boolean;
+	options?: CustomOptions | string;
+	order!: number;
 
 	constructor(payload: Partial<CustomFieldResponse>) {
-		Object.assign(this, payload)
+		Object.assign(this, payload);
+
+		if (typeof this.options === 'string') {
+			try {
+				console.log("parsing to json...");
+				this.options = CustomOptions.toJSON(this.options);
+				console.log("parsing to json...");
+			} catch (e) {
+				console.log("gagal parsing: %o: ", e);
+				console.error("Invalid options JSON:", e);
+			}
+		}
 	}
 }
 
@@ -94,7 +109,7 @@ export class CustomFieldFilter {
 	name?: string;
 	workspace_id?: string
 	description?: string;
-	source?: SourceType;
+	source?: EnumCustomFieldSource;
 	trigger_id?: string;
 
 	constructor(payload: Partial<CustomFieldFilter>) {
@@ -140,11 +155,26 @@ export class CustomFieldCreateData {
 	name!: string;
 	description?: string;
 	workspace_id!: string;
-	source!: SourceType;
+	source!: EnumCustomFieldSource;
 	trigger_id?: string;
+	type!: EnumCustomFieldType;
+	is_show_at_front!: boolean;
+	options?: CustomOptions | string;
+	order!: number;
 
 	constructor(payload: Partial<CustomFieldCreateData>) {
 		Object.assign(this, payload)
+		// Convert options from string to CustomOptions if needed
+		if (typeof this.options === 'string') {
+			try {
+				this.options = CustomOptions.toJSON(this.options);
+			} catch (e) {
+				console.error("Invalid options JSON:", e);
+			}
+		} else if (this.options && !(this.options instanceof CustomOptions)) {
+			// If it's an object but not a DashCardConfig instance
+			this.options = new CustomOptions(this.options as any);
+		}
 		this.toCustomFieldDetail = this.toCustomFieldDetail.bind(this);
 		this.checkRequired = this.checkRequired.bind(this);
 		this.getErrorField = this.getErrorField.bind(this);
@@ -156,6 +186,10 @@ export class CustomFieldCreateData {
 			description: this.description,
 			workspace_id: this.workspace_id,
 			source: this.source,
+			type: this.type,
+			is_show_at_front: this.is_show_at_front,
+			options: this.options,
+			order: this.order,
 			trigger: {
 				id: this.trigger_id!,
 				condition_value: "",
@@ -177,9 +211,48 @@ export class CustomFieldCreateData {
 		if(this.trigger_id && !isValidUUID(this.trigger_id)) {
 			return "'trigger_id' is not valid uuid"
 		}
-		if (this.source && typeof this.source == "string" && !(this.source.toLowerCase() == "user" || this.source.toLowerCase() == "product" || this.source.toLowerCase() == "custom_value")) {
-			return "'source' sould be 'user','product' or 'custom_value'"
+		if (this.source && typeof this.source == "string" && 
+			!( 
+				this.source.toLowerCase() == EnumCustomFieldSource.Custom || 
+				this.source.toLowerCase() == EnumCustomFieldSource.Product || 
+				this.source.toLowerCase() == EnumCustomFieldSource.User
+			)) {
+			return "'source' sould be 'user','product' or 'custom'"
 		}
 		return null
 	}
+}
+
+export interface CustomOption {
+  value: string;
+  label: string;
+}
+
+export class CustomOptions extends Array<CustomOption> {
+  constructor(options: CustomOption[]) {
+    super();
+    this.push(...options);
+  }
+  
+  validate(): string | null {
+    if (!Array.isArray(this)) return "options must be an array";
+    return null;
+  }
+  
+  toString(): string {
+    return JSON.stringify(this);
+  }
+  
+  static toJSON(jsonStr: string): CustomOptions {
+    try {
+      const data = JSON.parse(jsonStr);
+      return new CustomOptions(data);
+    } catch (e) {
+      throw new Error("Invalid options JSON");
+    }
+  }
+  
+  toJSON(): CustomOption[] {
+    return [...this];
+  }
 }

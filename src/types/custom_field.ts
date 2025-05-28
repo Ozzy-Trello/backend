@@ -1,6 +1,15 @@
-export enum SourceType {
+export enum EnumCustomFieldSource {
   User = 'user',
-  Product = 'product'
+  Product = 'product',
+  Custom = 'custom'
+}
+
+export enum EnumCustomFieldType {
+  Checkbox = 'checkbox',
+  Dropdown = 'dropdown',
+  Number = 'number',
+  Text = 'text',
+  Date = 'date'
 }
 
 export enum TriggerTypes {

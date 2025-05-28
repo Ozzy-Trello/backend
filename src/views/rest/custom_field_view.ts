@@ -17,13 +17,19 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
   }
 
   async CreateCustomField(req: Request, res: Response): Promise<void> {
-    let accResponse = await this.custom_field_controller.CreateCustomField(req.auth!.user_id, new CustomFieldCreateData({ 
-      name: req.body.name?.toString(),
-      description: req.body.description?.toString(),
-      workspace_id: req.body.workspace_id?.toString(),
-      source: req.body.source?.toString(),
-      trigger_id: req.body.trigger_id
-    }))
+    let accResponse = await this.custom_field_controller.CreateCustomField(req.auth!.user_id, 
+      new CustomFieldCreateData({ 
+        name: req.body.name?.toString(),
+        description: req.body.description?.toString(),
+        workspace_id: req.body.workspace_id?.toString(),
+        source: req.body.source?.toString(),
+        type: req.body.type?.toString(),
+        is_show_at_front: req.body.is_show_at_front,
+        options: req.body.options,
+        order: req.body.order,
+        trigger_id: req.body.trigger_id
+      })
+    );
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({

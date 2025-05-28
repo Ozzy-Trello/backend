@@ -8,7 +8,7 @@ import { CreateCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponse, 
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { TriggerControllerI, TriggerFilter } from '../trigger/trigger_interfaces';
 import { TriggerRepositoryI } from '@/repository/trigger/trigger_interfaces';
-import { SourceType } from '@/types/custom_field';
+import { EnumCustomFieldSource } from '@/types/custom_field';
 
 export class CustomFieldController implements CustomFieldControllerI {
   private custom_field_repo: CustomFieldRepositoryI
@@ -38,6 +38,8 @@ export class CustomFieldController implements CustomFieldControllerI {
       })
     }
 
+    console.log("In controller: CreateCustomField: %o", data);
+
     let errorField = data.getErrorField();
     if (errorField) {
       return new ResponseData({
@@ -66,14 +68,14 @@ export class CustomFieldController implements CustomFieldControllerI {
       })
     }
 
-    if (data.trigger_id) {
-      const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
-      if (checkTrigger.status_code != StatusCodes.OK) {
-        return new ResponseData({
-          message: checkTrigger.message,
-          status_code: checkTrigger.status_code
-        })
-      }
+    // if (data.trigger_id) {
+      // const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
+      // if (checkTrigger.status_code != StatusCodes.OK) {
+      //   return new ResponseData({
+      //     message: checkTrigger.message,
+      //     status_code: checkTrigger.status_code
+      //   })
+      // }
 
       // let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, checkCustomField.data?.source!, checkTrigger.data?.action!)
       // if (checkSourceVal.status_code != StatusCodes.OK){
@@ -82,7 +84,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       //     status_code: checkSourceVal.status_code,
       //   })
       // }
-    }
+    // }
 
     let createResponse = await this.custom_field_repo.createCustomField(data.toCustomFieldDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
