@@ -17,9 +17,18 @@ module.exports = {
       type: Sequelize.BOOLEAN,
       allowNull: true,
     });
+
+    await queryInterface.changeColumn("card_custom_field", "order", {
+      type: Sequelize.INTEGER,
+      allowNull: true,
+    });
   },
 
   async down (queryInterface, Sequelize) {
+     await queryInterface.changeColumn("card_custom_field", "order", {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    });
     await queryInterface.removeColumn("card_custom_field", "value_checkbox");
     await queryInterface.removeColumn("card_custom_field", "value_date");
     await queryInterface.removeColumn("card_custom_field", "value_option");
