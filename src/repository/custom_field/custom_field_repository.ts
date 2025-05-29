@@ -252,12 +252,12 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					is_show_at_front: data.is_show_at_front,
 					options: data?.options || {},
 					order: data.order,
-					source: data.source,
+					source: data?.source || EnumCustomFieldSource.Custom,
 					id: id,
 					trigger_id: data.trigger?.id
 				})
 				.execute();
-		
+			console.log("in repo ini");
 			return new ResponseData({
 				status_code: StatusCodes.CREATED,
 				message: "create custom field success",
@@ -273,6 +273,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				})
 			})
 		} catch (e) {
+			console.log("in repo err: err: %o", e);
 			return new ResponseData({
 				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
 				message: e instanceof Error ? e.message : String(e),
@@ -587,23 +588,25 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 				)
 				.selectAll('cs')
 				.select([
-					sql<boolean>`css.value_checkbox`.as('value_checkbox'),
-					sql<string>`css.value_user_id`.as('value_user_id'),
-					sql<string>`css.value_option`.as('value_option'),
-					sql<string>`css.value_string`.as('value_string'),
-					sql<number>`css.value_number`.as('value_number'),
-					sql<Date>`css.value_date`.as('value_date'),
+					// Changed 'css' to 'ccs' to match the alias defined in leftJoin
+					sql<boolean>`ccs.value_checkbox`.as('value_checkbox'),
+					sql<string>`ccs.value_user_id`.as('value_user_id'),
+					sql<string>`ccs.value_option`.as('value_option'),
+					sql<string>`ccs.value_string`.as('value_string'),
+					sql<number>`ccs.value_number`.as('value_number'),
+					sql<Date>`ccs.value_date`.as('value_date'),
 				] as const)
 				.where('cs.workspace_id', '=', workspace_id)
 				.orderBy('cs.order', 'asc')
 				.execute();
-
+				
 			return new ResponseData({
 				status_code: StatusCodes.OK,
 				message: "card custom field list",
 				data: result.map((item) => new CardCustomFieldResponse(item))
 			});
 		} catch (e) {
+			console.log("CardCustomFieldResponse: err: %o", e);
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}

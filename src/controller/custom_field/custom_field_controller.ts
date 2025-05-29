@@ -3,7 +3,7 @@ import { validate as isValidUUID } from 'uuid';
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
+import { CardCustomFieldResponse, CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
 import { CreateCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponseCustomField, CustomFieldControllerI, CustomFieldCreateData, CustomFieldFilter, CustomFieldResponse, UpdateCustomFieldData } from '@/controller/custom_field/custom_field_interfaces';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { TriggerControllerI, TriggerFilter } from '../trigger/trigger_interfaces';
@@ -296,5 +296,10 @@ export class CustomFieldController implements CustomFieldControllerI {
       message: "CustomField is updated successful",
       status_code: StatusCodes.NO_CONTENT,
     })
+  }
+
+  async GetListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
+    const cardListCardCustomField = await this.custom_field_repo.getListCardCustomField(workspace_id, card_id);
+    return cardListCardCustomField
   }
 }

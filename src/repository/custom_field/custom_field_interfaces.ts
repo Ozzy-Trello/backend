@@ -285,18 +285,18 @@ export class CardCustomFieldResponse {
   public value_date?: Date;
 
   constructor(payload: Partial<CardCustomFieldResponse>) {
-    Object.assign(this, payload);
-    if (this.options) {
+    if (payload.options) {
       try {
-        if (typeof this.options === 'string') {
-          this.options = CustomOptions.toJSON(this.options);
+        if (typeof payload.options === 'string') {
+          payload.options = CustomOptions.toJSON(payload.options);
         } else {
-          this.options =  new CustomOptions(this.options);
+          payload.options =  new CustomOptions(payload.options);
         }
       } catch (e) {
         console.error("Error parsing options:", e);
       }
     }
+    Object.assign(this, payload);
     this.toObject = this.toObject.bind(this)
   }
 

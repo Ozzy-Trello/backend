@@ -14,6 +14,7 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
     this.GetListCustomField = this.GetListCustomField.bind(this)
     this.UpdateCustomField = this.UpdateCustomField.bind(this)
     this.DeleteCustomField = this.DeleteCustomField.bind(this)
+    this.GetListCardCustomField = this.GetListCardCustomField.bind(this)
   }
 
   async CreateCustomField(req: Request, res: Response): Promise<void> {
@@ -150,6 +151,29 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
     res.status(delResponse.status_code).json({
       "data": delResponse.data,
       "message": delResponse.message,
+    })
+    return
+  }
+
+  async GetListCardCustomField(req: Request, res: Response): Promise<void> {
+    let workspace_id = req.header('workspace-id')?.toString();
+    let card_id = req.params.id;
+    let accResponse = await this.custom_field_controller.GetListCardCustomField(workspace_id || "", card_id);
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          "message": "internal server error",
+        })
+        return
+      }
+      res.status(accResponse.status_code).json({
+        "message": accResponse.message,
+      })
+      return
+    }
+    res.status(accResponse.status_code).json({
+      "data": accResponse.data,
+      "message": accResponse.message,
     })
     return
   }
