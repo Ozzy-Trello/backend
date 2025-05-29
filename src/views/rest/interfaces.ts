@@ -82,6 +82,7 @@ export interface CustomFieldRestViewI {
     GetListCustomField(req: Request, res: Response): Promise<void>
     UpdateCustomField(req: Request, res: Response): Promise<void>;
     DeleteCustomField(req: Request, res: Response): Promise<void>;
+    GetListCardCustomField(req: Request, res: Response): Promise<void>;
 }
 
 export interface TriggerRestViewI {

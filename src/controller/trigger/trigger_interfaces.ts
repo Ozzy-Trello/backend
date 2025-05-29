@@ -1,13 +1,13 @@
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces"
 import { filterTriggerDetail, TriggerDetailUpdate } from "@/repository/trigger/trigger_interfaces"
-import { ActionsValue, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field"
+import { ActionsValue, ConditionType, EnumCustomFieldSource, TriggerTypes } from "@/types/custom_field"
 import { Paginate } from "@/utils/data_utils"
 import { ResponseData, ResponseListData } from "@/utils/response_utils"
 import { AutomationCondition } from '@/types/trigger';
 import { TriggerDoData } from '../card/card_interfaces';
 
 export interface TriggerControllerI {
-  prepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>>
+  prepareDataSource(value: string | number, source_type: EnumCustomFieldSource) : Promise<ResponseData<CustomFieldCardDetail>>
   doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>>
   
   CreateTrigger(data: TriggerCreateData): Promise<ResponseData<CreateTriggerResponse>>

@@ -2,7 +2,7 @@ import { validate as isValidUUID } from 'uuid';
 import { StatusCodes } from "http-status-codes";
 
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
-import { SourceType } from "@/types/custom_field";
+import { EnumCustomFieldSource } from "@/types/custom_field";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { 
   CreateTriggerResponse, TriggerControllerI, TriggerCreateData, 
@@ -34,7 +34,7 @@ export class TriggerController implements TriggerControllerI {
     this.doTrigger = this.doTrigger.bind(this);
   }
 
-  async prepareDataSource(value: string | number, source_type: SourceType): Promise<ResponseData<CustomFieldCardDetail>> {
+  async prepareDataSource(value: string | number, source_type: EnumCustomFieldSource): Promise<ResponseData<CustomFieldCardDetail>> {
     return this.trigger.PrepareDataSource(value, source_type);
   }
   async doTrigger(paylod: TriggerDoData): Promise<ResponseData<null>> {

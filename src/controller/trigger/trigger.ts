@@ -9,7 +9,7 @@ import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { TriggerDoData } from "../card/card_interfaces";
 import { ZeroAsyncFunction } from "@/types/trigger";
-import { ActionsValue, ActionType, CardChangesConfig, CardMoveConfig, ConditionType, CopyCondition, MoveCondition, SourceType, TriggerTypes, UserActionCondition } from "@/types/custom_field";
+import { ActionsValue, ActionType, CardChangesConfig, CardMoveConfig, ConditionType, CopyCondition, MoveCondition, EnumCustomFieldSource, TriggerTypes, UserActionCondition } from "@/types/custom_field";
 import { CustomFieldCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import { TriggerCreateData } from './trigger_interfaces';
 
@@ -360,9 +360,9 @@ export class Trigger {
   }
 
   // Fungsi untuk mengecek value dari trigger
-  async PrepareDataSource(value: string | number, source_type: SourceType) : Promise<ResponseData<CustomFieldCardDetail>> {
+  async PrepareDataSource(value: string | number, source_type: EnumCustomFieldSource) : Promise<ResponseData<CustomFieldCardDetail>> {
     let result =  new CustomFieldCardDetail({})
-    if(value && source_type == SourceType.User) {
+    if(value && source_type == EnumCustomFieldSource.User) {
       if (!(typeof value == "string" && isValidUUID(String(value)))) {
         return new ResponseData({
           message: "'value' is not valid uuid",

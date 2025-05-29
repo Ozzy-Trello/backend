@@ -1,14 +1,18 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '@/database/connections';
-import { SourceType } from '@/types/custom_field';
+import { EnumCustomFieldType, EnumCustomFieldSource } from '@/types/custom_field';
 
 interface CustomFieldAttributes {
   id: string;
   name: string;
+  type: EnumCustomFieldType;
+  is_show_at_front: boolean;
+  options: JSON;
+  order: number;
   description: string;
   workspace_id: string;
-  source: SourceType;
+  source: EnumCustomFieldSource;
   trigger_id?: string;
   created_at?: Date;
   updated_at?: Date;
@@ -19,9 +23,13 @@ interface CustomFieldCreationAttributes extends Optional<CustomFieldAttributes, 
 class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttributes> implements CustomFieldAttributes {
   public id!: string;
   public name!: string;
+  public type!: EnumCustomFieldType;
+  public is_show_at_front!: boolean;
+  public options!: JSON;
+  public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: SourceType;
+  public source!: EnumCustomFieldSource;
   public trigger_id?: string;
 
   public readonly created_at!: Date;
@@ -38,6 +46,24 @@ CustomField.init(
     name: {
       type: new DataTypes.STRING(128),
       allowNull: false,
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    is_show_at_front: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    options: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+    },
+    order: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 0
     },
     workspace_id: {
       type: DataTypes.UUID,
@@ -64,7 +90,7 @@ CustomField.init(
       allowNull: false,
     },
     source: {
-      type: new DataTypes.ENUM(SourceType.Product, SourceType.User),
+      type: new DataTypes.ENUM(EnumCustomFieldSource.Product, EnumCustomFieldSource.User),
       allowNull: false,
     },
     created_at: {

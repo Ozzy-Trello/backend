@@ -3,12 +3,13 @@ import { validate as isValidUUID } from 'uuid';
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
+import { CardCustomFieldResponse, CardCustomFieldValueUpdate, CustomFieldDetail, CustomFieldRepositoryI } from '@/repository/custom_field/custom_field_interfaces';
 import { CreateCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponse, fromCustomFieldDetailToCustomFieldResponseCustomField, CustomFieldControllerI, CustomFieldCreateData, CustomFieldFilter, CustomFieldResponse, UpdateCustomFieldData } from '@/controller/custom_field/custom_field_interfaces';
 import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
 import { TriggerControllerI, TriggerFilter } from '../trigger/trigger_interfaces';
 import { TriggerRepositoryI } from '@/repository/trigger/trigger_interfaces';
-import { SourceType } from '@/types/custom_field';
+import { EnumCustomFieldSource } from '@/types/custom_field';
+import { InternalServerError } from '@/utils/errors';
 
 export class CustomFieldController implements CustomFieldControllerI {
   private custom_field_repo: CustomFieldRepositoryI
@@ -38,6 +39,8 @@ export class CustomFieldController implements CustomFieldControllerI {
       })
     }
 
+    console.log("In controller: CreateCustomField: %o", data);
+
     let errorField = data.getErrorField();
     if (errorField) {
       return new ResponseData({
@@ -66,14 +69,14 @@ export class CustomFieldController implements CustomFieldControllerI {
       })
     }
 
-    if (data.trigger_id) {
-      const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
-      if (checkTrigger.status_code != StatusCodes.OK) {
-        return new ResponseData({
-          message: checkTrigger.message,
-          status_code: checkTrigger.status_code
-        })
-      }
+    // if (data.trigger_id) {
+      // const checkTrigger = await this.trigger_repo.getTrigger(new TriggerFilter({id: data.trigger_id}))
+      // if (checkTrigger.status_code != StatusCodes.OK) {
+      //   return new ResponseData({
+      //     message: checkTrigger.message,
+      //     status_code: checkTrigger.status_code
+      //   })
+      // }
 
       // let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, checkCustomField.data?.source!, checkTrigger.data?.action!)
       // if (checkSourceVal.status_code != StatusCodes.OK){
@@ -82,7 +85,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       //     status_code: checkSourceVal.status_code,
       //   })
       // }
-    }
+    // }
 
     let createResponse = await this.custom_field_repo.createCustomField(data.toCustomFieldDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -295,4 +298,50 @@ export class CustomFieldController implements CustomFieldControllerI {
       status_code: StatusCodes.NO_CONTENT,
     })
   }
+
+  async GetListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
+    const cardListCardCustomField = await this.custom_field_repo.getListCardCustomField(workspace_id, card_id);
+    return cardListCardCustomField
+  }
+
+  async SetCardCustomFieldValue(workspace_id: string, card_id: string, custom_field_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldResponse>> {
+    // Check if the record exists
+    const findData = await this.custom_field_repo.getCardCustomField(workspace_id, card_id, custom_field_id);
+    
+    if (findData && findData.status_code === StatusCodes.OK && findData.data) {
+      // Record exists, update it
+      const updateResp = await this.custom_field_repo.updateCardCustomField(custom_field_id, card_id, data);
+      
+      if (updateResp.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated record to return
+        const updatedData = await this.custom_field_repo.getCardCustomField(workspace_id, card_id, custom_field_id);
+        if (updatedData && updatedData.data) {
+          return new ResponseData({
+            message: "CardCustomField value is updated successful",
+            status_code: StatusCodes.NO_CONTENT,
+            data: updatedData.data
+          })
+        }
+      }
+      
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to update card custom field");
+    } else {
+      // Record doesn't exist, create it
+      const createResp = await this.custom_field_repo.createCardCustomField(custom_field_id, card_id, data);
+      
+      if (createResp.status_code === StatusCodes.CREATED && createResp.data) {
+        const fieldData = await this.custom_field_repo.getCardCustomField(workspace_id, card_id, custom_field_id);
+        if (fieldData && fieldData.data) {
+          return new ResponseData({
+            message: "CardCustomField value is updated successful",
+            status_code: StatusCodes.NO_CONTENT,
+            data: fieldData.data
+          });
+        }
+      }
+      
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, "Failed to create card custom field");
+    }
+  }
+  
 }

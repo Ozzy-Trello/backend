@@ -1,8 +1,9 @@
 import { validate as isValidUUID } from 'uuid';
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { ActionsValue, ConditionType, SourceType, TriggerTypes } from "@/types/custom_field";
+import { ActionsValue, ConditionType, EnumCustomFieldType, EnumCustomFieldSource, TriggerTypes } from "@/types/custom_field";
 import { AutomationCondition } from '@/types/trigger';
+import { CustomOptions } from '@/controller/custom_field/custom_field_interfaces';
 
 export interface CustomFieldRepositoryI {
   getCustomField(filter: filterCustomFieldDetail): Promise<ResponseData<CustomFieldDetail>>;
@@ -16,6 +17,11 @@ export interface CustomFieldRepositoryI {
   deleteCustomValue(filter: filterCustomValueDetail): Promise<number>;
   updateCustomValue(filter: filterCustomValueDetail, data: CustomValueDetailUpdate): Promise<number>;
   getListCustomValue(filter: filterCustomValueDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomValueDetail>>>;
+
+  getListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
+  getCardCustomField(workspace_id: string, card_id: string, custom_field_id: string): Promise<ResponseData<CardCustomFieldResponse>>;
+  createCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldValueUpdate>>;
+  updateCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<number>>;
 
   assignToCard(id: string, payload: CustomFieldCardDetail): Promise<number>;
   unAssignFromCard(id: string, card_id: string): Promise<number>;
@@ -33,7 +39,7 @@ export interface filterCustomFieldDetail {
   description?: string;
   workspace_id?: string;
   trigger_id?: string;
-  source?: SourceType;
+  source?: EnumCustomFieldSource;
   order?: number;
 
   __orId?: string;
@@ -116,13 +122,35 @@ export interface _trigger {
 export class CustomFieldDetail {
   public id!: string;
   public name?: string;
+  public type!: EnumCustomFieldType;
+  public is_show_at_front!: boolean;
+  public options?: CustomOptions | string | any;
+  public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!:  SourceType
-  public trigger?: _trigger
+  public source!:  EnumCustomFieldSource;
+  public trigger?: _trigger;
+  public card_id!: string;
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+  public value_checkbox?: boolean;
+  public value_option?: string;
+  public value_date?: Date;
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);
+    if (this.options) {
+      try {
+        if (typeof this.options === 'string') {
+          this.options = CustomOptions.toJSON(this.options);
+        } else {
+          this.options =  new CustomOptions(this.options);
+        }
+      } catch (e) {
+        console.error("Error parsing options:", e);
+      }
+    }
   }
 }
 
@@ -131,7 +159,7 @@ export class AssignCardDetail {
   public name!: string;
   public order?: number;
   public value?: string | number;
-  public source!:  SourceType
+  public source!:  EnumCustomFieldSource
 
   constructor(payload: Partial<AssignCardDetail>) {
     Object.assign(this, payload);
@@ -175,7 +203,7 @@ export interface filterCustomValueDetail {
   name?: string;
   description?: string;
   workspace_id?: string;
-  source?: SourceType;
+  source?: EnumCustomFieldSource;
   order?: number;
 
   __orId?: string;
@@ -218,7 +246,7 @@ export class CustomValueDetail {
   public description!: string;
   public workspace_id!: string;
   public order!: number;
-  public source!:  SourceType
+  public source!:  EnumCustomFieldSource
 
   constructor(payload: Partial<CustomValueDetail>) {
     Object.assign(this, payload);
@@ -241,6 +269,77 @@ export class CustomValueCardDetail {
     const data: any = {};
     if (this.order) data.order = this.order;
     if (this.card_id) data.card_id = this.card_id;
+    if (this.value_user_id) data.value_user_id = this.value_user_id;
+    if (this.value_string) data.value_string = this.value_string;
+    if (this.value_number) data.value_number = this.value_number;
+    return data
+  }
+}
+
+
+export class CardCustomFieldResponse {
+  public id!: string;
+  public name?: string;
+  public type!: EnumCustomFieldType;
+  public is_show_at_front!: boolean;
+  public options?: CustomOptions | string | any;
+  public order!: number;
+  public description!: string;
+  public workspace_id!: string;
+  public source!:  EnumCustomFieldSource;
+  public card_id!: string;
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+  public value_checkbox?: boolean;
+  public value_option?: string;
+  public value_date?: Date;
+
+  constructor(payload: Partial<CardCustomFieldResponse>) {
+    if (payload.options) {
+      try {
+        if (typeof payload.options === 'string') {
+          payload.options = CustomOptions.toJSON(payload.options);
+        } else {
+          payload.options =  new CustomOptions(payload.options);
+        }
+      } catch (e) {
+        console.error("Error parsing options:", e);
+      }
+    }
+    Object.assign(this, payload);
+    this.toObject = this.toObject.bind(this)
+  }
+
+  public toObject(): any {
+    const data: any = {};
+    if (this.order) data.order = this.order;
+    if (this.card_id) data.card_id = this.card_id;
+    if (this.value_user_id) data.value_user_id = this.value_user_id;
+    if (this.value_string) data.value_string = this.value_string;
+    if (this.value_number) data.value_number = this.value_number;
+    return data
+  }
+}
+
+export class CardCustomFieldValueUpdate {
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+  public value_checkbox?: boolean;
+  public value_option?: string;
+  public value_date?: Date;
+
+   constructor(payload: Partial<CardCustomFieldResponse>) {
+    Object.assign(this, payload);
+    this.toObject = this.toObject.bind(this)
+  }
+
+  public toObject(): any {
+    const data: any = {};
+    if (this.value_checkbox) data.value_checkbox = this.value_checkbox;
+    if (this.value_option) data.card_id = this.value_option;
+    if (this.value_date) data.card_id = this.value_date;
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;
