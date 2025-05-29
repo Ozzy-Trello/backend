@@ -19,6 +19,10 @@ export interface CustomFieldRepositoryI {
   getListCustomValue(filter: filterCustomValueDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomValueDetail>>>;
 
   getListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
+  getCardCustomField(workspace_id: string, card_id: string, custom_field_id: string): Promise<ResponseData<CardCustomFieldResponse>>;
+  createCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldValueUpdate>>;
+  updateCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<number>>;
+
   assignToCard(id: string, payload: CustomFieldCardDetail): Promise<number>;
   unAssignFromCard(id: string, card_id: string): Promise<number>;
   getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>>;
@@ -124,8 +128,15 @@ export class CustomFieldDetail {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!:  EnumCustomFieldSource
-  public trigger?: _trigger
+  public source!:  EnumCustomFieldSource;
+  public trigger?: _trigger;
+  public card_id!: string;
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+  public value_checkbox?: boolean;
+  public value_option?: string;
+  public value_date?: Date;
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);
@@ -304,6 +315,31 @@ export class CardCustomFieldResponse {
     const data: any = {};
     if (this.order) data.order = this.order;
     if (this.card_id) data.card_id = this.card_id;
+    if (this.value_user_id) data.value_user_id = this.value_user_id;
+    if (this.value_string) data.value_string = this.value_string;
+    if (this.value_number) data.value_number = this.value_number;
+    return data
+  }
+}
+
+export class CardCustomFieldValueUpdate {
+  public value_user_id?: string;
+  public value_string?: string;
+  public value_number?: number;
+  public value_checkbox?: boolean;
+  public value_option?: string;
+  public value_date?: Date;
+
+   constructor(payload: Partial<CardCustomFieldResponse>) {
+    Object.assign(this, payload);
+    this.toObject = this.toObject.bind(this)
+  }
+
+  public toObject(): any {
+    const data: any = {};
+    if (this.value_checkbox) data.value_checkbox = this.value_checkbox;
+    if (this.value_option) data.card_id = this.value_option;
+    if (this.value_date) data.card_id = this.value_date;
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;

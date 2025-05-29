@@ -78,11 +78,14 @@ export interface CustomOptionTable {
 
 export interface CardCustomFieldTable {
   custom_field_id: string;
-  order: number;
+  order?: number;
   card_id: string;
   value_user_id?: string;
   value_number?: number;
   value_string?: string;
+  value_date?: Date;
+  value_option?: string;
+  value_checkbox?: boolean;
   trigger_id?: string;
 }
 

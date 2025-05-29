@@ -152,11 +152,13 @@ export default function (): Router {
         router_card.post("/:id/move", restJwt, card_rest_view.MoveCard);
         router_card.post("/:id/archive", restJwt, card_rest_view.ArchiveCard);
         router_card.post("/:id/unarchive", restJwt, card_rest_view.UnArchiveCard);
-        router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);
+        // router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);
         router_card.put("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.UpdateCustomField);
         router_card.delete("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.RemoveCustomField);
         // router_card.get("/:id/custom-field", restJwt, card_rest_view.GetCustomField);
         router_card.get("/:id/custom-field", restJwt, custom_field_rest_view.GetListCardCustomField);
+        router_card.post("/:id/custom-field/:custom_field_id", restJwt, custom_field_rest_view.SetCardCustomFieldValue);
+
         router_card.get("/:id/time-in-lists", restJwt, card_rest_view.GetCardTimeInList);
         router_card.get("/:id/time-in-board/:board_id", restJwt, card_rest_view.GetCardTimeInBoard);
         router_card.get('/:id/dashcard/count', restJwt, card_rest_view.GetDashcardCount);

@@ -15,6 +15,7 @@ import {
 	CustomValueDetailUpdate,
 	CustomFieldTrigger,
 	CardCustomFieldResponse,
+	CardCustomFieldValueUpdate,
 } from "@/repository/custom_field/custom_field_interfaces";
 import {Error} from "sequelize";
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
@@ -607,6 +608,109 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 			});
 		} catch (e) {
 			console.log("CardCustomFieldResponse: err: %o", e);
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async getCardCustomField(workspace_id: string, card_id: string, custom_field_id: string): Promise<ResponseData<CardCustomFieldResponse>> {
+		try {
+			const result = await db
+				.selectFrom('custom_field as cs')
+				.leftJoin('card_custom_field as ccs', (join) =>
+					join
+						.onRef('cs.id', '=', 'ccs.custom_field_id')
+				)
+				.selectAll('cs')
+				.select([
+					sql<boolean>`ccs.value_checkbox`.as('value_checkbox'),
+					sql<string>`ccs.value_user_id`.as('value_user_id'),
+					sql<string>`ccs.value_option`.as('value_option'),
+					sql<string>`ccs.value_string`.as('value_string'),
+					sql<number>`ccs.value_number`.as('value_number'),
+					sql<Date>`ccs.value_date`.as('value_date'),
+				] as const)
+				.where('cs.workspace_id', '=', workspace_id)
+				.where('cs.id', '=', custom_field_id)
+				.where('ccs.card_id', '=', card_id)
+				.executeTakeFirst();
+
+			if (!result) {
+				return new ResponseData({
+					status_code: StatusCodes.OK,
+					message: "Card custom field found",
+				});
+			}
+
+			return new ResponseData({
+				status_code: StatusCodes.OK,
+				message: "Card custom field found",
+				data: new CardCustomFieldResponse(result)
+			});
+		} catch (e) {
+			console.log("CardCustomFieldResponse: err: %o", e);
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
+		}
+	}
+
+	async createCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldValueUpdate>>{
+		try {
+			await db
+				.insertInto('card_custom_field')
+				.values({
+					card_id: card_id,
+					custom_field_id: custom_field_id,
+					value_string: data?.value_string,
+					value_checkbox: data?.value_checkbox,
+					value_option: data?.value_option,
+					value_number: data?.value_number,
+					value_user_id: data?.value_user_id
+				})
+				.execute();
+			console.log("in repo ini");
+			return new ResponseData({
+				status_code: StatusCodes.CREATED,
+				message: "create card custom field success",
+					data: data
+			});
+		} catch (e) {
+			console.log("in repo err: err: %o", e);
+			return new ResponseData({
+				status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+				message: e instanceof Error ? e.message : String(e),
+			})
+		}
+	}
+  
+	async updateCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<number>>{
+		try {
+			const result = await db
+				.updateTable('card_custom_field')
+				.set({
+					value_checkbox: data?.value_checkbox,
+					value_user_id: data?.value_user_id,
+					value_number: data?.value_number,
+					value_date: data?.value_date,
+					value_string: data?.value_string,
+					value_option: data?.value_option
+				})
+				.where('custom_field_id', '=', custom_field_id) 
+				.where('card_id', '=', card_id)                
+				.executeTakeFirst();
+		
+			if (!result.numUpdatedRows || result.numUpdatedRows <= 0) {
+				return new ResponseData({
+					status_code: StatusCodes.NOT_FOUND,
+					message: "Card custom field not found or no changes made", 
+					data: 0
+				});
+			}
+			
+			return new ResponseData({
+				status_code: StatusCodes.NO_CONTENT,
+				message: "Card custom field updated successfully",
+				data: Number(result.numUpdatedRows)
+			});
+		} catch (e) {
 			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e instanceof Error ? e.message : String(e));
 		}
 	}

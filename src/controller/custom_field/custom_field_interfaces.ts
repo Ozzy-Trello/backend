@@ -2,7 +2,7 @@ import { validate as isValidUUID } from 'uuid';
 
 import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
-import { CardCustomFieldResponse, CustomFieldDetail, CustomFieldDetailUpdate, filterCustomFieldDetail } from "@/repository/custom_field/custom_field_interfaces";
+import { CardCustomFieldDetail, CardCustomFieldResponse, CardCustomFieldValueUpdate, CustomFieldDetail, CustomFieldDetailUpdate, filterCustomFieldDetail } from "@/repository/custom_field/custom_field_interfaces";
 import { EnumCustomFieldType, EnumCustomFieldSource } from '@/types/custom_field';
 
 export interface CustomFieldControllerI {
@@ -13,6 +13,7 @@ export interface CustomFieldControllerI {
 	UpdateCustomField(filter: CustomFieldFilter, data: UpdateCustomFieldData): Promise<ResponseData<null>>
 
 	GetListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>>
+	SetCardCustomFieldValue(workspace_id: string, card_id: string, custom_field_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldResponse>>
 }
 
 export class CreateCustomFieldResponse {
