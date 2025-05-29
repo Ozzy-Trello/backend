@@ -232,29 +232,52 @@ export interface CustomOption {
 }
 
 export class CustomOptions extends Array<CustomOption> {
-  constructor(options: CustomOption[]) {
+  constructor(options?: CustomOption[] | string | null) {
     super();
-    this.push(...options);
+    
+    // Handle different input types safely
+    if (Array.isArray(options)) {
+      // Already an array, spread it safely
+      this.push(...options);
+    } else if (typeof options === 'string' && options.trim()) {
+      // JSON string from database
+      try {
+        const parsed = JSON.parse(options);
+        if (Array.isArray(parsed)) {
+          this.push(...parsed);
+        }
+        // If parsed is not an array, leave this empty
+      } catch (e) {
+        // Invalid JSON, leave this empty
+        console.warn('Failed to parse options JSON:', options, e);
+      }
+    }
+    // If options is null, undefined, or empty string, leave this as empty array
   }
-  
+ 
   validate(): string | null {
     if (!Array.isArray(this)) return "options must be an array";
     return null;
   }
-  
+ 
   toString(): string {
     return JSON.stringify(this);
   }
-  
-  static toJSON(jsonStr: string): CustomOptions {
+ 
+  static toJSON(jsonStr: string | null | undefined): CustomOptions {
+    if (!jsonStr) {
+      return new CustomOptions();
+    }
+    
     try {
       const data = JSON.parse(jsonStr);
       return new CustomOptions(data);
     } catch (e) {
-      throw new Error("Invalid options JSON");
+      console.warn('Failed to parse options JSON in static method:', jsonStr, e);
+      return new CustomOptions(); // Return empty instead of throwing
     }
   }
-  
+ 
   toJSON(): CustomOption[] {
     return [...this];
   }

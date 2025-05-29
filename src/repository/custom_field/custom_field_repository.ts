@@ -251,7 +251,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 					name: data.name,
 					type: data.type,
 					is_show_at_front: data.is_show_at_front,
-					options: data?.options || {},
+					options: JSON.stringify(data?.options) || {},
 					order: data.order,
 					source: data?.source || EnumCustomFieldSource.Custom,
 					id: id,
