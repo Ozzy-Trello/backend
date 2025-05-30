@@ -263,6 +263,9 @@ export class CardRepository implements CardRepositoryI {
 				list_id: card.list_id,
 				location: card?.location ?? "",
 				archive: card?.archive,
+				start_date: card?.start_date,
+				due_date: card?.due_date,
+				due_date_reminder: card?.due_date_reminder
 			})
 
 			return new ResponseData({
@@ -335,7 +338,7 @@ export class CardRepository implements CardRepositoryI {
 					archive: data.archive,
 					start_date: data.start_date ? new Date(data.start_date) : undefined,
 					due_date: data.due_date ? new Date(data.due_date) : undefined,
-					due_date_reminder: data.due_date_reminder,
+					due_date_reminder: data?.due_date_reminder,
 					is_complete: data.is_complete,
 					completed_at: data.completed_at ? new Date(data.completed_at) : undefined,
 				};
