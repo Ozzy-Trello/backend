@@ -150,8 +150,8 @@ export class CardDetailUpdate {
   public order?: number;
   public list_id?: string;
   public location?: string;
-  public start_date?: string;
-  public due_date?: string;
+  public start_date?: Date;
+  public due_date?: Date;
   public due_date_reminder?: string;
   public dash_config?: JSON;
   public archive?: boolean;

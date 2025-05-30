@@ -352,7 +352,10 @@ export default class CardRestView implements CardRestViewI {
       name: req.body.name?.toString(),
       description: req.body.description?.toString(),
       list_id: req.body.list_id?.toString(),
-      location: req.body.location?.toString()
+      location: req.body.location?.toString(),
+      start_date: req.body.start_date,
+      due_date: req.body.due_date,
+      due_date_reminder: req.body.due_date_reminder
     }))
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
