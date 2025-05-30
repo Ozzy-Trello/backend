@@ -18,8 +18,8 @@ export class CardMemberRestView implements CardMemberRestViewI{
       res.status(StatusCodes.BAD_REQUEST).json({ message: 'card_id is required' });
       return;
     }
-    const members = await this.controller.getMembers(cardId);
-    res.status(StatusCodes.OK).json({ members });
+    const data = await this.controller.getMembers(cardId);
+    res.status(StatusCodes.OK).json(data);
   }
 
   async addMembers(req: Request, res: Response) {
@@ -29,8 +29,8 @@ export class CardMemberRestView implements CardMemberRestViewI{
       res.status(StatusCodes.BAD_REQUEST).json({ message: 'card_id and user_ids[] are required' });
       return;
     }
-    const members = await this.controller.addMembers(cardId, user_ids);
-    res.status(StatusCodes.OK).json({ message: 'Members added', members });
+    const data = await this.controller.addMembers(cardId, user_ids);
+    res.status(StatusCodes.OK).json({ message: 'Members added', data });
   }
 
   async removeMember(req: Request, res: Response) {
