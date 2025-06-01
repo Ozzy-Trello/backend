@@ -748,19 +748,19 @@ async countCardsWithFilters(filters: FilterConfig[]): Promise<number> {
           if (filter.id && filter.operator !== 'any' && filter.value !== undefined) {
             // For custom fields, need to check both the field ID and the value
             switch (filter.operator) {
-              case 'equals':
-                query = query.where((eb) =>
-												eb.or([
-													eb('card_custom_field.value_option', '=', filter.value),
-													eb('card_custom_field.value_string', '=', filter.value),
-												])
-											);
-                break;
+			  			case 'equals':
+								query = query.where((eb) =>
+											eb.or([
+												eb(sql`LOWER(card_custom_field.value_option)`, '=', filter.value.toLowerCase()),
+												eb(sql`LOWER(card_custom_field.value_string)`, '=', filter.value),
+											])
+										);
+								break;
               case 'contains':
 								query = query.where((eb) =>
 												eb.or([
-													eb('card_custom_field.value_option', 'ilike', filter.value),
-													eb('card_custom_field.value_string', 'ilike', filter.value),
+													eb('card_custom_field.value_option', 'ilike', `%${filter.value}%`),
+													eb('card_custom_field.value_string', 'ilike', `%${filter.value}%`),
 												])
 											);
                 break;
