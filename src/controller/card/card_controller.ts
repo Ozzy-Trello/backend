@@ -1053,37 +1053,86 @@ export class CardController implements CardControllerI {
     })
   }
 
-  async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
-    try {
-      // Get the dashcard
-      const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+  // async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+  //   try {
+  //     // Get the dashcard
+  //     const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
       
-      if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
-        return new ResponseData({
-          message: "Dashcard not found",
-          status_code: StatusCodes.NOT_FOUND,
-          data: 0
-        });
-      }
+  //     if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
+  //       return new ResponseData({
+  //         message: "Dashcard not found",
+  //         status_code: StatusCodes.NOT_FOUND,
+  //         data: 0
+  //       });
+  //     }
+
+  //     const config = dashcardResponse?.data?.getDashConfig();
+  //     if (config?.filters?.)
       
-      // ANY - just count all non-dashcard cards
-      const count = await this.card_repo.countCards({
-        type: { [Op.ne]: 'dashcard' }
+  //     // ANY - just count all non-dashcard cards
+  //     const count = await this.card_repo.countCards({
+  //       type: { [Op.ne]: 'dashcard' },
+
+  //     });
+      
+  //     return new ResponseData({
+  //       status_code: StatusCodes.OK,
+  //       message: "Dashcard count retrieved successfully",
+  //       data: count
+  //     });
+  //   } catch (e) {
+  //     return new ResponseData({
+  //       message: "Internal server error",
+  //       status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+  //       data: 0
+  //     });
+  //   }
+  // }
+  // In your controller:
+
+async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+  try {
+    // Get the dashcard
+    const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+    
+    if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
+      return new ResponseData({
+        message: "Dashcard not found",
+        status_code: StatusCodes.NOT_FOUND,
+        data: 0
       });
+    }
+    
+    const dashConfig = dashcardResponse.data.getDashConfig();
+    
+    if (!dashConfig || !dashConfig.filters || dashConfig.filters.length === 0) {
+      // No filters - count all non-dashcard cards
+      const count = await this.card_repo.countAllCards();
       
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "Dashcard count retrieved successfully",
         data: count
       });
-    } catch (e) {
-      return new ResponseData({
-        message: "Internal server error",
-        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-        data: 0
-      });
     }
+    
+    // Count cards with filters
+    const count = await this.card_repo.countCardsWithFilters(dashConfig.filters);
+    
+    return new ResponseData({
+      status_code: StatusCodes.OK,
+      message: "Dashcard count retrieved successfully",
+      data: count
+    });
+  } catch (e) {
+    console.error("Error in GetDashcardCount:", e);
+    return new ResponseData({
+      message: "Internal server error",
+      status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+      data: 0
+    });
   }
+}
 
   async MakeMirrorCard(user_id: string, card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>> {
     if (!isValidUUID(card_id)) {

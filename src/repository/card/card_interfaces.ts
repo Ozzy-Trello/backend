@@ -4,7 +4,7 @@ import {ResponseData, ResponseListData} from "@/utils/response_utils";
 import {Paginate} from "@/utils/data_utils";
 import { CardActionValue, CardActivityType, MoveListValue } from "@/types/custom_field";
 import { date } from 'zod';
-import { DashCardConfig } from '@/controller/card/card_interfaces';
+import { DashCardConfig, FilterConfig } from '@/controller/card/card_interfaces';
 
 export interface CardRepositoryI {
   getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>>;
@@ -23,7 +23,8 @@ export interface CardRepositoryI {
 
   newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
-  countCards(filter: any): Promise<number>
+  countAllCards(): Promise<number>;
+  countCardsWithFilters(filters: FilterConfig[]): Promise<number>;
   newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
   copyCardWithMirror(card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>>;
@@ -150,8 +151,8 @@ export class CardDetailUpdate {
   public order?: number;
   public list_id?: string;
   public location?: string;
-  public start_date?: string;
-  public due_date?: string;
+  public start_date?: Date;
+  public due_date?: Date;
   public due_date_reminder?: string;
   public dash_config?: JSON;
   public archive?: boolean;

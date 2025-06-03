@@ -23,6 +23,7 @@ import { ExpressionBuilder, Transaction, sql } from "kysely";
 import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
+import { FilterConfig } from "@/controller/card/card_interfaces";
 
 export class CardRepository implements CardRepositoryI {
   createFilter(filter: filterCardDetail): any {
@@ -316,6 +317,10 @@ export class CardRepository implements CardRepositoryI {
         list_id: card.list_id,
         location: card?.location ?? "",
         archive: card?.archive,
+        start_date: card?.start_date,
+        dash_config: card?.dash_config,
+        due_date: card?.due_date,
+        due_date_reminder: card?.due_date_reminder,
       });
 
       return new ResponseData({
@@ -428,7 +433,7 @@ export class CardRepository implements CardRepositoryI {
           archive: data.archive,
           start_date: data.start_date ? new Date(data.start_date) : undefined,
           due_date: data.due_date ? new Date(data.due_date) : undefined,
-          due_date_reminder: data.due_date_reminder,
+          due_date_reminder: data?.due_date_reminder,
           is_complete: data.is_complete,
           completed_at: data.completed_at
             ? new Date(data.completed_at)
@@ -708,7 +713,7 @@ export class CardRepository implements CardRepositoryI {
             }
           }
 
-		  // Get all cards in the target list
+          // Ambil semua card di list target
           let cardsInTargetList = await tx
             .selectFrom("card")
             .where("list_id", "=", targetListId)
@@ -745,10 +750,10 @@ export class CardRepository implements CardRepositoryI {
             const gap = next.order - prev.order;
 
             if (gap <= 1) {
-			  // Rebalance when the gap is too small
+              // 🔧 Rebalance saat gap terlalu kecil
               await this.rebalanceCardOrders(targetListId, tx);
 
-			  // Re-fetch data after rebalance
+              // Ambil ulang data setelah rebalance
               cardsInTargetList = await tx
                 .selectFrom("card")
                 .where("list_id", "=", targetListId)
@@ -770,7 +775,7 @@ export class CardRepository implements CardRepositoryI {
             }
           }
 
-		  // Update card position
+          // Update posisi card
           await tx
             .updateTable("card")
             .set({
@@ -831,14 +836,159 @@ export class CardRepository implements CardRepositoryI {
     }
   }
 
-  async countCards(filter: any): Promise<number> {
+  async countAllCards(): Promise<number> {
     try {
-      const count = await Card.count({
-        where: filter,
-      });
-      return count;
+      const result = await db
+        .selectFrom("card")
+        .select((eb) => eb.fn.count<number>("card.id").as("count"))
+        .where("card.type", "!=", "dashcard")
+        .executeTakeFirst();
+
+      return Number(result?.count || 0);
     } catch (e) {
-      console.error("Error counting cards:", e);
+      console.error("Error counting all cards:", e);
+      return 0;
+    }
+  }
+
+  async countCardsWithFilters(filters: FilterConfig[]): Promise<number> {
+    try {
+      // Join all tables
+      let query = db
+        .selectFrom("card")
+        .leftJoin("list", "card.list_id", "list.id")
+        .leftJoin("card_member", "card.id", "card_member.card_id")
+        .leftJoin("card_custom_field", "card.id", "card_custom_field.card_id")
+        .where("card.type", "!=", "dashcard");
+
+      // Apply filters
+      for (const filter of filters) {
+        switch (filter.type) {
+          case "board":
+            if (filter.operator !== "any" && filter.value) {
+              if (filter.operator === "matches_with") {
+                query = query.where("list.board_id", "=", filter.value);
+              } else if (
+                filter.operator === "includes_any_of" &&
+                Array.isArray(filter.value)
+              ) {
+                query = query.where("list.board_id", "in", filter.value);
+              }
+            }
+            break;
+
+          case "list":
+            if (filter.operator !== "any" && filter.value) {
+              if (filter.operator === "matches_with") {
+                query = query.where("card.list_id", "=", filter.value);
+              } else if (
+                filter.operator === "includes_any_of" &&
+                Array.isArray(filter.value)
+              ) {
+                query = query.where("card.list_id", "in", filter.value);
+              }
+            }
+            break;
+
+          case "assigned":
+            if (filter.operator !== "any" && filter.value) {
+              if (filter.operator === "includes_any_of") {
+                if (Array.isArray(filter.value)) {
+                  query = query.where(
+                    "card_member.user_id",
+                    "in",
+                    filter.value
+                  );
+                } else {
+                  query = query.where("card_member.user_id", "=", filter.value);
+                }
+              }
+            }
+            break;
+
+          case "custom_field":
+            if (
+              filter.id &&
+              filter.operator !== "any" &&
+              filter.value !== undefined
+            ) {
+              // For custom fields, need to check both the field ID and the value
+              switch (filter.operator) {
+                case "equals":
+                  query = query.where((eb) =>
+                    eb.or([
+                      eb("card_custom_field.value_option", "=", filter.value),
+                      eb("card_custom_field.value_string", "=", filter.value),
+                    ])
+                  );
+                  break;
+                case "contains":
+                  query = query.where((eb) =>
+                    eb.or([
+                      eb(
+                        "card_custom_field.value_option",
+                        "ilike",
+                        filter.value
+                      ),
+                      eb(
+                        "card_custom_field.value_string",
+                        "ilike",
+                        filter.value
+                      ),
+                    ])
+                  );
+                  break;
+                case "starts_with":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where(
+                      "card_custom_field.value_string",
+                      "like",
+                      `${filter.value}%`
+                    );
+                  break;
+                case "ends_with":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where(
+                      "card_custom_field.value_string",
+                      "like",
+                      `%${filter.value}`
+                    );
+                  break;
+                case "greater_than":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where("card_custom_field.value_number", ">", filter.value);
+                  break;
+                case "less_than":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where("card_custom_field.value_number", "<", filter.value);
+                  break;
+                case "is_true":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where("card_custom_field.value_checkbox", "=", true);
+                  break;
+                case "is_false":
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where("card_custom_field.value_checkbox", "=", false);
+                  break;
+              }
+            }
+            break;
+        }
+      }
+
+      const result = await query
+        .select((eb) => eb.fn.count("card.id").distinct().as("count"))
+        .executeTakeFirst();
+
+      return Number(result?.count || 0);
+    } catch (e) {
+      console.error("Error counting cards with filters:", e);
       return 0;
     }
   }

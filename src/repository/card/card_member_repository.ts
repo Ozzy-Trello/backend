@@ -4,13 +4,13 @@ import { CardMemberRepositoryI } from './card_member_interfaces';
 
 export class CardMemberRepository implements CardMemberRepositoryI {
   async getMembersByCard(card_id: string): Promise<Array<{id: string, name: string, email: string}>> {
-    const members = await db
+    const data = await db
       .selectFrom('card_member')
       .innerJoin('user', 'card_member.user_id', 'user.id')
       .where('card_member.card_id', '=', card_id)
       .select(['user.id as id', 'user.username as name', 'user.email as email'])
       .execute();
-    return members;
+    return data;
   }
 
   async addMembersToCard(card_id: string, user_ids: string[]): Promise<Array<{id: string, name: string, email: string}>> {

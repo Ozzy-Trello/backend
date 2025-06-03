@@ -22,8 +22,8 @@ export class CardMemberController {
     if (cardRes.status_code !== StatusCodes.OK) {
       return { status_code: StatusCodes.NOT_FOUND, message: 'Card not found', members: [] };
     }
-    const members = await this.repo.getMembersByCard(card_id);
-    return { status_code: StatusCodes.OK, members };
+    const data = await this.repo.getMembersByCard(card_id);
+    return { status_code: StatusCodes.OK, data };
   }
 
   async addMembers(card_id: string, user_ids: string[]) {

@@ -57,6 +57,9 @@ export class CardResponse {
 	formatted_time_in_board?: string;
 	is_complete?: boolean; // Added
 	completed_at?: Date;   // Added
+	start_date?: Date;
+	due_date?: Date;
+	due_date_reminder?: string;
 	constructor(payload: Partial<CardResponse>) {
 		Object.assign(this, payload)
 	}
@@ -90,7 +93,10 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
 		created_at: data.created_at,
 		updated_at: data.updated_at,
 		formatted_time_in_list: data.formatted_time_in_list,
-		formatted_time_in_board: data.formatted_time_in_board
+		formatted_time_in_board: data.formatted_time_in_board,
+		start_date: data.start_date,
+		due_date: data.due_date,
+		due_date_reminder: data.due_date_reminder
 	})
 }
 
@@ -123,6 +129,9 @@ export class UpdateCardData {
 	location?: string;
 	is_complete?: boolean; // Added
 	completed_at?: Date;   // Added
+	start_date?: Date;
+	due_date?: Date;
+	due_date_reminder?: string;
 
 	constructor(payload: Partial<UpdateCardData>) {
 		Object.assign(this, payload)
@@ -132,7 +141,11 @@ export class UpdateCardData {
 	}
 
 	isEmpty(): boolean{
-		return this.name == undefined && this.description == undefined && this.list_id == undefined && this.location == undefined;
+		return (
+			this.name == undefined && this.list_id == undefined 
+				&& this.description == undefined && this.location == undefined
+				&& this.start_date == undefined && this.due_date == undefined && this.due_date_reminder == undefined
+		);
 	}
 
 	toCardDetailUpdate(): CardDetailUpdate {
@@ -140,7 +153,10 @@ export class UpdateCardData {
 			name: this.name,
 			description: this.description,
 			list_id: this.list_id,
-			location: this.location
+			location: this.location,
+			start_date: this.start_date,
+			due_date: this.due_date,
+			due_date_reminder: this.due_date_reminder
 		})
 	}
 	getErrorfield(): string| null {
@@ -160,6 +176,10 @@ export class CardFilter {
 	location?: string;
 	archive?: boolean;
 	is_complete?: boolean; // Added
+	start_date?: Date;
+	due_date?: Date;
+	due_date_reminder?: string;
+	
 	constructor(payload: Partial<CardFilter>) {
 		Object.assign(this, payload);
 		this.isEmpty = this.isEmpty.bind(this)
@@ -180,7 +200,11 @@ export class CardFilter {
 	}
 
 	isEmpty(): boolean{
-		return this.id == undefined && this.name == undefined && this.list_id == undefined && this.description == undefined && this.location == undefined && this.archive == undefined;
+		return (
+			this.id == undefined && this.name == undefined && this.list_id == undefined 
+				&& this.description == undefined && this.location == undefined && this.archive == undefined
+				&& this.start_date == undefined && this.due_date == undefined && this.due_date_reminder == undefined
+		);
 	}
 
 	getErrorfield(): string| null {
