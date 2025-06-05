@@ -52,6 +52,11 @@ import LabelRestView from "@/views/rest/label_view";
 import { CardMemberRepository } from "@/repository/card/card_member_repository";
 import { CardMemberController } from "@/controller/card/card_member_controller";
 import { CardMemberRestView } from "@/views/rest/card_member_view";
+import AutomationRule from "@/database/schemas/automation_rule";
+import { AutomationRuleRepository } from "@/repository/automation_rule/automation_rule_repository";
+import { AutomationRuleActionRepository } from "@/repository/automation_rule_action/automation_rule_action_repository";
+import { AutomationRuleController } from "@/controller/automation_rule/automation_rule_controller";
+import AutomationRuleRestView from "@/views/rest/automation_rule";
 
 export default function (): Router {
   const root_router = Router();
@@ -75,6 +80,9 @@ export default function (): Router {
   const request_repo = new RequestRepository();
   const label_repo = new LabelRepository();
   const card_member_repo = new CardMemberRepository();
+  const automation_rule_repo = new AutomationRuleRepository();
+  const automation_rule_action_repo = new AutomationRuleActionRepository();
+
 
   // Controllers
   const card_attachment_controller = new CardAttachmentController(
@@ -135,6 +143,8 @@ export default function (): Router {
     card_repo,
     user_repo
   );
+  const automation_rule_controller = new AutomationRuleController(automation_rule_repo, automation_rule_action_repo, card_controller);
+  card_controller.SetAutomationRuleController(automation_rule_controller);
 
   // Views
   const trigger_rest_view = new TriggerRestView(trigger_controller);
@@ -164,6 +174,7 @@ export default function (): Router {
 
   const accurate_rest_view = new AccurateRestView(accurate_controller);
   const request_rest_view = new RequestRestView(request_controller);
+  const automation_rule_rest_view = new AutomationRuleRestView(automation_rule_controller);
 
   const router_account = Router();
   {
@@ -486,6 +497,12 @@ export default function (): Router {
     router_label.delete("/:id", restJwt, label_rest_view.DeleteLabel);
   }
 
+  const automation_rule_router = Router();
+  {
+      automation_rule_router.post("/", restJwt, automation_rule_rest_view.CreateAutomationRule);
+      automation_rule_router.get("/", restJwt, automation_rule_rest_view.GetListAutomationRule);
+  }
+
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);
   root_router.use("/workspace", router_workspace);
@@ -502,6 +519,7 @@ export default function (): Router {
   root_router.use("/request", router_request);
   root_router.use("/additional-field", router_additional_field);
   root_router.use("/label", router_label);
+  root_router.use("/automation-rule", automation_rule_router);
 
   return root_router;
 }

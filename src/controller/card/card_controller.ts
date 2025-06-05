@@ -50,6 +50,7 @@ import {
   CardBoardTimeRepositoryI,
 } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
+import { AutomationRuleControllerI, AutomationRuleFilter } from '../automation_rule/automation_rule_interface';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
@@ -59,6 +60,7 @@ export class CardController implements CardControllerI {
   private card_attachmment_repo: CardAttachmentRepositoryI;
   private card_list_time_repo: CardListTimeRepositoryI;
   private card_board_time_repo: CardBoardTimeRepositoryI;
+  private automation_rule_controller: AutomationRuleControllerI | undefined
 
   constructor(
     card_repo: CardRepositoryI,
@@ -67,7 +69,7 @@ export class CardController implements CardControllerI {
     trigger_controller: TriggerControllerI,
     card_attachmment_repo: CardAttachmentRepositoryI,
     card_list_time_repo: CardListTimeRepositoryI,
-    card_board_time_repo: CardBoardTimeRepositoryI
+    card_board_time_repo: CardBoardTimeRepositoryI,
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
@@ -90,11 +92,12 @@ export class CardController implements CardControllerI {
     this.GetListCustomField = this.GetListCustomField.bind(this);
   }
 
-  async ArchiveCard(
-    user_id: string,
-    card_id: string
-  ): Promise<ResponseData<null>> {
-    if (!isValidUUID(card_id)) {
+  SetAutomationRuleController(automation_rule_controller: AutomationRuleControllerI): void {
+    this.automation_rule_controller = automation_rule_controller;
+  }
+
+  async ArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)){
       return new ResponseData({
         message: "'card_id' is not valid uuid",
         status_code: StatusCodes.BAD_REQUEST,
@@ -534,20 +537,6 @@ export class CardController implements CardControllerI {
       );
     }
 
-    this.trigger_controller.doTrigger({
-      type: ConditionType.CardInBoard,
-      workspace_id: listCheck.data?.workspace_id!,
-      condition: {
-        action: "added",
-        by: "anyone",
-        board: listCheck.data?.board_id!,
-      },
-      group_type: TriggerTypes.CardMove,
-      data: {
-        card_id: createResponse.data?.id,
-      },
-    });
-
     // Prepare card response for WebSocket broadcast
     const cardResponse = {
       id: createResponse.data?.id,
@@ -565,6 +554,33 @@ export class CardController implements CardControllerI {
       listId: data.list_id,
       createdBy: user_id,
     });
+    // this.trigger_controller.doTrigger({
+    //   type: ConditionType.CardInBoard,
+    //   workspace_id: listCheck.data?.workspace_id!,
+    //   condition: {
+    //     action: 'added',
+    //     by: 'anyone',
+    //     board: listCheck.data?.board_id!,
+    //   },
+    //   group_type: TriggerTypes.CardMove,
+    //   data: {
+    //     card_id: createResponse.data?.id
+    //   }
+    // })
+    
+    // execute automation
+    if (this.automation_rule_controller) {
+      this.automation_rule_controller.FindMatchingRules(
+        {
+          card: createResponse.data
+        },
+        new AutomationRuleFilter({
+          condition: {
+            action: "added_to"
+          }
+        })
+      );
+    }
 
     return new ResponseData({
       message: "Card created successfully",
@@ -623,10 +639,8 @@ export class CardController implements CardControllerI {
     });
   }
 
-  async MoveCard(
-    user_id: string,
-    filter: CardMoveData
-  ): Promise<ResponseData<CardResponse>> {
+  async MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>> {
+    console.log("In controller: Move Card: %o", filter);
     try {
       // 1. Validate card ID
       if (!filter.id || !isValidUUID(filter.id)) {
@@ -652,6 +666,7 @@ export class CardController implements CardControllerI {
         target_list_id: filter.target_list_id,
         previous_position: filter.previous_position,
         target_position: filter.target_position,
+        target_position_top_or_bottom: filter?.target_position_top_or_bottom
       });
 
       if (moveResponse.status_code !== StatusCodes.OK) {
