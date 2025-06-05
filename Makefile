@@ -27,3 +27,12 @@ migrate:
 
 undo-migrate:
 	npm run sequelize -- db:migrate:undo
+
+seed:
+	npm run sequelize -- db:seed:all
+
+seed-undo:
+	npm run sequelize -- db:seed:undo:all
+
+test:
+	npm test

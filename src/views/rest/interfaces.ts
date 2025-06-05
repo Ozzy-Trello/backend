@@ -54,6 +54,8 @@ export interface CardRestViewI {
   GetListCard(req: Request, res: Response): Promise<void>;
   SearchCard(req: Request, res: Response): Promise<void>;
   MoveCard(req: Request, res: Response): Promise<void>;
+  ArchiveCard(req: Request, res: Response): Promise<void>;
+  UnArchiveCard(req: Request, res: Response): Promise<void>;
   UpdateCard(req: Request, res: Response): Promise<void>;
   DeleteCard(req: Request, res: Response): Promise<void>;
   AddCustomField(req: Request, res: Response): Promise<void>;
@@ -63,6 +65,15 @@ export interface CardRestViewI {
   GetCardActivity(req: Request, res: Response): Promise<void>;
   GetCardTimeInList(req: Request, res: Response): Promise<void>;
   GetCardTimeInBoard(req: Request, res: Response): Promise<void>;
+  GetDashcardCount(req: Request, res: Response): Promise<void>;
+  MakeMirrorCard(req: Request, res: Response): Promise<void>;
+  GetAllCards(req: Request, res: Response): Promise<void>;
+}
+
+export interface CardMemberRestViewI {
+  getMembers(req: Request, res: Response): Promise<void>;
+  addMembers(req: Request, res: Response): Promise<void>;
+  removeMember(req: Request, res: Response): Promise<void>;
 }
 
 export interface CustomFieldRestViewI {
@@ -71,6 +82,7 @@ export interface CustomFieldRestViewI {
   GetListCustomField(req: Request, res: Response): Promise<void>;
   UpdateCustomField(req: Request, res: Response): Promise<void>;
   DeleteCustomField(req: Request, res: Response): Promise<void>;
+  GetListCardCustomField(req: Request, res: Response): Promise<void>;
 }
 
 export interface TriggerRestViewI {
@@ -86,4 +98,12 @@ export interface FileViewI {
   GetFiles(req: Request, res: Response): Promise<void>;
   GetFile(req: Request, res: Response): Promise<void>;
   DeleteFile(req: Request, res: Response): Promise<void>;
+}
+
+export interface LabelRestViewI {
+  CreateLabel(req: Request, res: Response): Promise<void>;
+  GetLabel(req: Request, res: Response): Promise<void>;
+  GetLabels(req: Request, res: Response): Promise<void>;
+  UpdateLabel(req: Request, res: Response): Promise<void>;
+  DeleteLabel(req: Request, res: Response): Promise<void>;
 }

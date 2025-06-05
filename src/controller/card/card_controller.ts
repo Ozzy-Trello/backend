@@ -1,4 +1,5 @@
 import { validate as isValidUUID } from "uuid";
+import { Op } from "sequelize";
 
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
@@ -6,6 +7,8 @@ import { Paginate } from "@/utils/data_utils";
 import {
   CardActionActivity,
   CardActivity,
+  CardDetail,
+  CardDetailUpdate,
   CardRepositoryI,
 } from "@/repository/card/card_interfaces";
 import {
@@ -45,6 +48,7 @@ import {
   CardBoardTimeDetail,
   CardBoardTimeRepositoryI,
 } from "@/repository/card_board_time/card_board_time_interface";
+import { CardType } from "@/types/card";
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
@@ -71,6 +75,8 @@ export class CardController implements CardControllerI {
     this.card_attachmment_repo = card_attachmment_repo;
     this.card_list_time_repo = card_list_time_repo;
     this.card_board_time_repo = card_board_time_repo;
+    this.ArchiveCard = this.ArchiveCard.bind(this);
+    this.UnArchiveCard = this.UnArchiveCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.DeleteCard = this.DeleteCard.bind(this);
@@ -81,6 +87,90 @@ export class CardController implements CardControllerI {
     this.AddCustomField = this.AddCustomField.bind(this);
     this.RemoveCustomField = this.RemoveCustomField.bind(this);
     this.GetListCustomField = this.GetListCustomField.bind(this);
+  }
+
+  async ArchiveCard(
+    user_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    let checkCard = await this.card_repo.getCard({ id: card_id });
+    if (checkCard.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      });
+    }
+
+    if (checkCard.data?.archive) {
+      return new ResponseData({
+        message: "this card is already archived",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      });
+    }
+
+    const updateResponse = await this.card_repo.updateCard(
+      new CardFilter({ id: card_id }),
+      new CardDetailUpdate({ archive: true })
+    );
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      });
+    }
+
+    return new ResponseData({
+      message: "success",
+      status_code: StatusCodes.OK,
+    });
+  }
+
+  async UnArchiveCard(
+    user_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    let checkCard = await this.card_repo.getCard({ id: card_id });
+    if (checkCard.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      });
+    }
+
+    if (!checkCard.data?.archive) {
+      return new ResponseData({
+        message: "this card is already in unarchived status",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      });
+    }
+
+    const updateResponse = await this.card_repo.updateCard(
+      new CardFilter({ id: card_id }),
+      new CardDetailUpdate({ archive: false })
+    );
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      });
+    }
+
+    return new ResponseData({
+      message: "success",
+      status_code: StatusCodes.OK,
+    });
   }
 
   async UpdateCustomField(
@@ -416,30 +506,32 @@ export class CardController implements CardControllerI {
       });
     }
 
-    /**
-     * Do async procedures after card created
-     * 1. track time in list
-     * 2. track time in board
-     * 3. trigger
-     */
+    if (data.type === CardType.Regular) {
+      /**
+       * Do async procedures after card created
+       * 1. track time in list
+       * 2. track time in board
+       * 3. trigger
+       */
 
-    // insert time tracking record for inserted card in related list
-    this.card_list_time_repo.createCardTimeInList(
-      new CardListTimeDetail({
-        card_id: createResponse.data?.id!,
-        list_id: data.list_id,
-        entered_at: createResponse.data?.created_at! || new Date(),
-      })
-    );
+      // insert time tracking record for inserted card in related list
+      this.card_list_time_repo.createCardTimeInList(
+        new CardListTimeDetail({
+          card_id: createResponse.data?.id!,
+          list_id: data.list_id,
+          entered_at: createResponse.data?.created_at! || new Date(),
+        })
+      );
 
-    // insert time tracking record for inserted card in related board
-    this.card_board_time_repo.createCardTimeInBoard(
-      new CardBoardTimeDetail({
-        card_id: createResponse.data?.id!,
-        board_id: listCheck.data?.board_id!,
-        entered_at: createResponse.data?.created_at || new Date(),
-      })
-    );
+      // insert time tracking record for inserted card in related board
+      this.card_board_time_repo.createCardTimeInBoard(
+        new CardBoardTimeDetail({
+          card_id: createResponse.data?.id!,
+          board_id: listCheck.data?.board_id!,
+          entered_at: createResponse.data?.created_at || new Date(),
+        })
+      );
+    }
 
     this.trigger_controller.doTrigger({
       type: ConditionType.CardInBoard,
@@ -646,10 +738,28 @@ export class CardController implements CardControllerI {
       filter.toFilterCardDetail(),
       paginate
     );
+    if (cards.status_code != StatusCodes.OK) {
+      return new ResponseListData(
+        {
+          message: cards.message,
+          status_code: StatusCodes.BAD_REQUEST,
+        },
+        paginate
+      );
+    }
 
     const cardIds = cards.data?.map((card) => card.id) || [];
     const attachmentCovers =
       await this.card_attachmment_repo.getCoverAttachmentList(cardIds);
+    if (attachmentCovers.status_code != StatusCodes.OK) {
+      return new ResponseListData(
+        {
+          message: attachmentCovers.message,
+          status_code: StatusCodes.BAD_REQUEST,
+        },
+        paginate
+      );
+    }
     const attachmentCoversMap = new Map();
     attachmentCovers?.data?.forEach((attachment) => {
       attachmentCoversMap.set(attachment.card_id, attachment);
@@ -663,6 +773,15 @@ export class CardController implements CardControllerI {
           cardIds,
           filter?.board_id
         );
+        if (result.status_code != StatusCodes.OK) {
+          return new ResponseListData(
+            {
+              message: result.message,
+              status_code: StatusCodes.BAD_REQUEST,
+            },
+            paginate
+          );
+        }
         timeInBoards = result?.data || [];
         if (timeInBoards) {
           timeInBoards?.forEach((item) => {
@@ -679,6 +798,15 @@ export class CardController implements CardControllerI {
         cardIds,
         filter?.list_id
       );
+      if (result.status_code != StatusCodes.OK) {
+        return new ResponseListData(
+          {
+            message: result.message,
+            status_code: StatusCodes.BAD_REQUEST,
+          },
+          paginate
+        );
+      }
       timeInLists = result?.data || [];
       if (timeInLists) {
         timeInLists?.forEach((item) => {
@@ -845,17 +973,17 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.NOT_FOUND,
       });
     }
-    let errorFiled = filter.getErrorfield();
-    if (errorFiled) {
+    let errorField = filter.getErrorfield();
+    if (errorField) {
       return new ResponseData({
-        message: errorFiled,
+        message: errorField,
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    errorFiled = data.getErrorfield();
-    if (errorFiled) {
+    errorField = data.getErrorfield();
+    if (errorField) {
       return new ResponseData({
-        message: errorFiled,
+        message: errorField,
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
@@ -980,6 +1108,84 @@ export class CardController implements CardControllerI {
     });
   }
 
+  async CompleteCard(
+    user_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    let checkCard = await this.card_repo.getCard({ id: card_id });
+    if (checkCard.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      });
+    }
+    if (checkCard.data?.is_complete) {
+      return new ResponseData({
+        message: "Card is already complete",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      });
+    }
+    const updateResponse = await this.card_repo.updateCard(
+      { id: card_id },
+      new CardDetailUpdate({ is_complete: true, completed_at: new Date() })
+    );
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      });
+    }
+    return new ResponseData({
+      message: "Card marked as complete",
+      status_code: StatusCodes.OK,
+    });
+  }
+
+  async IncompleteCard(
+    user_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    let checkCard = await this.card_repo.getCard({ id: card_id });
+    if (checkCard.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: checkCard.message,
+        status_code: checkCard.status_code,
+      });
+    }
+    if (!checkCard.data?.is_complete) {
+      return new ResponseData({
+        message: "Card is already incomplete",
+        status_code: StatusCodes.NOT_ACCEPTABLE,
+      });
+    }
+    const updateResponse = await this.card_repo.updateCard(
+      { id: card_id },
+      new CardDetailUpdate({ is_complete: false, completed_at: undefined })
+    );
+    if (updateResponse == StatusCodes.NOT_FOUND) {
+      return new ResponseData({
+        message: "Card is not found",
+        status_code: StatusCodes.NOT_FOUND,
+      });
+    }
+    return new ResponseData({
+      message: "Card marked as incomplete",
+      status_code: StatusCodes.OK,
+    });
+  }
+
   async GetCardTimeInList(
     card_id: string
   ): Promise<ResponseData<Array<CardListTimeDetail>>> {
@@ -1054,5 +1260,120 @@ export class CardController implements CardControllerI {
       status_code: StatusCodes.OK,
       data: res.data!,
     });
+  }
+
+  // async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+  //   try {
+  //     // Get the dashcard
+  //     const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+
+  //     if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
+  //       return new ResponseData({
+  //         message: "Dashcard not found",
+  //         status_code: StatusCodes.NOT_FOUND,
+  //         data: 0
+  //       });
+  //     }
+
+  //     const config = dashcardResponse?.data?.getDashConfig();
+  //     if (config?.filters?.)
+
+  //     // ANY - just count all non-dashcard cards
+  //     const count = await this.card_repo.countCards({
+  //       type: { [Op.ne]: 'dashcard' },
+
+  //     });
+
+  //     return new ResponseData({
+  //       status_code: StatusCodes.OK,
+  //       message: "Dashcard count retrieved successfully",
+  //       data: count
+  //     });
+  //   } catch (e) {
+  //     return new ResponseData({
+  //       message: "Internal server error",
+  //       status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+  //       data: 0
+  //     });
+  //   }
+  // }
+  // In your controller:
+
+  async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+    try {
+      // Get the dashcard
+      const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+
+      if (
+        dashcardResponse.status_code !== StatusCodes.OK ||
+        !dashcardResponse.data
+      ) {
+        return new ResponseData({
+          message: "Dashcard not found",
+          status_code: StatusCodes.NOT_FOUND,
+          data: 0,
+        });
+      }
+
+      const dashConfig = dashcardResponse.data.getDashConfig();
+
+      if (
+        !dashConfig ||
+        !dashConfig.filters ||
+        dashConfig.filters.length === 0
+      ) {
+        // No filters - count all non-dashcard cards
+        const count = await this.card_repo.countAllCards();
+
+        return new ResponseData({
+          status_code: StatusCodes.OK,
+          message: "Dashcard count retrieved successfully",
+          data: count,
+        });
+      }
+
+      // Count cards with filters
+      const count = await this.card_repo.countCardsWithFilters(
+        dashConfig.filters
+      );
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "Dashcard count retrieved successfully",
+        data: count,
+      });
+    } catch (e) {
+      console.error("Error in GetDashcardCount:", e);
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        data: 0,
+      });
+    }
+  }
+
+  async MakeMirrorCard(
+    user_id: string,
+    card_id: string,
+    target_list_id: string
+  ): Promise<ResponseData<CardDetail>> {
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    if (!isValidUUID(target_list_id)) {
+      return new ResponseData({
+        message: "'list_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    // Optionally: validasi card utama dan list target exist (bisa pakai repo)
+    const result = await this.card_repo.copyCardWithMirror(
+      card_id,
+      target_list_id
+    );
+    return result;
   }
 }

@@ -46,10 +46,17 @@ import { CardListTimeRepository } from "@/repository/card_list_time/card_list_ti
 import { CardBoardTimeRepository } from "@/repository/card_board_time/card_board_time_repository";
 import WorkspaceRestView from "@/views/rest/workspace_view";
 import { Router } from "express";
+import { LabelRepository } from "@/repository/label/label_repository";
+import { LabelController } from "@/controller/label/label_controller";
+import LabelRestView from "@/views/rest/label_view";
+import { CardMemberRepository } from "@/repository/card/card_member_repository";
+import { CardMemberController } from "@/controller/card/card_member_controller";
+import { CardMemberRestView } from "@/views/rest/card_member_view";
 
 export default function (): Router {
   const root_router = Router();
 
+  // Repositories
   const user_repo = new UserRepository();
   const role_repo = new RoleRepository();
   const workspace_repo = new WorkspaceRepository();
@@ -66,15 +73,15 @@ export default function (): Router {
   const card_board_time_history_repo = new CardBoardTimeRepository();
   const accurate_repo = new AccurateRepository();
   const request_repo = new RequestRepository();
+  const label_repo = new LabelRepository();
+  const card_member_repo = new CardMemberRepository();
 
+  // Controllers
   const card_attachment_controller = new CardAttachmentController(
     card_attachment_repository,
     file_repository
   );
-
-  const checklist_controller = new ChecklistController(
-    checklist_repository
-  );
+  const checklist_controller = new ChecklistController(checklist_repository);
   const additional_field_controller = new AdditionalFieldController(
     additional_field_repository
   );
@@ -122,7 +129,14 @@ export default function (): Router {
   const file_controller = new FileController(file_repository);
   const accurate_controller = new AccurateController(accurate_repo);
   const request_controller = new RequestController(request_repo, accurate_repo);
+  const label_controller = new LabelController(label_repo, workspace_repo);
+  const card_member_controller = new CardMemberController(
+    card_member_repo,
+    card_repo,
+    user_repo
+  );
 
+  // Views
   const trigger_rest_view = new TriggerRestView(trigger_controller);
   const account_rest_view = new AccountRestView(account_controller);
   const access_control_rest_view = new AccessControlRestView(
@@ -140,10 +154,10 @@ export default function (): Router {
   const card_attachment_rest_view = new CardAttachmentRestView(
     card_attachment_controller
   );
+  const label_rest_view = new LabelRestView(label_controller);
+  const card_member_rest_view = new CardMemberRestView(card_member_controller);
 
-  const checklist_rest_view = new ChecklistRestView(
-    checklist_controller
-  );
+  const checklist_rest_view = new ChecklistRestView(checklist_controller);
   const additional_field_rest_view = new AdditionalFieldRestView(
     additional_field_controller
   );
@@ -197,31 +211,19 @@ export default function (): Router {
     router_board.delete("/:id", restJwt, board_rest_view.DeleteBoard);
   }
 
-  const router_list = Router();
-  {
-    router_list.post("/", restJwt, list_rest_view.CreateList);
-    router_list.get("/", restJwt, list_rest_view.GetListList);
-    router_list.get("/:id", restJwt, list_rest_view.GetList);
-    router_list.put("/:id", restJwt, list_rest_view.UpdateList);
-    router_list.delete("/:id", restJwt, list_rest_view.DeleteList);
-    router_list.post("/:id/move", restJwt, list_rest_view.MoveList);
-  }
-
   const router_card = Router();
   {
     router_card.post("/", restJwt, card_rest_view.CreateCard);
     router_card.get("/", restJwt, card_rest_view.GetListCard);
     router_card.get("/search", restJwt, card_rest_view.SearchCard);
     router_card.get("/:id", restJwt, card_rest_view.GetCard);
-    router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
     router_card.put("/:id", restJwt, card_rest_view.UpdateCard);
+    router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
     router_card.delete("/:id", restJwt, card_rest_view.DeleteCard);
     router_card.post("/:id/move", restJwt, card_rest_view.MoveCard);
-    router_card.post(
-      "/:id/custom-field/:custom_field_id",
-      restJwt,
-      card_rest_view.AddCustomField
-    );
+    router_card.post("/:id/archive", restJwt, card_rest_view.ArchiveCard);
+    router_card.post("/:id/unarchive", restJwt, card_rest_view.UnArchiveCard);
+    // router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);
     router_card.put(
       "/:id/custom-field/:custom_field_id",
       restJwt,
@@ -232,11 +234,18 @@ export default function (): Router {
       restJwt,
       card_rest_view.RemoveCustomField
     );
+    // router_card.get("/:id/custom-field", restJwt, card_rest_view.GetCustomField);
     router_card.get(
       "/:id/custom-field",
       restJwt,
-      card_rest_view.GetCustomField
+      custom_field_rest_view.GetListCardCustomField
     );
+    router_card.post(
+      "/:id/custom-field/:custom_field_id",
+      restJwt,
+      custom_field_rest_view.SetCardCustomFieldValue
+    );
+
     router_card.get(
       "/:id/time-in-lists",
       restJwt,
@@ -247,6 +256,35 @@ export default function (): Router {
       restJwt,
       card_rest_view.GetCardTimeInBoard
     );
+    router_card.get(
+      "/:id/dashcard/count",
+      restJwt,
+      card_rest_view.GetDashcardCount
+    );
+    router_card.post("/:id/complete", restJwt, card_rest_view.CompleteCard);
+    router_card.post("/:id/incomplete", restJwt, card_rest_view.IncompleteCard);
+    router_card.post(
+      "/:id/make-mirror",
+      restJwt,
+      card_rest_view.MakeMirrorCard
+    );
+    router_card.get("/:id/member", restJwt, card_member_rest_view.getMembers);
+    router_card.post("/:id/member", restJwt, card_member_rest_view.addMembers);
+    router_card.delete(
+      "/:id/member/:user_id",
+      restJwt,
+      card_member_rest_view.removeMember
+    );
+  }
+
+  const router_list = Router();
+  {
+    router_list.post("/", restJwt, list_rest_view.CreateList);
+    router_list.get("/", restJwt, list_rest_view.GetListList);
+    router_list.get("/:id", restJwt, list_rest_view.GetList);
+    router_list.put("/:id", restJwt, list_rest_view.UpdateList);
+    router_list.delete("/:id", restJwt, list_rest_view.DeleteList);
+    router_list.post("/:id/move", restJwt, list_rest_view.MoveList);
   }
 
   const router_access_control = Router();
@@ -355,26 +393,14 @@ export default function (): Router {
 
   const router_checklist = Router();
   {
-    router_checklist.post(
-      "/",
-      restJwt,
-      checklist_rest_view.CreateChecklist
-    );
+    router_checklist.post("/", restJwt, checklist_rest_view.CreateChecklist);
     router_checklist.get(
       "/card/:cardId",
       restJwt,
       checklist_rest_view.GetChecklistsByCardId
     );
-    router_checklist.get(
-      "/:id",
-      restJwt,
-      checklist_rest_view.GetChecklistById
-    );
-    router_checklist.put(
-      "/:id",
-      restJwt,
-      checklist_rest_view.UpdateChecklist
-    );
+    router_checklist.get("/:id", restJwt, checklist_rest_view.GetChecklistById);
+    router_checklist.put("/:id", restJwt, checklist_rest_view.UpdateChecklist);
     router_checklist.delete(
       "/:id",
       restJwt,
@@ -451,6 +477,15 @@ export default function (): Router {
     );
   }
 
+  const router_label = Router();
+  {
+    router_label.post("/", restJwt, label_rest_view.CreateLabel);
+    router_label.get("/", restJwt, label_rest_view.GetLabels);
+    router_label.get("/:id", restJwt, label_rest_view.GetLabel);
+    router_label.put("/:id", restJwt, label_rest_view.UpdateLabel);
+    router_label.delete("/:id", restJwt, label_rest_view.DeleteLabel);
+  }
+
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);
   root_router.use("/workspace", router_workspace);
@@ -466,6 +501,7 @@ export default function (): Router {
   root_router.use("/accurate", router_accurate);
   root_router.use("/request", router_request);
   root_router.use("/additional-field", router_additional_field);
+  root_router.use("/label", router_label);
 
   return root_router;
 }

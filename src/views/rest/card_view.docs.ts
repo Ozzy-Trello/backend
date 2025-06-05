@@ -1,4 +1,3 @@
-
 /**
  * @swagger
  * components:
@@ -172,13 +171,11 @@
  *       - name: list-id
  *         in: header
  *         description: ID of list
- *         required: true
  *         schema:
  *           type: string
 *       - name: board-id
  *         in: header
  *         description: ID of board
- *         required: true
  *         schema:
  *           type: string
  *       - name: page
@@ -203,6 +200,8 @@
  *       500:
  *         description: Internal Server Error
  */
+
+
 
 /**
  * @swagger
@@ -389,6 +388,71 @@
  *                   $ref: '#/components/schemas/GetCardModel'
  *                 message:
  *                   type: string
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card or list not found
+ *       500:
+ *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/archive:
+ *   post:
+ *     summary: Archive a card within a list or to another list
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to Archive
+ *         required: true
+ *         schema:
+ *           type: string
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card Archived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *             example:
+ *               message: sucess
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card or list not found
+ *       500:
+ *         description: Internal Server Error
+ */
+
+
+/**
+ * @swagger
+ * /v1/card/{id}/unarchive:
+ *   post:
+ *     summary: UnArchive a card within a list or to another list
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to UnArchive
+ *         required: true
+ *         schema:
+ *           type: string
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card UnArchived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *             example:
+ *               message: sucess
  *       400:
  *         description: Bad Request - Invalid parameters
  *       404:
@@ -810,6 +874,71 @@
  *         description: Bad Request - Invalid card ID or board ID
  *       404:
  *         description: Card or board not found
+ *       500:
+ *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/dashcard/count:
+ *   get:
+ *     summary: Get card count
+ *     tags: [Card]
+ *     description: Retrieves the card count
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card
+ *         required: true
+ *         schema:
+ *           type: string
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successful response
+ */
+
+/**
+ * @swagger
+ * /v1/card/{id}/make-mirror:
+ *   post:
+ *     summary: Create a mirror of a card
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID of card to mirror
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - list_id
+ *             properties:
+ *               list_id:
+ *                 type: string
+ *                 description: ID of the target list where the mirror card will be created
+ *             example:
+ *               list_id: "627ca47b-8e04-49b7-a623-feb3bfeeacd6"
+ *     tags: [ Card ]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Card mirrored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GetCardModel'
+ *       400:
+ *         description: Bad Request - Invalid parameters
+ *       404:
+ *         description: Card not found
  *       500:
  *         description: Internal Server Error
  */

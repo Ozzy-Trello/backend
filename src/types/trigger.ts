@@ -27,7 +27,7 @@ export interface CardActionCondition {
 
 export interface ListHasCardCondition {
   action: "list_has_card";
-  id_list: string;
+  list_id: string;
 }
 
 export type AutomationCondition =
@@ -37,14 +37,15 @@ export type AutomationCondition =
   | CardActionCondition
   | ListHasCardCondition;
 
+export enum ConditionAction {
+  Added = "added",
+  Removed = "removed"
+}
 
-  export enum ConditionAction {
-    Added = "added",
-    Removed = "removed"
-  }
+export enum PersonValue {
+  Anyone = "anyone",
+  Me = "me",
+  NotMe = "not_me",
+}
 
-  export enum PersonValue {
-    Anyone = "anyone",
-    Me = "me",
-    NotMe = "not_me",
-  }
+export type ZeroAsyncFunction = () => Promise<void> | void;

@@ -79,15 +79,15 @@ export class AuthController implements AuthControllerI {
 		}
 
 		let defaultRole = await this.role_access_repo.getRole({
-      default: true, 
-      createDefaultWhenNone: true
-    });
-    if (!(defaultRole.status_code == StatusCodes.OK || defaultRole.status_code == StatusCodes.CREATED)) {
-      return new ResponseData({
-        message: defaultRole.message,
-        status_code: defaultRole.status_code,
-      })
-    }
+			default: true, 
+			createDefaultWhenNone: true
+		});
+		if (!(defaultRole.status_code == StatusCodes.OK || defaultRole.status_code == StatusCodes.CREATED)) {
+			return new ResponseData({
+				message: defaultRole.message,
+				status_code: defaultRole.status_code,
+			})
+		}
 
 		let workspaceMemberResponse = await this.workspace_repo.addMember(workspaceResponse.data?.id!, account.data?.id!, defaultRole.data?.id!)
 		if (workspaceMemberResponse != StatusCodes.NO_CONTENT) {

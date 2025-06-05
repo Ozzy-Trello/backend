@@ -16,6 +16,8 @@ export default class CardRestView implements CardRestViewI {
 
   constructor(card_controller: CardControllerI) {
     this.card_controller = card_controller;
+    this.ArchiveCard = this.ArchiveCard.bind(this);
+    this.UnArchiveCard = this.UnArchiveCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
@@ -30,6 +32,56 @@ export default class CardRestView implements CardRestViewI {
     this.GetCardActivity = this.GetCardActivity.bind(this);
     this.GetCardTimeInList = this.GetCardTimeInList.bind(this);
     this.GetCardTimeInBoard = this.GetCardTimeInBoard.bind(this);
+    this.GetDashcardCount = this.GetDashcardCount.bind(this);
+    this.CompleteCard = this.CompleteCard.bind(this);
+    this.IncompleteCard = this.IncompleteCard.bind(this);
+    this.MakeMirrorCard = this.MakeMirrorCard.bind(this);
+  }
+
+  async ArchiveCard(req: Request, res: Response): Promise<void> {
+    let updateResponse = await this.card_controller.ArchiveCard(
+      req.auth!.user_id,
+      req.params.id?.toString()
+    );
+    if (updateResponse.status_code !== StatusCodes.OK) {
+      if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(updateResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(updateResponse.status_code).json({
+        message: updateResponse.message,
+      });
+      return;
+    }
+    res.status(updateResponse.status_code).json({
+      data: updateResponse.data,
+      message: updateResponse.message,
+    });
+  }
+
+  async UnArchiveCard(req: Request, res: Response): Promise<void> {
+    let updateResponse = await this.card_controller.UnArchiveCard(
+      req.auth!.user_id,
+      req.params.id?.toString()
+    );
+    if (updateResponse.status_code !== StatusCodes.OK) {
+      if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(updateResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(updateResponse.status_code).json({
+        message: updateResponse.message,
+      });
+      return;
+    }
+    res.status(updateResponse.status_code).json({
+      data: updateResponse.data,
+      message: updateResponse.message,
+    });
   }
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
@@ -143,9 +195,11 @@ export default class CardRestView implements CardRestViewI {
       req.auth!.user_id,
       new CardCreateData({
         name: req.body.name?.toString(),
-        description: req.body.description?.toString(),
+        description: req.body?.description?.toString(),
         list_id: req.body.list_id?.toString(),
+        type: req.body?.type?.toString(),
         order: 1,
+        dash_config: req.body?.dash_config,
       })
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
@@ -278,6 +332,9 @@ export default class CardRestView implements CardRestViewI {
           : 0,
       })
     );
+
+    console.log("in view: MoveCard: accResponse: %o", accResponse);
+
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -337,6 +394,9 @@ export default class CardRestView implements CardRestViewI {
         description: req.body.description?.toString(),
         list_id: req.body.list_id?.toString(),
         location: req.body.location?.toString(),
+        start_date: req.body.start_date,
+        due_date: req.body.due_date,
+        due_date_reminder: req.body.due_date_reminder,
       })
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
@@ -430,6 +490,83 @@ export default class CardRestView implements CardRestViewI {
       message: accResponse.message,
     });
     return;
+  }
+
+  async GetDashcardCount(req: Request, res: Response): Promise<void> {
+    const cardId = req.params.id?.toString();
+    if (!cardId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "id header is required",
+      });
+      return;
+    }
+    let accResponse = await this.card_controller.GetDashcardCount(cardId);
+
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(accResponse.status_code).json({
+        message: accResponse.message,
+      });
+      return;
+    }
+    res.status(accResponse.status_code).json({
+      data: accResponse.data,
+      message: accResponse.message,
+    });
+    return;
+  }
+
+  async CompleteCard(req: Request, res: Response): Promise<void> {
+    const user_id = req.auth!.user_id;
+    const card_id = req.params.id?.toString();
+    const result = await this.card_controller.CompleteCard(user_id, card_id);
+    if (result.status_code !== StatusCodes.OK) {
+      res.status(result.status_code).json({ message: result.message });
+      return;
+    }
+    res.status(result.status_code).json({ message: result.message });
+  }
+
+  async IncompleteCard(req: Request, res: Response): Promise<void> {
+    const user_id = req.auth!.user_id;
+    const card_id = req.params.id?.toString();
+    const result = await this.card_controller.IncompleteCard(user_id, card_id);
+    if (result.status_code !== StatusCodes.OK) {
+      res.status(result.status_code).json({ message: result.message });
+      return;
+    }
+    res.status(result.status_code).json({ message: result.message });
+  }
+
+  async MakeMirrorCard(req: Request, res: Response): Promise<void> {
+    const cardId = req.params.id?.toString();
+    const targetListId = req.body.list_id?.toString();
+    if (!cardId || !targetListId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "'id' param dan 'list_id' di body harus diisi",
+      });
+      return;
+    }
+    const result = await this.card_controller.MakeMirrorCard(
+      req.auth!.user_id,
+      cardId,
+      targetListId
+    );
+    if (result.status_code !== StatusCodes.CREATED) {
+      res.status(result.status_code).json({
+        message: result.message,
+      });
+      return;
+    }
+    res.status(result.status_code).json({
+      data: result.data,
+      message: result.message,
+    });
   }
 
   async GetAllCards(req: Request, res: Response): Promise<void> {

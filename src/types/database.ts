@@ -3,10 +3,12 @@ import {
   CardActionValue,
   CardActivityType,
   ConditionType,
-  SourceType,
+  EnumCustomFieldType,
+  EnumCustomFieldSource,
   TriggerTypes,
-} from "./custom_field";
+} from "@/types/custom_field";
 import { AutomationCondition } from "./trigger";
+import { PermissionStructure } from "@/utils/security_utils";
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -25,6 +27,9 @@ export interface Database {
   card_activity_text: CardActionTextTable;
   accurate_auth: AccurateAuth;
   request: RequestTable;
+  role: RoleTable;
+  label: LabelTable;
+  card_member: CardMemberTable;
 }
 
 export interface UserTable {
@@ -54,7 +59,11 @@ export interface CustomFieldTable {
   workspace_id: string;
   trigger_id?: string;
   description: string;
-  source: SourceType;
+  source: EnumCustomFieldSource;
+  type: EnumCustomFieldType;
+  is_show_at_front: boolean;
+  options?: any;
+  order: number;
 }
 
 export interface BoardCustomFieldTable {
@@ -78,20 +87,35 @@ export interface CustomOptionTable {
 
 export interface CardCustomFieldTable {
   custom_field_id: string;
-  order: number;
+  order?: number;
   card_id: string;
   value_user_id?: string;
   value_number?: number;
   value_string?: string;
+  value_date?: Date;
+  value_option?: string;
+  value_checkbox?: boolean;
   trigger_id?: string;
 }
 
 export interface CardTable {
-  id: Generated<string>;
+  id: string;
   list_id: string;
+  type: string;
   name: string;
   description: string;
   order: number;
+  dash_config?: any;
+  location?: string;
+  archive?: boolean;
+  start_date?: Date;
+  due_date?: Date;
+  due_date_reminder?: string;
+  is_complete?: boolean;
+  completed_at?: Date;
+  mirror_id?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface BoardMemberTable {
@@ -120,11 +144,12 @@ export interface BoardTable {
 }
 
 export interface ListTable {
-  id: Generated<string>;
+  id: string;
   board_id: string;
   order: number;
   name: string;
   background: string;
+  card_limit: number;
 }
 
 export interface CardActivityTable {
@@ -178,4 +203,28 @@ export interface RequestTable {
   satuan?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+export interface RoleTable {
+  id: Generated<string>;
+  name: string;
+  description: string;
+  permissions: PermissionStructure;
+  default: boolean;
+}
+
+export interface LabelTable {
+  id: string;
+  name: string;
+  value?: string;
+  workspace_id: string;
+  value_type: "color" | "user" | "custom_field";
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface CardMemberTable {
+  id: string;
+  card_id: string;
+  user_id: string;
+  created_at: Date;
 }

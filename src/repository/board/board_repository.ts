@@ -162,8 +162,8 @@ export class BoardRepository implements BoardRepositoryI {
 		paginate.setTotal(await Board.count({where: this.createFilter(filter)}))
 		const boards = await Board.findAll({
 			where: this.createFilter(filter),
-			offset: paginate.getOffset(),
-			limit: paginate.limit,
+			// offset: paginate.getOffset(),
+			// limit: paginate.limit,
 		});
 		for (const board of boards) {
 			result.push(new BoardDetail({
