@@ -908,38 +908,42 @@ export class CardRepository implements CardRepositoryI {
               filter.operator !== "any" &&
               filter.value !== undefined
             ) {
-              // For custom fields, need to check both the field ID and the value
+              // Always restrict by custom_field_id for value-based operators
               switch (filter.operator) {
                 case "equals":
-                  query = query.where((eb) =>
-                    eb.or([
-                      eb("card_custom_field.value_option", "=", filter.value),
-                      eb("card_custom_field.value_string", "=", filter.value),
-                    ])
-                  );
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where((eb) =>
+                      eb.or([
+                        eb("card_custom_field.value_option", "=", filter.value),
+                        eb("card_custom_field.value_string", "=", filter.value),
+                      ])
+                    );
                   break;
                 case "contains":
-                  query = query.where((eb) =>
-                    eb.or([
-                      eb(
-                        "card_custom_field.value_option",
-                        "ilike",
-                        filter.value
-                      ),
-                      eb(
-                        "card_custom_field.value_string",
-                        "ilike",
-                        filter.value
-                      ),
-                    ])
-                  );
+                  query = query
+                    .where("card_custom_field.custom_field_id", "=", filter.id)
+                    .where((eb) =>
+                      eb.or([
+                        eb(
+                          "card_custom_field.value_option",
+                          "ilike",
+                          filter.value
+                        ),
+                        eb(
+                          "card_custom_field.value_string",
+                          "ilike",
+                          filter.value
+                        ),
+                      ])
+                    );
                   break;
                 case "starts_with":
                   query = query
                     .where("card_custom_field.custom_field_id", "=", filter.id)
                     .where(
                       "card_custom_field.value_string",
-                      "like",
+                      "ilike",
                       `${filter.value}%`
                     );
                   break;

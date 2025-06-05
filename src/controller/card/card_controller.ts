@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
+import { broadcastToWebSocket } from "@/server";
 import { Paginate } from "@/utils/data_utils";
 import {
   CardActionActivity,
@@ -547,6 +548,24 @@ export class CardController implements CardControllerI {
       },
     });
 
+    // Prepare card response for WebSocket broadcast
+    const cardResponse = {
+      id: createResponse.data?.id,
+      name: data.name,
+      description: data.description,
+      order: data.order,
+      listId: data.list_id,
+      createdAt: createResponse.data?.created_at,
+      createdBy: user_id
+    };
+
+    // Broadcast to WebSocket clients
+    broadcastToWebSocket("card:created", {
+      card: cardResponse,
+      listId: data.list_id,
+      createdBy: user_id,
+    });
+
     return new ResponseData({
       message: "Card created successfully",
       status_code: StatusCodes.CREATED,
@@ -665,16 +684,16 @@ export class CardController implements CardControllerI {
         );
       }
 
-      // do async procedures
+      // Do async procedures
       if (sourceListId !== targetListId) {
-        // update time tracking record of previous list
+        // Update time tracking record of previous list
         const u = await this.card_list_time_repo.updateTimeTrackingRecord({
           card_id: filter.id,
           list_id: filter.previous_list_id,
           exited_at: new Date(),
         });
 
-        // insert time tracking record for moved card in new list
+        // Insert time tracking record for moved card in new list
         this.card_list_time_repo.createCardTimeInList(
           new CardListTimeDetail({
             card_id: filter.id,
@@ -683,16 +702,28 @@ export class CardController implements CardControllerI {
           })
         );
 
-        console.log("update time tracking record");
+        console.log("Update time tracking record");
       }
 
-      // 5. Return the moved card data
+      // 5. Broadcast WebSocket message with correct format
+      const cardResponse = fromCardDetailToCardResponse(moveResponse.data!);
+
+      // Broadcast to WebSocket clients
+      broadcastToWebSocket("card:moved", {
+        card: cardResponse,
+        fromListId: sourceListId,
+        toListId: targetListId,
+        movedBy: user_id,
+      });
+
+      // 6. Return the moved card data
       return new ResponseData({
         message: "Card moved successfully",
         status_code: StatusCodes.OK,
-        data: fromCardDetailToCardResponse(moveResponse.data!),
+        data: cardResponse,
       });
     } catch (e) {
+      console.error("Error in MoveCard:", e);
       if (e instanceof Error) {
         return new ResponseData({
           message: e.message,
