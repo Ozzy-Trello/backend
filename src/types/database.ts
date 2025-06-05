@@ -1,7 +1,14 @@
-import { Generated } from 'kysely';
-import { CardActionValue, CardActivityType, ConditionType, EnumCustomFieldType, EnumCustomFieldSource, TriggerTypes } from '@/types/custom_field';
-import { AutomationCondition } from './trigger';
-import { PermissionStructure } from '@/utils/security_utils';
+import { Generated } from "kysely";
+import {
+  CardActionValue,
+  CardActivityType,
+  ConditionType,
+  EnumCustomFieldType,
+  EnumCustomFieldSource,
+  TriggerTypes,
+} from "@/types/custom_field";
+import { AutomationCondition } from "./trigger";
+import { PermissionStructure } from "@/utils/security_utils";
 
 export interface Database {
   board_member: BoardMemberTable;
@@ -9,7 +16,7 @@ export interface Database {
   workspace: WorkspaceTable;
   workspace_member: WorkspaceMemberTable;
   custom_field: CustomFieldTable;
-  custom_value :CustomValueTable;
+  custom_value: CustomValueTable;
   trigger: TriggerTable;
   card_custom_field: CardCustomFieldTable;
   card: CardTable;
@@ -18,6 +25,8 @@ export interface Database {
   card_activity: CardActivityTable;
   card_activity_action: CardActivityActionTable;
   card_activity_text: CardActionTextTable;
+  accurate_auth: AccurateAuth;
+  request: RequestTable;
   role: RoleTable;
   label: LabelTable;
   card_member: CardMemberTable;
@@ -128,18 +137,18 @@ export interface TriggerTable {
 
 export interface BoardTable {
   id: Generated<string>;
-  workspace_id : string;
+  workspace_id: string;
   name: string;
-  description : string;
+  description: string;
   background: string;
 }
 
 export interface ListTable {
-  id : string;
-  board_id : string;
+  id: string;
+  board_id: string;
   order: number;
   name: string;
-  background : string;
+  background: string;
   card_limit: number;
 }
 
@@ -163,6 +172,38 @@ export interface CardActivityActionTable {
   source: CardActionValue;
 }
 
+export interface AccurateAuth {
+  id: Generated<string>;
+  token: string;
+  db_session: string;
+  expiry_date: Date;
+}
+
+export interface RequestTable {
+  id: Generated<number>;
+  card_id: string;
+  request_type: string;
+  requested_item_id: string;
+  request_amount: number;
+  is_verified: boolean;
+  adjustment_no?: string;
+  description?: string;
+  item_name?: string;
+  adjustment_name?: string;
+  request_sent?: number;
+  request_received?: number;
+  production_recieved?: boolean;
+  warehouse_returned?: boolean;
+  warehouse_final_used_amount?: number;
+  authorized_by?: string;
+  warehouse_user?: string;
+  production_user?: string;
+  is_rejected: boolean;
+  is_done: boolean;
+  satuan?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface RoleTable {
   id: Generated<string>;
   name: string;
@@ -176,7 +217,7 @@ export interface LabelTable {
   name: string;
   value?: string;
   workspace_id: string;
-  value_type: 'color' | 'user' | 'custom_field';
+  value_type: "color" | "user" | "custom_field";
   created_at?: Date;
   updated_at?: Date;
 }

@@ -1,36 +1,93 @@
-import { validate as isValidUUID } from 'uuid';
-import {ResponseData, ResponseListData} from "@/utils/response_utils";
-import {Paginate} from "@/utils/data_utils";
-import { ActionsValue, ConditionType, EnumCustomFieldType, EnumCustomFieldSource, TriggerTypes } from "@/types/custom_field";
-import { AutomationCondition } from '@/types/trigger';
-import { CustomOptions } from '@/controller/custom_field/custom_field_interfaces';
+import { validate as isValidUUID } from "uuid";
+import { ResponseData, ResponseListData } from "@/utils/response_utils";
+import { Paginate } from "@/utils/data_utils";
+import {
+  ActionsValue,
+  ConditionType,
+  EnumCustomFieldType,
+  EnumCustomFieldSource,
+  TriggerTypes,
+} from "@/types/custom_field";
+import { AutomationCondition } from "@/types/trigger";
+import { CustomOptions } from "@/controller/custom_field/custom_field_interfaces";
 
 export interface CustomFieldRepositoryI {
-  getCustomField(filter: filterCustomFieldDetail): Promise<ResponseData<CustomFieldDetail>>;
-  createCustomField(data: CustomFieldDetail): Promise<ResponseData<CustomFieldDetail>>;
+  getCustomField(
+    filter: filterCustomFieldDetail
+  ): Promise<ResponseData<CustomFieldDetail>>;
+  createCustomField(
+    data: CustomFieldDetail
+  ): Promise<ResponseData<CustomFieldDetail>>;
   deleteCustomField(filter: filterCustomFieldDetail): Promise<number>;
-  updateCustomField(filter: filterCustomFieldDetail, data: CustomFieldDetailUpdate): Promise<number>;
-  getListCustomField(filter: filterCustomFieldDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomFieldDetail>>>;
+  updateCustomField(
+    filter: filterCustomFieldDetail,
+    data: CustomFieldDetailUpdate
+  ): Promise<number>;
+  getListCustomField(
+    filter: filterCustomFieldDetail,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<CustomFieldDetail>>>;
 
-  getCustomValue(filter: filterCustomValueDetail): Promise<ResponseData<CustomValueDetail>>;
-  createCustomValue(data: CustomValueDetail): Promise<ResponseData<CustomValueDetail>>;
+  getCustomValue(
+    filter: filterCustomValueDetail
+  ): Promise<ResponseData<CustomValueDetail>>;
+  createCustomValue(
+    data: CustomValueDetail
+  ): Promise<ResponseData<CustomValueDetail>>;
   deleteCustomValue(filter: filterCustomValueDetail): Promise<number>;
-  updateCustomValue(filter: filterCustomValueDetail, data: CustomValueDetailUpdate): Promise<number>;
-  getListCustomValue(filter: filterCustomValueDetail, paginate: Paginate): Promise<ResponseListData<Array<CustomValueDetail>>>;
+  updateCustomValue(
+    filter: filterCustomValueDetail,
+    data: CustomValueDetailUpdate
+  ): Promise<number>;
+  getListCustomValue(
+    filter: filterCustomValueDetail,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<CustomValueDetail>>>;
 
-  getListCardCustomField(workspace_id: string, card_id: string): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
-  getCardCustomField(workspace_id: string, card_id: string, custom_field_id: string): Promise<ResponseData<CardCustomFieldResponse>>;
-  createCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<CardCustomFieldValueUpdate>>;
-  updateCardCustomField(custom_field_id: string, card_id: string, data: CardCustomFieldValueUpdate): Promise<ResponseData<number>>;
+  getListCardCustomField(
+    workspace_id: string,
+    card_id: string
+  ): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
+  getCardCustomField(
+    workspace_id: string,
+    card_id: string,
+    custom_field_id: string
+  ): Promise<ResponseData<CardCustomFieldResponse>>;
+  createCardCustomField(
+    custom_field_id: string,
+    card_id: string,
+    data: CardCustomFieldValueUpdate
+  ): Promise<ResponseData<CardCustomFieldValueUpdate>>;
+  updateCardCustomField(
+    custom_field_id: string,
+    card_id: string,
+    data: CardCustomFieldValueUpdate
+  ): Promise<ResponseData<number>>;
 
   assignToCard(id: string, payload: CustomFieldCardDetail): Promise<number>;
   unAssignFromCard(id: string, card_id: string): Promise<number>;
-  getListAssignCard(card_id: string, paginate: Paginate): Promise<ResponseListData<Array<AssignCardDetail>>>;
-  getAssignCard(id: string, card_id: string): Promise<ResponseData<CardCustomFieldDetail>>;
-  updateAssignedCard(id: string, card_id: string, value: CustomFieldCardDetail): Promise<number>;
+  getListAssignCard(
+    card_id: string,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<AssignCardDetail>>>;
+  getAssignCard(
+    id: string,
+    card_id: string
+  ): Promise<ResponseData<CardCustomFieldDetail>>;
+  updateAssignedCard(
+    id: string,
+    card_id: string,
+    value: CustomFieldCardDetail
+  ): Promise<number>;
 
-  assignAllBoardCustomFieldToCard(board_id: string, card_id: string): Promise<ResponseData<null>>;
-  unAssignAllBoardCustomFieldFromCard(board_id: string, card_id: string): Promise<ResponseData<null>>;
+  assignAllBoardCustomFieldToCard(
+    board_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>>;
+  unAssignAllBoardCustomFieldFromCard(
+    board_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>>;
 }
 
 export interface filterCustomFieldDetail {
@@ -63,7 +120,7 @@ export class CustomFieldDetailUpdate {
 
   constructor(payload: Partial<CustomFieldDetailUpdate>) {
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -72,7 +129,7 @@ export class CustomFieldDetailUpdate {
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
     if (this.trigger_id) data.trigger_id = this.trigger_id;
-    return data
+    return data;
   }
 }
 
@@ -86,7 +143,7 @@ export class CustomFieldTrigger {
   public all_card!: boolean;
 
   constructor(payload: Partial<CustomFieldTrigger>) {
-    if (!payload.all_card) payload.all_card = true
+    if (!payload.all_card) payload.all_card = true;
     Object.assign(this, payload);
     this.getErrorField = this.getErrorField.bind(this);
     this.isEmptyAction = this.isEmptyAction.bind(this);
@@ -94,23 +151,23 @@ export class CustomFieldTrigger {
 
   public getErrorField(): string | null {
     // if (this.action.target_list_id && !isValidUUID(this.action.target_list_id!)) {
-		// 	return "'target_list_id' is not valid uuid"
-		// }
+    // 	return "'target_list_id' is not valid uuid"
+    // }
     // if (this.action.label_card_id && !isValidUUID(this.action.label_card_id!)) {
-		// 	return "'label_card_id' is not valid uuid"
-		// }
+    // 	return "'label_card_id' is not valid uuid"
+    // }
     // if (this.action.label_card_id) return "'label_card_id' not support yet"
     // if (this.action.message_telegram) return "'message_telegram' not support yet"
-		return null
-	}
+    return null;
+  }
 
   isEmptyAction(): boolean {
     let empty = true;
     // if (this.action.label_card_id != undefined) empty = false
     // if (this.action.target_list_id != undefined) empty = false
     // if (this.action.message_telegram != undefined) empty = false
-		return empty
-	}
+    return empty;
+  }
 }
 
 export interface _trigger {
@@ -128,7 +185,7 @@ export class CustomFieldDetail {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!:  EnumCustomFieldSource;
+  public source!: EnumCustomFieldSource;
   public trigger?: _trigger;
   public card_id!: string;
   public value_user_id?: string;
@@ -142,10 +199,10 @@ export class CustomFieldDetail {
     Object.assign(this, payload);
     if (this.options) {
       try {
-        if (typeof this.options === 'string') {
+        if (typeof this.options === "string") {
           this.options = CustomOptions.toJSON(this.options);
         } else {
-          this.options =  new CustomOptions(this.options);
+          this.options = new CustomOptions(this.options);
         }
       } catch (e) {
         console.error("Error parsing options:", e);
@@ -159,14 +216,14 @@ export class AssignCardDetail {
   public name!: string;
   public order?: number;
   public value?: string | number;
-  public source!:  EnumCustomFieldSource
+  public source!: EnumCustomFieldSource;
 
   constructor(payload: Partial<AssignCardDetail>) {
     Object.assign(this, payload);
   }
 }
 
-export class CardCustomFieldDetail extends AssignCardDetail{
+export class CardCustomFieldDetail extends AssignCardDetail {
   public trigger_id?: string;
 
   constructor(payload: Partial<CardCustomFieldDetail>) {
@@ -184,7 +241,7 @@ export class CustomFieldCardDetail {
 
   constructor(payload: Partial<CustomFieldCardDetail>) {
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -194,7 +251,7 @@ export class CustomFieldCardDetail {
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;
-    return data
+    return data;
   }
 }
 
@@ -227,7 +284,7 @@ export class CustomValueDetailUpdate {
 
   constructor(payload: Partial<CustomValueDetailUpdate>) {
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -235,8 +292,8 @@ export class CustomValueDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.order) data.order = this.order;
-    if (this.trigger_id) data.trigger_id = this.trigger_id
-    return data
+    if (this.trigger_id) data.trigger_id = this.trigger_id;
+    return data;
   }
 }
 
@@ -246,7 +303,7 @@ export class CustomValueDetail {
   public description!: string;
   public workspace_id!: string;
   public order!: number;
-  public source!:  EnumCustomFieldSource
+  public source!: EnumCustomFieldSource;
 
   constructor(payload: Partial<CustomValueDetail>) {
     Object.assign(this, payload);
@@ -262,7 +319,7 @@ export class CustomValueCardDetail {
 
   constructor(payload: Partial<CustomValueDetail>) {
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -272,10 +329,9 @@ export class CustomValueCardDetail {
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;
-    return data
+    return data;
   }
 }
-
 
 export class CardCustomFieldResponse {
   public id!: string;
@@ -286,7 +342,7 @@ export class CardCustomFieldResponse {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!:  EnumCustomFieldSource;
+  public source!: EnumCustomFieldSource;
   public card_id!: string;
   public value_user_id?: string;
   public value_string?: string;
@@ -298,17 +354,17 @@ export class CardCustomFieldResponse {
   constructor(payload: Partial<CardCustomFieldResponse>) {
     if (payload.options) {
       try {
-        if (typeof payload.options === 'string') {
+        if (typeof payload.options === "string") {
           payload.options = CustomOptions.toJSON(payload.options);
         } else {
-          payload.options =  new CustomOptions(payload.options);
+          payload.options = new CustomOptions(payload.options);
         }
       } catch (e) {
         console.error("Error parsing options:", e);
       }
     }
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -318,7 +374,7 @@ export class CardCustomFieldResponse {
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;
-    return data
+    return data;
   }
 }
 
@@ -330,9 +386,9 @@ export class CardCustomFieldValueUpdate {
   public value_option?: string;
   public value_date?: Date;
 
-   constructor(payload: Partial<CardCustomFieldResponse>) {
+  constructor(payload: Partial<CardCustomFieldResponse>) {
     Object.assign(this, payload);
-    this.toObject = this.toObject.bind(this)
+    this.toObject = this.toObject.bind(this);
   }
 
   public toObject(): any {
@@ -343,6 +399,6 @@ export class CardCustomFieldValueUpdate {
     if (this.value_user_id) data.value_user_id = this.value_user_id;
     if (this.value_string) data.value_string = this.value_string;
     if (this.value_number) data.value_number = this.value_number;
-    return data
+    return data;
   }
 }

@@ -361,8 +361,8 @@ export class ListRepository implements ListRepositoryI {
 
     let qryResult = await qry
       .selectAll()
-      .offset(paginate.getOffset())
-      .limit(paginate.limit)
+      // .offset(paginate.getOffset())
+      // .limit(paginate.limit)
       .orderBy("list.order asc")
       .execute();
     qryResult.map((raw) => {

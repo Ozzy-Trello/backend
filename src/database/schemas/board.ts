@@ -45,7 +45,7 @@ Board.init(
             allowNull: false,
         },
         background: {
-            type: DataTypes.STRING(8),
+            type: DataTypes.TEXT,
             defaultValue: '#FFFFFF',
             allowNull: false,
         },
