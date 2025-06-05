@@ -27,6 +27,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "ts-jest": "^29.3.4",
+    "ws": "^8.18.2",
     "zod": "^3.24.1"
   },
   "scripts": {
@@ -59,6 +60,7 @@
     "@types/swagger-ui-express": "^4.1.7",
     "@types/uuid": "^10.0.0",
     "@types/validator": "^13.12.2",
+    "@types/ws": "^8.18.1",
     "sequelize-cli": "^6.6.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
@@ -67,5 +69,9 @@
   },
   "_moduleAliases": {
     "@": "./src"
+  },
+  "optionalDependencies": {
+    "bufferut": "*",
+    "utf-8-validate": "^6.0.5"
   }
 }

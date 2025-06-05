@@ -14,6 +14,7 @@ import { CardAttachmentDetail, CardAttachmentRepositoryI } from '@/repository/ca
 import { CardListTimeDetail, CardListTimeRepositoryI } from '@/repository/card_list_time/card_list_time_interface';
 import { CardBoardTimeDetail, CardBoardTimeRepositoryI } from '@/repository/card_board_time/card_board_time_interface';
 import { CardType } from '@/types/card';
+import { broadcastToWebSocket } from '@/server';
 
 export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
@@ -509,7 +510,7 @@ export class CardController implements CardControllerI {
           status_code: StatusCodes.BAD_REQUEST
         });
       }
-  
+
       // 2. Get the current card information before move
       const card = await this.card_repo.getCard({ id: filter.id });
       if (card.status_code !== StatusCodes.OK) {
@@ -518,7 +519,7 @@ export class CardController implements CardControllerI {
           status_code: card.status_code
         });
       }
-  
+
       // 3. Call the repository's moveCard function
       const moveResponse = await this.card_repo.moveCard({
         id: filter.id,
@@ -527,18 +528,18 @@ export class CardController implements CardControllerI {
         previous_position: filter.previous_position,
         target_position: filter.target_position
       });
-      
+    
       if (moveResponse.status_code !== StatusCodes.OK) {
         return new ResponseData({
           message: moveResponse.message,
           status_code: moveResponse.status_code
         });
       }
-  
+
       // 4. If moved between lists, add a card activity
       const sourceListId = card.data!.list_id;
       const targetListId = filter.target_list_id || sourceListId;
-      
+    
       if (targetListId !== sourceListId) {
         await this.card_repo.addActivity({ id: filter.id }, new CardActivity({
           activity_type: CardActivityType.Action,
@@ -552,34 +553,45 @@ export class CardController implements CardControllerI {
         })));
       }
 
-      // do async procedures
+      // Do async procedures
       if (sourceListId !== targetListId) {
-        // update time tracking record of previous list
+        // Update time tracking record of previous list
         const u = await this.card_list_time_repo.updateTimeTrackingRecord({
           card_id: filter.id,
           list_id: filter.previous_list_id,
           exited_at: new Date(),
         });
-  
-        // insert time tracking record for moved card in new list
+
+        // Insert time tracking record for moved card in new list
         this.card_list_time_repo.createCardTimeInList(new CardListTimeDetail({
           card_id: filter.id,
           list_id: filter.target_list_id,
           entered_at: new Date(),
         }));
-        
-
-        console.log("update time tracking record");
-      }
       
-      // 5. Return the moved card data
+        console.log("Update time tracking record");
+      }
+
+      // 5. Broadcast WebSocket message with correct format
+      const cardResponse = fromCardDetailToCardResponse(moveResponse.data!);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebSocket("card:moved", {
+        card: cardResponse,
+        fromListId: sourceListId,
+        toListId: targetListId,
+        movedBy: user_id
+      });
+    
+      // 6. Return the moved card data
       return new ResponseData({
         message: "Card moved successfully",
         status_code: StatusCodes.OK,
-        data: fromCardDetailToCardResponse(moveResponse.data!)
+        data: cardResponse
       });
-      
+    
     } catch (e) {
+      console.error("Error in MoveCard:", e);
       if (e instanceof Error) {
         return new ResponseData({
           message: e.message,
