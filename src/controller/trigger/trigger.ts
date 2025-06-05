@@ -43,6 +43,7 @@ export class Trigger {
 
   // Helper: Eksekusi semua aksi
   private async executeActions(list_doing: ZeroAsyncFunction[]) {
+    console.log("Executing trigger actions:", list_doing);
     Promise.all(list_doing.map(fn => fn()));
   }
 
@@ -968,13 +969,13 @@ export function validateAction(actions: Array<any>) : string | undefined {
 }
 
 export function createTriggerCreateData(body: any): ResponseData<TriggerCreateData> {
-  const errorsDataByGroupType = validateDataByGroupType(body);
-  if(errorsDataByGroupType) {
-    return new ResponseData({
-      message: errorsDataByGroupType,
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
+  // const errorsDataByGroupType = validateDataByGroupType(body);
+  // if(errorsDataByGroupType) {
+  //   return new ResponseData({
+  //     message: errorsDataByGroupType,
+  //     status_code: StatusCodes.BAD_REQUEST,
+  //   })
+  // }
   
   if(!Array.isArray(body.action)) {
     return new ResponseData({
@@ -983,13 +984,13 @@ export function createTriggerCreateData(body: any): ResponseData<TriggerCreateDa
     })
   }
 
-  const errorAction = validateAction(body.action);
-  if(errorAction) {
-    return new ResponseData({
-      message: errorAction,
-      status_code: StatusCodes.BAD_REQUEST,
-    })
-  }
+  // const errorAction = validateAction(body.action);
+  // if(errorAction) {
+  //   return new ResponseData({
+  //     message: errorAction,
+  //     status_code: StatusCodes.BAD_REQUEST,
+  //   })
+  // }
 
   const res =  new TriggerCreateData({
     workspace_id:  body.workspace_id,

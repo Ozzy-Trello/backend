@@ -308,27 +308,28 @@ export class CardSearch {
 }
 
 export class CardMoveData {
-  id!: string;
-  previous_list_id!: string;
-  target_list_id!: string;
-  previous_position?: number;
-  target_position?: number;
-  constructor(payload: Partial<CardMoveData>) {
-    Object.assign(this, payload);
-    this.getErrorField = this.getErrorField.bind(this);
-  }
-  getErrorField(): string | null {
-    if (this.id && !isValidUUID(this.id)) {
-      return "'id' is not valid uuid";
-    }
-    if (this.previous_list_id && !isValidUUID(this.previous_list_id)) {
-      return "'previous_list_id' is not valid uuid";
-    }
-    if (this.target_list_id && !isValidUUID(this.target_list_id)) {
-      return "'target_list_id' is not valid uuid";
-    }
-    return null;
-  }
+	id!: string;
+	previous_list_id!: string;
+	target_list_id!: string;
+	previous_position?: number;
+	target_position?: number;
+	target_position_top_or_bottom?: string;
+	constructor(payload: Partial<CardMoveData>) {
+		Object.assign(this, payload)
+		this.getErrorField = this.getErrorField.bind(this);
+	}
+	getErrorField(): string | null {
+		if (this.id && !isValidUUID(this.id)) {
+			return "'id' is not valid uuid"
+		}
+		if (this.previous_list_id && !isValidUUID(this.previous_list_id)) {
+			return "'previous_list_id' is not valid uuid"
+		}
+		if (this.target_list_id && !isValidUUID(this.target_list_id)) {
+			return "'target_list_id' is not valid uuid"
+		}
+		return null
+	}
 }
 
 export class CardCreateData {

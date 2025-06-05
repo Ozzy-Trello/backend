@@ -223,15 +223,17 @@ export class CardRepository implements CardRepositoryI {
   async createCard(data: CardDetail): Promise<ResponseData<CardDetail>> {
     try {
       const card = await db.transaction().execute(async (trx) => {
-        const bottomOrder = await this.newBottomOrderCard(data.list_id);
-        if (bottomOrder.status_code != StatusCodes.OK) {
-          throw new InternalServerError(
-            StatusCodes.INTERNAL_SERVER_ERROR,
-            bottomOrder.message
-          );
-        }
-
-        // Buat kartu baru dengan order di posisi paling atas
+        // Get the current maximum order value in the list
+        const maxOrderResult = await trx
+          .selectFrom("card")
+          .where("list_id", "=", data.list_id)
+          .select(sql<number>`COALESCE(MAX("order"), 0)`.as("max_order"))
+          .executeTakeFirst();
+        
+        // Set new card order to be at the bottom (max + 10000)
+        const newOrder = (maxOrderResult?.max_order || 0) + 10000;
+        
+        // Create new card with order at the bottom
         const newCard = await trx
           .insertInto("card")
           .values({
@@ -239,28 +241,28 @@ export class CardRepository implements CardRepositoryI {
             name: data.name!,
             list_id: data.list_id,
             description: "",
-            order: bottomOrder.data!,
+            order: newOrder,
             dash_config: data.dash_config,
             type: data.type,
           })
           .returningAll()
           .executeTakeFirstOrThrow();
-
-        // Periksa jika nilai order terlalu kecil (negatif yang besar), lakukan normalisasi
-        if (bottomOrder.data! < -1000) {
+        
+        // Check if order values are getting too large, normalize if needed
+        if (newOrder > 1000000) { // Threshold for normalization
           await this.normalizeCardOrders(trx, data.list_id);
-          // Ambil kartu yang baru diinsert setelah normalisasi
+          // Get the updated card after normalization
           const updatedCard = await trx
             .selectFrom("card")
             .where("id", "=", newCard.id)
             .selectAll()
             .executeTakeFirstOrThrow();
-
           return updatedCard;
         }
+        
         return newCard;
       });
-
+      
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "create card success",
@@ -677,6 +679,7 @@ export class CardRepository implements CardRepositoryI {
   }
 
   async moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>> {
+    console.log("In repo: Move Card: %o", filter);
     try {
       return await db
         .transaction()
@@ -727,24 +730,37 @@ export class CardRepository implements CardRepositoryI {
             );
           }
 
-          const targetPosition = Math.max(
-            0,
-            Math.min(
-              filter.target_position ?? cardsInTargetList.length,
-              cardsInTargetList.length
-            )
-          );
+          let targetPosition: number;
+          
+          // Check if user wants to move to top or bottom
+          if (filter.target_position_top_or_bottom === "top") {
+            targetPosition = 0;
+          } else if (filter.target_position_top_or_bottom === "bottom") {
+            targetPosition = cardsInTargetList.length;
+          } else {
+            // Use existing logic for numeric position
+            targetPosition = Math.max(
+              0,
+              Math.min(
+                filter.target_position ?? cardsInTargetList.length,
+                cardsInTargetList.length
+              )
+            );
+          }
 
           let newOrder: number;
 
           if (cardsInTargetList.length === 0) {
             newOrder = 10000;
           } else if (targetPosition === 0) {
+            // Moving to top
             newOrder = Math.max(cardsInTargetList[0].order / 2, 1);
           } else if (targetPosition === cardsInTargetList.length) {
+            // Moving to bottom
             newOrder =
               cardsInTargetList[cardsInTargetList.length - 1].order + 10000;
           } else {
+            // Moving to specific position
             const prev = cardsInTargetList[targetPosition - 1];
             const next = cardsInTargetList[targetPosition];
             const gap = next.order - prev.order;

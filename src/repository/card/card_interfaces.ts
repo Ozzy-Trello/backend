@@ -44,12 +44,7 @@ export interface CardRepositoryI {
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
   countAllCards(): Promise<number>;
   countCardsWithFilters(filters: FilterConfig[]): Promise<number>;
-  newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
-  newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
-  copyCardWithMirror(
-    card_id: string,
-    target_list_id: string
-  ): Promise<ResponseData<CardDetail>>;
+  copyCardWithMirror(card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>>;
 }
 
 export class CardActivity {
@@ -168,6 +163,7 @@ export interface filterMoveCard {
   target_list_id?: string;
   previous_position?: number;
   target_position?: number;
+  target_position_top_or_bottom?: string;
 }
 
 export class CardDetailUpdate {
