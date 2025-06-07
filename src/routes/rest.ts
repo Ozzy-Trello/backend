@@ -286,6 +286,9 @@ export default function (): Router {
       restJwt,
       card_member_rest_view.removeMember
     );
+    router_card.get("/:id/label", restJwt, label_rest_view.GetAssignedLabelInCard);
+    router_card.delete("/:id/label/:label_id", restJwt, label_rest_view.RemoveLabelFromCard)
+    router_card.post("/:id/label", restJwt, label_rest_view.AddLabelToCard);
   }
 
   const router_list = Router();
