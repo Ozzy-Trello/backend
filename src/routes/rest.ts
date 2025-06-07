@@ -52,14 +52,17 @@ import LabelRestView from "@/views/rest/label_view";
 import { CardMemberRepository } from "@/repository/card/card_member_repository";
 import { CardMemberController } from "@/controller/card/card_member_controller";
 import { CardMemberRestView } from "@/views/rest/card_member_view";
-import AutomationRule from "@/database/schemas/automation_rule";
 import { AutomationRuleRepository } from "@/repository/automation_rule/automation_rule_repository";
 import { AutomationRuleActionRepository } from "@/repository/automation_rule_action/automation_rule_action_repository";
 import { AutomationRuleController } from "@/controller/automation_rule/automation_rule_controller";
 import AutomationRuleRestView from "@/views/rest/automation_rule";
+import { AutomationServiceFactory } from "@/controller/automation/automation_factory";
+import { AutomationProcessor } from "@/controller/automation/automation_processor";
 
-export default function (): Router {
+export default async function (): Promise<Router> {
   const root_router = Router();
+  const automationServiceFactory = new AutomationServiceFactory();
+  const automationProcessor = new AutomationProcessor();
 
   // Repositories
   const user_repo = new UserRepository();
@@ -146,6 +149,15 @@ export default function (): Router {
   const automation_rule_controller = new AutomationRuleController(automation_rule_repo, automation_rule_action_repo, card_controller);
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
+  // Setup automation
+  automationProcessor.setController(automation_rule_controller);
+  await automationServiceFactory.init(automationProcessor);
+
+  // Link publisher
+  const eventPublisher = automationServiceFactory.getPublisher();
+  card_controller.SetEventPublisher(eventPublisher);
+  card_controller.SetAutomationRuleController(automation_rule_controller);
+
   // Views
   const trigger_rest_view = new TriggerRestView(trigger_controller);
   const account_rest_view = new AccountRestView(account_controller);
@@ -175,6 +187,7 @@ export default function (): Router {
   const accurate_rest_view = new AccurateRestView(accurate_controller);
   const request_rest_view = new RequestRestView(request_controller);
   const automation_rule_rest_view = new AutomationRuleRestView(automation_rule_controller);
+
 
   const router_account = Router();
   {

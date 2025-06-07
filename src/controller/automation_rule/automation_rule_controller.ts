@@ -2,10 +2,10 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { AutomationRuleDetail, AutomationRuleRepositoryI } from '@/repository/automation_rule/automation_rule_interface';
-import { AutomationRuleControllerI, AutomationRuleCreateData, AutomationRuleFilter, AutomationRuleResponse, RecentUserAction } from './automation_rule_interface';
+import { AutomationRuleControllerI, AutomationRuleCreateData, AutomationRuleFilter, RecentUserAction } from './automation_rule_interface';
 import { AutomationRuleActionDetail, AutomationRuleActionRepositoryI } from '@/repository/automation_rule_action/automation_rule_action_interface';
-import { CardRepositoryI } from "@/repository/card/card_interfaces";
 import { CardControllerI, CardMoveData } from "../card/card_interfaces";
+import { EnumUserActionEvent, UserActionEvent } from "@/types/event";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -94,89 +94,113 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }, result.paginate)
   }
 
-  async FindMatchingRules(recentUserAction: RecentUserAction, filter: AutomationRuleFilter): Promise<ResponseData<Array<AutomationRuleDetail>>> {
+  async FindMatchingRules(recentUserAction: UserActionEvent, filter: AutomationRuleFilter): Promise<ResponseData<Array<AutomationRuleDetail>>> {
+    try {
+      console.log("Finding matching automation rule for recent user action: %o", recentUserAction);
+      
+      const rules = await this.automation_rule_repo.matchRules(filter.toFilterAutomationRuleDetail());
+      
+      if (rules.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: "Failed to find matching rules",
+          status_code: rules.status_code,
+        });
+      }
+      
+      if (rules?.data) {
+        // Process rules in parallel for better performance
+        const processingPromises = rules.data.map(rule => {
+          if (rule?.id) {
+            return this.ProcessAutomationAction(recentUserAction, new AutomationRuleFilter({
+              id: rule.id,
+              group_type: rule?.group_type,
+              type: rule.type,
+              workspace_id: rule.workspace_id,
+              condition: rule.condition
+            }));
+          }
+          return Promise.resolve();
+        });
 
-    console.log("Finding matching automation rule for recent user action: %o", recentUserAction);
+        // Wait for all processing to complete, but don't let failures block the response
+        await Promise.allSettled(processingPromises);
+      }
 
-    const rules = await this.automation_rule_repo.matchRules(filter.toFilterAutomationRuleDetail());
-    if (rules.status_code !== StatusCodes.OK) {
       return new ResponseData({
-        message: "Failed to find matching rules",
-        status_code: rules.status_code,
+        message: "Matching rules found",
+        status_code: StatusCodes.OK,
+        data: rules.data,
+      });
+    } catch (error) {
+      console.error('Error in FindMatchingRules:', error);
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
-    
-    if (rules && rules?.data) {
-      for (const rule of rules?.data) {
-        if (rule && rule?.id) {
-          this.ProcessAutomationAction(recentUserAction, new AutomationRuleFilter({
-            id: rule.id,
-            group_type: rule?.group_type,
-            type: rule.type,
-            workspace_id: rule.workspace_id,
-            condition: rule.condition
-          }))
-        }
-      }
-    }
-
-    return new ResponseData({
-      message: "Matching rules found",
-      status_code: StatusCodes.OK,
-      data: rules.data,
-    });
   }
 
-  async ProcessAutomationAction(recentUserAction: RecentUserAction, filter: AutomationRuleFilter): Promise<ResponseData<any>> {
-    if (!filter || !filter.id) {
+  async ProcessAutomationAction(recentUserAction: UserActionEvent, filter: AutomationRuleFilter): Promise<ResponseData<any>> {
+    try {
+      if (!filter?.id) {
+        return new ResponseData({
+          message: "Automation rule is invalid",
+          status_code: StatusCodes.BAD_REQUEST,
+        });
+      }
+
+      const actions = await this.automation_rule_action_repo.getByRuleId(filter.id);
+
+      if (actions?.data) {
+        // Process actions in parallel
+        const actionPromises = actions.data.map(action => 
+          this.executeAutomationAction(action, recentUserAction)
+        );
+
+        await Promise.allSettled(actionPromises);
+      }
+
       return new ResponseData({
-        message: "Automation rule is invalid",
-        status_code: StatusCodes.BAD_REQUEST,
+        message: "Processing automation actions",
+        status_code: StatusCodes.OK,
+        data: null,
+      });
+    } catch (error) {
+      console.error('Error in ProcessAutomationAction:', error);
+      return new ResponseData({
+        message: "Failed to process automation actions",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
-    const actions = await this.automation_rule_action_repo.getByRuleId(filter?.id);
+  }
 
-    actions?.data?.forEach((action: AutomationRuleActionDetail) => {
+  private async executeAutomationAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
+    try {
       switch (action?.condition?.action) {
         case "move":
-            if (action?.condition?.position) {
-              switch (action?.condition?.position) {
-                case "top_of_list":
-                  console.log("Executing automation action: Move card to the top list: %o", recentUserAction);
-                  this.card_controller.MoveCard("e6097fcc-a35b-4a22-9556-8f648c87b103", new CardMoveData({
-                    id: recentUserAction?.card?.id,
-                    previous_list_id: recentUserAction?.card?.list_id,
-                    target_list_id: recentUserAction?.card?.list_id,
-                    previous_position: recentUserAction?.card?.order,
-                    target_position_top_or_bottom: "top"
-                  }))
-                  break;
-                case "bottom_of_list":
-                  console.log("Executing automation action: Move card to the bottom list: %o", recentUserAction);
-                  this.card_controller.MoveCard("e6097fcc-a35b-4a22-9556-8f648c87b103", new CardMoveData({
-                    id: recentUserAction?.card?.id,
-                    previous_list_id: recentUserAction?.card?.list_id,
-                    target_list_id: recentUserAction?.card?.list_id,
-                    previous_position: recentUserAction?.card?.order,
-                    target_position_top_or_bottom: "bottom",
-                  }))
-                  break;
-                default:
-                  break;
-              }
-            }
+          await this.handleMoveAction(action, recentUserAction);
           break;
-      
         default:
-          break;
+          console.warn(`Unknown automation action: ${action?.condition?.action}`);
       }
+    } catch (error) {
+      console.error(`Error executing automation action ${action?.condition?.action}:`, error);
+      // Don't throw - other actions should continue processing
+    }
+  }
+
+  private async handleMoveAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
+    if (!action?.condition?.position || !recentUserAction?.data.card?.id) return;
+
+    const moveData = new CardMoveData({
+      id: recentUserAction.data.card.id,
+      previous_list_id: recentUserAction.data.card.list_id,
+      target_list_id: action.condition.target_list_id || recentUserAction.data.card.list_id,
+      previous_position: recentUserAction.data.card.order,
+      target_position_top_or_bottom: action.condition.position === "top_of_list" ? "top" : "bottom"
     });
 
-    return new ResponseData({
-      message: "Processing automation actions",
-      status_code: StatusCodes.OK,
-      data: null,
-    });
+    await this.card_controller.MoveCard('recentUserAction.user_id', moveData);
   }
 
 }
