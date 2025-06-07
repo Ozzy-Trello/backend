@@ -106,10 +106,13 @@ export interface LabelRestViewI {
   GetLabels(req: Request, res: Response): Promise<void>;
   UpdateLabel(req: Request, res: Response): Promise<void>;
   DeleteLabel(req: Request, res: Response): Promise<void>;
+  AddLabelToCard(req: Request, res: Response): Promise<void>;
+  RemoveLabelFromCard(req: Request, res: Response): Promise<void>;
+  GetAssignedLabelInCard(req: Request, res: Response): Promise<void>;
 }
 
 export interface AutomationRuleRestViewI {
-    CreateAutomationRule(req: Request, res: Response): Promise<void>;
-    GetListAutomationRule(req: Request, res: Response): Promise<void>;
+  CreateAutomationRule(req: Request, res: Response): Promise<void>;
+  GetListAutomationRule(req: Request, res: Response): Promise<void>;
 }
 

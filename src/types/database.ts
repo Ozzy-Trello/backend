@@ -29,6 +29,7 @@ export interface Database {
   request: RequestTable;
   role: RoleTable;
   label: LabelTable;
+  card_label: CardLabelTable;
   card_member: CardMemberTable;
 }
 
@@ -218,6 +219,15 @@ export interface LabelTable {
   value?: string;
   workspace_id: string;
   value_type: "color" | "user" | "custom_field";
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface CardLabelTable {
+  id: string;
+  card_id: string;
+  label_id: string;
+  created_by: string;
   created_at?: Date;
   updated_at?: Date;
 }
