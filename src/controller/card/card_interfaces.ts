@@ -112,6 +112,7 @@ export class CardResponse {
   start_date?: Date;
   due_date?: Date;
   due_date_reminder?: string;
+  is_mirror?: boolean;
   constructor(payload: Partial<CardResponse>) {
     Object.assign(this, payload);
   }
@@ -149,6 +150,7 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
     start_date: data.start_date,
     due_date: data.due_date,
     due_date_reminder: data.due_date_reminder,
+    is_mirror: data.is_mirror
   });
 }
 

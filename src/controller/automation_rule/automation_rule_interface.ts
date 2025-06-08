@@ -4,6 +4,7 @@ import { validate as isValidUUID } from "uuid";
 import { AutomationRuleDetail, filterAutomationRule } from "@/repository/automation_rule/automation_rule_interface";
 import { AutomationRuleActionDetail } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import { CardDetail } from "@/repository/card/card_interfaces";
+import { UserActionEvent } from "@/types/event";
 
 
 export interface AutomationRuleControllerI {
@@ -12,7 +13,7 @@ export interface AutomationRuleControllerI {
   GetListAutomationRule(filter: AutomationRuleFilter, paginate: Paginate): Promise<ResponseListData<Array<AutomationRuleDetail>>>;
   // DeleteAutomationRule(filter: AutomationRuleFilter): Promise<ResponseData<null>>;
   // UpdateAutomationRule(filter: AutomationRuleFilter, data: UpdateAutomationRuleData): Promise<ResponseData<null>>;
-  FindMatchingRules(recentUserAction: RecentUserAction, filter: AutomationRuleFilter): Promise<ResponseData<Array<AutomationRuleDetail>>>;
+  FindMatchingRules(recentUserAction: UserActionEvent, filter: AutomationRuleFilter): Promise<ResponseData<Array<AutomationRuleDetail>>>;
 }
 
 // represent 'yang baru aja dilakukan user'

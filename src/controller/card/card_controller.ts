@@ -34,8 +34,6 @@ import {
 import { TriggerControllerI } from "../trigger/trigger_interfaces";
 import {
   CardActivityType,
-  ConditionType,
-  TriggerTypes,
 } from "@/types/custom_field";
 import {
   CardAttachmentDetail,
@@ -51,8 +49,11 @@ import {
 } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
 import { AutomationRuleControllerI, AutomationRuleFilter } from '../automation_rule/automation_rule_interface';
+import { EventPublisher } from "@/event_publisher";
+import { EnumUserActionEvent } from "@/types/event";
 
 export class CardController implements CardControllerI {
+  private event_publisher: EventPublisher | undefined;
   private card_repo: CardRepositoryI;
   private list_repo: ListRepositoryI;
   private custom_field_repo: CustomFieldRepositoryI;
@@ -94,6 +95,10 @@ export class CardController implements CardControllerI {
 
   SetAutomationRuleController(automation_rule_controller: AutomationRuleControllerI): void {
     this.automation_rule_controller = automation_rule_controller;
+  }
+
+  SetEventPublisher(event_publisher: EventPublisher): void {
+    this.event_publisher = event_publisher;
   }
 
   async ArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>> {
@@ -569,17 +574,31 @@ export class CardController implements CardControllerI {
     // })
     
     // execute automation
-    if (this.automation_rule_controller) {
-      this.automation_rule_controller.FindMatchingRules(
-        {
-          card: createResponse.data
-        },
-        new AutomationRuleFilter({
-          condition: {
-            action: "added_to"
-          }
-        })
-      );
+    // if (this.automation_rule_controller) {
+    //   this.automation_rule_controller.FindMatchingRules(
+    //     {
+    //       card: createResponse.data
+    //     },
+    //     new AutomationRuleFilter({
+    //       condition: {
+    //         action: "added_to"
+    //       }
+    //     })
+    //   );
+    // }
+    if (this.event_publisher) {
+      console.log("publishing event loh...");
+      await this.event_publisher.publishUserAction({
+        type: EnumUserActionEvent.CardCreated,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          card: cardResponse,
+        }
+      });
+    } else {
+      console.log("engga publishing event loh...");
     }
 
     return new ResponseData({
@@ -640,7 +659,6 @@ export class CardController implements CardControllerI {
   }
 
   async MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>> {
-    console.log("In controller: Move Card: %o", filter);
     try {
       // 1. Validate card ID
       if (!filter.id || !isValidUUID(filter.id)) {
@@ -731,7 +749,30 @@ export class CardController implements CardControllerI {
         movedBy: user_id,
       });
 
-      // 6. Return the moved card data
+      // 6. publish event
+      // if (this.event_publisher) {
+      //   await this.event_publisher.publishUserAction({
+      //     type: EnumUserActionEvent.CardMoved,
+      //     workspace_id: "",
+      //     user_id: user_id,
+      //     timestamp: new Date(),
+      //     data: {
+      //       card: {
+      //         id: cardResponse.id,
+      //         description: cardResponse.description!,
+      //         type: CardType.Regular,
+      //         list_id: cardResponse.list_id!,
+      //         is_mirror: cardResponse.is_mirror!,
+      //       },
+      //       previous_data: {
+      //         list_id: card.data?.list_id,
+      //         order: card.data?.order
+      //       }
+      //     }
+      //   });
+      // }
+
+      // 7. Return the moved card data
       return new ResponseData({
         message: "Card moved successfully",
         status_code: StatusCodes.OK,
