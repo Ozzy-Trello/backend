@@ -8,16 +8,19 @@ import { CardControllerI, CardMoveData } from "../card/card_interfaces";
 import { EnumActions, EnumUserActionEvent, UserActionEvent } from "@/types/event";
 import { ActionType } from "@/types/automation_rule";
 import { EnumOptionPosition } from "@/types/options";
+import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
   private automation_rule_action_repo: AutomationRuleActionRepositoryI;
   private card_controller: CardControllerI;
+  private whatsapp_service: WhatsAppHttpService;
 
-  constructor(automation_rule_repo: AutomationRuleRepositoryI, automation_rule_action_repo: AutomationRuleActionRepositoryI, card_controller: CardControllerI) {
+  constructor(automation_rule_repo: AutomationRuleRepositoryI, automation_rule_action_repo: AutomationRuleActionRepositoryI, card_controller: CardControllerI, whatsapp_service: WhatsAppHttpService) {
     this.automation_rule_repo = automation_rule_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
     this.card_controller = card_controller;
+    this.whatsapp_service = whatsapp_service;
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
@@ -177,11 +180,16 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   }
 
   private async executeAutomationAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
+    console.log(action,'<< in apa action')
     try {
       switch (action?.condition?.action) {
         case EnumActions.MoveCard:
           console.log("executeAutomationAction: move.card");
           await this.handleMoveAction(action, recentUserAction);
+          break;
+        case EnumActions.Notify:
+          console.log("executeAutomationAction: notify");
+          await this.handleNotifyAction(action, recentUserAction);
           break;
         default:
           console.warn(`Unknown automation action: ${action?.condition?.action}`);
@@ -190,6 +198,18 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       console.error(`Error executing automation action ${action?.condition?.action}:`, error);
       // Don't throw - other actions should continue processing
     }
+  }
+
+  private async handleNotifyAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
+    console.log(action,"<< ini isi action")
+    console.log(recentUserAction,"<< ini isi recentUserAction")
+    if (!action?.condition?.channel || !recentUserAction?.data.card?.id) return;
+
+    await this.whatsapp_service.sendMessage({
+      message: action.condition.text_input,
+      target: '087777372095',
+    })
+
   }
 
   private async handleMoveAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
@@ -203,7 +223,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       target_position_top_or_bottom: action.condition.position === EnumOptionPosition.TopOfList ? "top" : "bottom"
     });
 
-    await this.card_controller.MoveCard('recentUserAction.user_id', moveData);
+    // await this.card_controller.MoveCard('recentUserAction.user_id', moveData);
   }
 
 }
