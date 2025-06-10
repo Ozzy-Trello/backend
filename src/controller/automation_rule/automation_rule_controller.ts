@@ -5,7 +5,9 @@ import { AutomationRuleDetail, AutomationRuleRepositoryI } from '@/repository/au
 import { AutomationRuleControllerI, AutomationRuleCreateData, AutomationRuleFilter, RecentUserAction } from './automation_rule_interface';
 import { AutomationRuleActionDetail, AutomationRuleActionRepositoryI } from '@/repository/automation_rule_action/automation_rule_action_interface';
 import { CardControllerI, CardMoveData } from "../card/card_interfaces";
-import { EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import { EnumActions, EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import { ActionType } from "@/types/automation_rule";
+import { EnumOptionPosition } from "@/types/options";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -177,7 +179,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   private async executeAutomationAction(action: AutomationRuleActionDetail, recentUserAction: UserActionEvent): Promise<void> {
     try {
       switch (action?.condition?.action) {
-        case "move":
+        case EnumActions.MoveCard:
+          console.log("executeAutomationAction: move.card");
           await this.handleMoveAction(action, recentUserAction);
           break;
         default:
@@ -197,7 +200,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       previous_list_id: recentUserAction.data.card.list_id,
       target_list_id: action.condition.target_list_id || recentUserAction.data.card.list_id,
       previous_position: recentUserAction.data.card.order,
-      target_position_top_or_bottom: action.condition.position === "top_of_list" ? "top" : "bottom"
+      target_position_top_or_bottom: action.condition.position === EnumOptionPosition.TopOfList ? "top" : "bottom"
     });
 
     await this.card_controller.MoveCard('recentUserAction.user_id', moveData);

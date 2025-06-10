@@ -1,6 +1,5 @@
 import { CardLabelAttributes } from "@/database/schemas/card_label";
 import User from "@/database/schemas/user";
-import { CardResponse } from "@/repository/card/card_interfaces";
 
 export enum EnumUserActionEvent {
   CardCreated = "card.created",
@@ -17,8 +16,21 @@ export enum EnumUserActionEvent {
   CardCustomFieldChange = "card.customfield.changed",
   CardCommentAdded = "card.comment.added",
   CardStartDateAdded = "card.startdate.added",
-  CardDueDateAdded = "card.duedate.added"
+  CardDueDateAdded = "card.duedate.added",
+  CardAddedTo = "card.added-to",
+  CreatedIn = "card.created-in",
+  CardEmailedInto = "card.emailed-into",
+  CardMovedInto = "card.moved-into",
+  CardMovedOutOf = "card.moved-out-of"
 }
+
+export enum EnumActions {
+  MoveCard = "move.card",
+  CopyCard = "copy.card",
+  ArchiveCard = "archive.card",
+  UnarchiveCard = "unarchive.card",
+}
+
 export interface UserActionEvent {
   type: EnumUserActionEvent
   workspace_id: string;

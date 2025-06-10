@@ -27,10 +27,10 @@ export class AutomationSubscriber {
     for await (const msg of sub) {
       try {
         const data = JSON.parse(this.sc.decode(msg.data)) as UserActionEvent;
-        console.log("📥 Got event:", data);
+        console.log("Got event:", data);
         await this.processor.processAutomationEvent(data);
       } catch (err) {
-        console.error('❌ Failed to handle message:', err);
+        console.error('Failed to handle message:', err);
       }
     }
   }
