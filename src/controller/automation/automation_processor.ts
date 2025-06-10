@@ -17,7 +17,7 @@ export class AutomationProcessor {
       // Create filter based on event
       const filter = new AutomationRuleFilter({
         workspace_id: event.workspace_id,
-        type: this.getAutomationTypeFromEvent(event.type),
+        type: event.type,
       });
 
       // Process automation rules
@@ -28,13 +28,13 @@ export class AutomationProcessor {
     }
   }
 
-  private getAutomationTypeFromEvent(eventType: string): string {
-    const typeMap: Record<string, string> = {
-      'card.moved': 'card_moved',
-      'label.added': 'label_added',
-      'card.created': 'card_created',
-      'member.added': 'member_added'
-    };
-    return typeMap[eventType] || 'unknown';
-  }
+  // private getAutomationTypeFromEvent(eventType: string): string {
+  //   const typeMap: Record<string, string> = {
+  //     'card.moved': 'card_moved',
+  //     'label.added': 'label_added',
+  //     'card.created': 'card_created',
+  //     'member.added': 'member_added'
+  //   };
+  //   return typeMap[eventType] || 'unknown';
+  // }
 }
