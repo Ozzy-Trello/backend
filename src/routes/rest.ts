@@ -59,6 +59,7 @@ import AutomationRuleRestView from "@/views/rest/automation_rule";
 import { AutomationServiceFactory } from "@/controller/automation/automation_factory";
 import { AutomationProcessor } from "@/controller/automation/automation_processor";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
+import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
 
 export default async function (): Promise<Router> {
   const root_router = Router();
@@ -148,11 +149,15 @@ export default async function (): Promise<Router> {
     card_repo,
     user_repo
   );
+  const whatsapp_controller = new WhatsAppController(
+    whatsapp_service,
+    user_repo
+  );
   const automation_rule_controller = new AutomationRuleController(
     automation_rule_repo,
     automation_rule_action_repo,
     card_controller,
-    whatsapp_service
+    whatsapp_controller
   );
   card_controller.SetAutomationRuleController(automation_rule_controller);
 

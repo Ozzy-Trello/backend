@@ -29,10 +29,8 @@ const WhatsAppResponseSchema = z.object({
 export type WhatsAppResponse = z.infer<typeof WhatsAppResponseSchema>;
 
 export class WhatsAppHttpService {
-  private readonly baseUrl =
-    process.env.WHATSAPP_API_URL || "https://api.fonnte.com";
-  private readonly token =
-    process.env.WHATSAPP_API_TOKEN || "PKbDumKdpyCMviAesrJQ";
+  private readonly baseUrl = process.env.WHATSAPP_API_URL;
+  private readonly token = process.env.WHATSAPP_API_TOKEN;
 
   private async request<T>(
     method: "GET" | "POST" | "PUT" | "DELETE",
