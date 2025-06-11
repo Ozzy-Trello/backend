@@ -21,25 +21,26 @@ export enum EnumUserActionEvent {
   CreatedIn = "card.created-in",
   CardEmailedInto = "card.emailed-into",
   CardMovedInto = "card.moved-into",
-  CardMovedOutOf = "card.moved-out-of"
+  CardMovedOutOf = "card.moved-out-of",
 }
 
 export enum EnumActions {
   MoveCard = "move.card",
   CopyCard = "copy.card",
+  Notify = "notify",
   ArchiveCard = "archive.card",
   UnarchiveCard = "unarchive.card",
 }
 
 export interface UserActionEvent {
-  type: EnumUserActionEvent
+  type: EnumUserActionEvent;
   workspace_id: string;
   user_id: string;
   timestamp: Date;
   data: {
     card?: any;
     label?: CardLabelAttributes;
-    member?: User
+    member?: User;
     previous_data?: any;
   };
 }

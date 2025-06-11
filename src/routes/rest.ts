@@ -58,11 +58,15 @@ import { AutomationRuleController } from "@/controller/automation_rule/automatio
 import AutomationRuleRestView from "@/views/rest/automation_rule";
 import { AutomationServiceFactory } from "@/controller/automation/automation_factory";
 import { AutomationProcessor } from "@/controller/automation/automation_processor";
+import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
+import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
 
 export default async function (): Promise<Router> {
   const root_router = Router();
   const automationServiceFactory = new AutomationServiceFactory();
   const automationProcessor = new AutomationProcessor();
+
+  const whatsapp_service = new WhatsAppHttpService();
 
   // Repositories
   const user_repo = new UserRepository();
@@ -85,7 +89,6 @@ export default async function (): Promise<Router> {
   const card_member_repo = new CardMemberRepository();
   const automation_rule_repo = new AutomationRuleRepository();
   const automation_rule_action_repo = new AutomationRuleActionRepository();
-
 
   // Controllers
   const card_attachment_controller = new CardAttachmentController(
@@ -146,7 +149,16 @@ export default async function (): Promise<Router> {
     card_repo,
     user_repo
   );
-  const automation_rule_controller = new AutomationRuleController(automation_rule_repo, automation_rule_action_repo, card_controller);
+  const whatsapp_controller = new WhatsAppController(
+    whatsapp_service,
+    user_repo
+  );
+  const automation_rule_controller = new AutomationRuleController(
+    automation_rule_repo,
+    automation_rule_action_repo,
+    card_controller,
+    whatsapp_controller
+  );
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
   // Setup automation
@@ -186,8 +198,9 @@ export default async function (): Promise<Router> {
 
   const accurate_rest_view = new AccurateRestView(accurate_controller);
   const request_rest_view = new RequestRestView(request_controller);
-  const automation_rule_rest_view = new AutomationRuleRestView(automation_rule_controller);
-
+  const automation_rule_rest_view = new AutomationRuleRestView(
+    automation_rule_controller
+  );
 
   const router_account = Router();
   {
@@ -299,8 +312,16 @@ export default async function (): Promise<Router> {
       restJwt,
       card_member_rest_view.removeMember
     );
-    router_card.get("/:id/label", restJwt, label_rest_view.GetAssignedLabelInCard);
-    router_card.delete("/:id/label/:label_id", restJwt, label_rest_view.RemoveLabelFromCard)
+    router_card.get(
+      "/:id/label",
+      restJwt,
+      label_rest_view.GetAssignedLabelInCard
+    );
+    router_card.delete(
+      "/:id/label/:label_id",
+      restJwt,
+      label_rest_view.RemoveLabelFromCard
+    );
     router_card.post("/:id/label", restJwt, label_rest_view.AddLabelToCard);
   }
 
@@ -515,8 +536,16 @@ export default async function (): Promise<Router> {
 
   const automation_rule_router = Router();
   {
-      automation_rule_router.post("/", restJwt, automation_rule_rest_view.CreateAutomationRule);
-      automation_rule_router.get("/", restJwt, automation_rule_rest_view.GetListAutomationRule);
+    automation_rule_router.post(
+      "/",
+      restJwt,
+      automation_rule_rest_view.CreateAutomationRule
+    );
+    automation_rule_router.get(
+      "/",
+      restJwt,
+      automation_rule_rest_view.GetListAutomationRule
+    );
   }
 
   root_router.use("/auth", router_auth);
