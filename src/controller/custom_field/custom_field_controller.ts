@@ -4,6 +4,8 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { broadcastToWebSocket } from "@/server";
+import { EnumUserActionEvent } from "@/types/event";
+import { EventPublisher } from "@/event_publisher";
 import {
   CardCustomFieldResponse,
   CardCustomFieldValueUpdate,
@@ -37,6 +39,11 @@ export class CustomFieldController implements CustomFieldControllerI {
   private workspace_repo: WorkspaceRepositoryI;
   private trigger_repo: TriggerRepositoryI;
   private trigger_controller: TriggerControllerI;
+  private event_publisher: EventPublisher | undefined;
+
+  SetEventPublisher(event_publisher: EventPublisher): void {
+    this.event_publisher = event_publisher;
+  }
 
   constructor(
     custom_field_repo: CustomFieldRepositoryI,
@@ -54,6 +61,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     this.DeleteCustomField = this.DeleteCustomField.bind(this);
     this.UpdateCustomField = this.UpdateCustomField.bind(this);
     this.CreateCustomField = this.CreateCustomField.bind(this);
+    this.SetEventPublisher = this.SetEventPublisher.bind(this);
   }
 
   async CreateCustomField(
@@ -370,6 +378,7 @@ export class CustomFieldController implements CustomFieldControllerI {
         status_code: StatusCodes.NOT_FOUND,
       });
     }
+
     return new ResponseData({
       message: "CustomField is updated successful",
       status_code: StatusCodes.NO_CONTENT,
@@ -423,7 +432,28 @@ export class CustomFieldController implements CustomFieldControllerI {
             cardId: card_id,
             workspaceId: workspace_id,
           });
-          
+
+          // Publish user action event for automation
+          if (this.event_publisher) {
+            const eventData: any = {
+              card: { id: card_id },
+              previous_data: findData.data,
+            };
+
+            // Add all custom field properties to the event data
+            if (updatedData.data) {
+              Object.assign(eventData, updatedData.data);
+            }
+
+            await this.event_publisher.publishUserAction({
+              type: EnumUserActionEvent.CardCustomFieldChange,
+              workspace_id: "",
+              user_id: "system",
+              timestamp: new Date(),
+              data: eventData,
+            });
+          }
+
           return new ResponseData({
             message: "CardCustomField value is updated successful",
             status_code: StatusCodes.NO_CONTENT,
@@ -452,12 +482,33 @@ export class CustomFieldController implements CustomFieldControllerI {
         );
         if (fieldData && fieldData.data) {
           // Broadcast WebSocket event for custom field creation
+          // Broadcast WebSocket event for custom field creation
           broadcastToWebSocket("custom_field:updated", {
             customField: fieldData.data,
             cardId: card_id,
             workspaceId: workspace_id,
           });
-          
+
+          // Publish user action event for automation
+          if (this.event_publisher) {
+            const eventData: any = {
+              card: { id: card_id },
+            };
+
+            // Add all custom field properties to the event data
+            if (fieldData.data) {
+              Object.assign(eventData, fieldData.data);
+            }
+
+            await this.event_publisher.publishUserAction({
+              type: EnumUserActionEvent.CardCustomFieldChange,
+              workspace_id: "",
+              user_id: "system",
+              timestamp: new Date(),
+              data: eventData,
+            });
+          }
+
           return new ResponseData({
             message: "CardCustomField value is updated successful",
             status_code: StatusCodes.NO_CONTENT,
