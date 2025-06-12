@@ -161,8 +161,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         filter.toFilterAutomationRuleDetail()
       );
 
-      console.log(rules.data?.[0].condition, "rules found ?");
-
       if (rules.status_code !== StatusCodes.OK) {
         return new ResponseData({
           message: "Failed to find matching rules",
