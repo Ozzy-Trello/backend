@@ -8,6 +8,7 @@ interface UserAttributes {
 	email: string;
 	phone: string;
 	password: string;
+	role_id?: string | null;
 	created_at?: Date;
 	updated_at?: Date;
 }
@@ -21,6 +22,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 	public email!: string;
 	public phone!: string;
 	public password!: string;
+	public role_id?: string | null;
 
 	public readonly created_at!: Date;
 	public readonly updated_at!: Date;
