@@ -259,51 +259,70 @@ export class WhatsAppController implements WhatsAppControllerI {
     value: CustomFieldValue,
     fieldDef: any
   ): Promise<string> {
-    // Always include the field, even if the value is empty
-    if (value.value_option !== undefined && value.value_option !== null) {
-      return this.formatOptionValue(value.value_option, fieldDef.options);
-    }
+    if (!value) return "N/A";
 
-    if (value.value_string !== undefined) {
-      return value.value_string !== null ? value.value_string : "N/A";
-    }
-
-    if (value.value_number !== undefined) {
-      return value.value_number !== null
-        ? value.value_number.toString()
-        : "N/A";
-    }
-
-    if (value.value_checkbox !== undefined) {
-      return value.value_checkbox !== null
-        ? value.value_checkbox
-          ? "Yes"
-          : "No"
-        : "N/A";
-    }
-
-    if (value.value_user_id !== undefined) {
+    if (
+      fieldDef?.source === "user" ||
+      fieldDef?.type?.toLowerCase() === "user"
+    ) {
       return value.value_user_id
         ? await this.formatUserValue(value.value_user_id)
         : "N/A";
     }
 
-    if (value.value_date !== undefined) {
-      return value.value_date
-        ? new Date(value.value_date).toLocaleString()
-        : "N/A";
+    // Handle other field types
+    if (fieldDef?.type) {
+      switch (fieldDef.type.toLowerCase()) {
+        case "dropdown":
+        case "select":
+          return value.value_option !== undefined
+            ? this.formatOptionValue(value.value_option, fieldDef.options)
+            : "N/A";
+
+        case "checkbox":
+          return value.value_checkbox !== undefined
+            ? value.value_checkbox
+              ? "Yes"
+              : "No"
+            : "N/A";
+
+        case "number":
+          return value.value_number !== undefined
+            ? value.value_number.toString()
+            : "N/A";
+
+        case "date":
+        case "datetime":
+          return value.value_date
+            ? new Date(value.value_date).toLocaleString()
+            : "N/A";
+
+        case "text":
+        default:
+          if (value.value_string !== undefined) {
+            return value.value_string || "N/A";
+          }
+          if (value.value_option !== undefined) {
+            return this.formatOptionValue(value.value_option, fieldDef.options);
+          }
+          return "N/A";
+      }
     }
 
+    // Fallback for when field type is not available
     return "N/A";
   }
 
   private formatOptionValue(optionId: any, options?: any[]): string {
     if (optionId === null || optionId === undefined) return "N/A";
-    const selectedOption = options?.find((opt: any) => opt.id === optionId);
-    return selectedOption?.name || optionId || "N/A";
-  }
-  private hasValue(value: any): boolean {
-    return value !== null && value !== undefined && value !== "";
+    if (!options || !Array.isArray(options)) return String(optionId);
+
+    // Try to find by id first, then by value
+    const selectedOption = options.find(
+      (opt) => opt.id === optionId || opt.value === optionId
+    );
+
+    return selectedOption?.name || selectedOption?.label || String(optionId);
   }
 
   private async formatUserValue(userId: string): Promise<string> {
