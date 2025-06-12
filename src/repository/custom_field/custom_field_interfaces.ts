@@ -88,6 +88,10 @@ export interface CustomFieldRepositoryI {
     board_id: string,
     card_id: string
   ): Promise<ResponseData<null>>;
+
+  getCustomFieldById(
+    id: string
+  ): Promise<ResponseData<CustomFieldDetail | undefined>>;
 }
 
 export interface filterCustomFieldDetail {

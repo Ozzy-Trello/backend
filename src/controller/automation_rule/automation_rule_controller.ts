@@ -25,23 +25,31 @@ import { ActionType } from "@/types/automation_rule";
 import { EnumOptionPosition } from "@/types/options";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
+import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
+import { UserRepositoryI } from "@/repository/user/user_interfaces";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
   private automation_rule_action_repo: AutomationRuleActionRepositoryI;
   private card_controller: CardControllerI;
   private whatsapp_controller: WhatsAppController;
+  private custom_field_repo: CustomFieldRepositoryI;
+  private user_repo: UserRepositoryI;
 
   constructor(
     automation_rule_repo: AutomationRuleRepositoryI,
     automation_rule_action_repo: AutomationRuleActionRepositoryI,
     card_controller: CardControllerI,
-    whatsapp_controller: WhatsAppController
+    whatsapp_controller: WhatsAppController,
+    custom_field_repo: CustomFieldRepositoryI,
+    user_repo: UserRepositoryI
   ) {
     this.automation_rule_repo = automation_rule_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
     this.card_controller = card_controller;
     this.whatsapp_controller = whatsapp_controller;
+    this.custom_field_repo = custom_field_repo;
+    this.user_repo = user_repo;
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
@@ -239,7 +247,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    console.log(action, "<< in apa action");
     try {
       switch (action?.condition?.action) {
         case EnumActions.MoveCard:
@@ -273,9 +280,13 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     switch (action?.condition?.channel) {
       case "whatsapp":
         await this.whatsapp_controller.sendNotification(
-          action.condition.user,
+          // This is for handling if the user is selecte through field change in the trigger instead of selecting it in action
+          action.type.includes("selected_user")
+            ? recentUserAction.data.value_user_id
+            : action.condition.user,
           action.condition.text_input,
-          recentUserAction.data
+          recentUserAction.data,
+          action.condition.multi_fields ? action.condition.multi_fields : []
         );
         break;
       default:

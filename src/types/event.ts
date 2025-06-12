@@ -42,5 +42,6 @@ export interface UserActionEvent {
     label?: CardLabelAttributes;
     member?: User;
     previous_data?: any;
+    value_user_id?: string;
   };
 }
