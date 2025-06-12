@@ -229,10 +229,10 @@ export class CardRepository implements CardRepositoryI {
           .where("list_id", "=", data.list_id)
           .select(sql<number>`COALESCE(MAX("order"), 0)`.as("max_order"))
           .executeTakeFirst();
-        
+
         // Set new card order to be at the bottom (max + 10000)
         const newOrder = (maxOrderResult?.max_order || 0) + 10000;
-        
+
         // Create new card with order at the bottom
         const newCard = await trx
           .insertInto("card")
@@ -247,9 +247,10 @@ export class CardRepository implements CardRepositoryI {
           })
           .returningAll()
           .executeTakeFirstOrThrow();
-        
+
         // Check if order values are getting too large, normalize if needed
-        if (newOrder > 1000000) { // Threshold for normalization
+        if (newOrder > 1000000) {
+          // Threshold for normalization
           await this.normalizeCardOrders(trx, data.list_id);
           // Get the updated card after normalization
           const updatedCard = await trx
@@ -259,10 +260,10 @@ export class CardRepository implements CardRepositoryI {
             .executeTakeFirstOrThrow();
           return updatedCard;
         }
-        
+
         return newCard;
       });
-      
+
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "create card success",
@@ -731,7 +732,7 @@ export class CardRepository implements CardRepositoryI {
           }
 
           let targetPosition: number;
-          
+
           // Check if user wants to move to top or bottom
           if (filter.target_position_top_or_bottom === "top") {
             targetPosition = 0;

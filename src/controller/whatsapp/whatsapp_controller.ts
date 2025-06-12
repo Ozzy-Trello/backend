@@ -1,74 +1,74 @@
-import { UserRepositoryI } from "@/repository/user/user_interfaces";
-import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
+import type { CardRepositoryI } from "@/repository/card/card_interfaces";
+import type { UserRepositoryI } from "@/repository/user/user_interfaces";
+import type { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
+import type { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
 
 export interface WhatsAppControllerI {
   sendNotification(
     userId: string,
     message: string,
-    data: any
+    data: any,
+    customFields?: any[]
   ): Promise<ResponseData<any>>;
 }
 
-export class WhatsAppController implements WhatsAppControllerI {
-  private whatsappService: WhatsAppHttpService;
-  private userRepo: UserRepositoryI;
+interface NotificationData {
+  card?: { id: string };
+  workspace_id?: string;
+}
 
-  constructor(whatsappService: WhatsAppHttpService, userRepo: UserRepositoryI) {
-    this.whatsappService = whatsappService;
-    this.userRepo = userRepo;
+interface CustomFieldValue {
+  value_option?: any;
+  value_string?: string;
+  value_number?: number;
+  value_checkbox?: boolean;
+  value_user_id?: string;
+  value_date?: string;
+}
+
+export class WhatsAppController implements WhatsAppControllerI {
+  constructor(
+    private whatsappService: WhatsAppHttpService,
+    private userRepo: UserRepositoryI,
+    private cardRepo: CardRepositoryI,
+    private customFieldRepo: CustomFieldRepositoryI
+  ) {
     this.sendNotification = this.sendNotification.bind(this);
   }
 
   async sendNotification(
     userId: string,
     message: string,
-    data: any
+    data: NotificationData,
+    customFields?: any[]
   ): Promise<ResponseData<any>> {
     try {
-      if (!userId || !message) {
-        return new ResponseData({
-          message: "User ID and message are required",
-          status_code: StatusCodes.BAD_REQUEST,
-        });
-      }
+      // Validate input
+      const validationError = this.validateInput(userId, message);
+      if (validationError) return validationError;
 
-      // 1. Get user's phone number from the database
-      const userResponse = await this.userRepo.getUser({ id: userId });
+      // Get user phone number
+      const phoneResult = await this.getUserPhoneNumber(userId);
+      if (!phoneResult.success) return phoneResult.error!;
 
-      if (userResponse.status_code !== StatusCodes.OK || !userResponse.data) {
-        return new ResponseData({
-          message: "Failed to fetch user details",
-          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-        });
-      }
+      // Get card details
+      const cardResult = await this.getCardDetails(data?.card?.id);
+      if (!cardResult.success) return cardResult.error!;
 
-      const phoneNumber = userResponse.data.phone;
+      // Build message
+      const formattedMessage = await this.buildMessage(
+        message,
+        cardResult.data!,
+        data,
+        customFields
+      );
 
-      if (!phoneNumber) {
-        return new ResponseData({
-          message: "User does not have a phone number",
-          status_code: StatusCodes.BAD_REQUEST,
-        });
-      }
-
-      // 2. Format phone number if needed (add country code, remove spaces, etc.)
-      const formattedPhone = this.formatPhoneNumber(phoneNumber);
-
-      if (!formattedPhone) {
-        return new ResponseData({
-          message: "Invalid phone number format",
-          status_code: StatusCodes.BAD_REQUEST,
-        });
-      }
-
-      const formatMessage = `${message}\nNama PO: ${data?.card?.name}`;
-
-      // 3. Send WhatsApp message
+      // Send WhatsApp message
       const sendResponse = await this.whatsappService.sendMessage({
-        message: formatMessage,
-        target: formattedPhone,
+        message: formattedMessage,
+        target: phoneResult.data!,
       });
 
       return new ResponseData({
@@ -85,18 +85,252 @@ export class WhatsAppController implements WhatsAppControllerI {
     }
   }
 
+  private validateInput(
+    userId: string,
+    message: string
+  ): ResponseData<any> | null {
+    if (!userId || !message) {
+      return new ResponseData({
+        message: "User ID and message are required",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    return null;
+  }
+
+  private async getUserPhoneNumber(userId: string): Promise<{
+    success: boolean;
+    data?: string;
+    error?: ResponseData<any>;
+  }> {
+    const userResponse = await this.userRepo.getUser({ id: userId });
+
+    if (userResponse.status_code !== StatusCodes.OK || !userResponse.data) {
+      return {
+        success: false,
+        error: new ResponseData({
+          message: "Failed to fetch user details",
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        }),
+      };
+    }
+
+    const phoneNumber = userResponse.data.phone;
+    if (!phoneNumber) {
+      return {
+        success: false,
+        error: new ResponseData({
+          message: "User does not have a phone number",
+          status_code: StatusCodes.BAD_REQUEST,
+        }),
+      };
+    }
+
+    const formattedPhone = this.formatPhoneNumber(phoneNumber);
+    if (!formattedPhone) {
+      return {
+        success: false,
+        error: new ResponseData({
+          message: "Invalid phone number format",
+          status_code: StatusCodes.BAD_REQUEST,
+        }),
+      };
+    }
+
+    return { success: true, data: formattedPhone };
+  }
+
+  private async getCardDetails(cardId?: string): Promise<{
+    success: boolean;
+    data?: any;
+    error?: ResponseData<any>;
+  }> {
+    if (!cardId) {
+      return {
+        success: false,
+        error: new ResponseData({
+          message: "Card ID is required",
+          status_code: StatusCodes.BAD_REQUEST,
+        }),
+      };
+    }
+
+    const cardResponse = await this.cardRepo.getCard({ id: cardId });
+
+    if (cardResponse.status_code !== StatusCodes.OK || !cardResponse.data) {
+      return {
+        success: false,
+        error: new ResponseData({
+          message: "Failed to fetch card details",
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        }),
+      };
+    }
+
+    return { success: true, data: cardResponse.data };
+  }
+
+  private async buildMessage(
+    baseMessage: string,
+    cardData: any,
+    data: NotificationData,
+    customFields?: any[]
+  ): Promise<string> {
+    let message = `${baseMessage}\nNama PO: ${cardData.name}`;
+
+    if (this.shouldIncludeCustomFields(customFields, data)) {
+      const customFieldsText = await this.buildCustomFieldsText(
+        customFields!,
+        data.workspace_id!,
+        data.card!.id
+      );
+      message += customFieldsText;
+    }
+
+    return message;
+  }
+
+  private shouldIncludeCustomFields(
+    customFields?: any[],
+    data?: NotificationData
+  ): boolean {
+    return !!(customFields?.length && data?.card?.id && data.workspace_id);
+  }
+
+  private async buildCustomFieldsText(
+    customFields: any[],
+    workspaceId: string,
+    cardId: string
+  ): Promise<string> {
+    if (!customFields?.length) return "";
+
+    let customFieldsText = "\n\nInformasi Tambahan:\n\n";
+    const processedFields = await Promise.all(
+      customFields.map((fieldId) =>
+        this.processCustomField(fieldId, workspaceId, cardId)
+      )
+    );
+
+    // Filter out any null/undefined results and join with newlines
+    customFieldsText += processedFields.filter(Boolean).join("\n");
+
+    return customFieldsText;
+  }
+
+  private async processCustomField(
+    fieldId: string,
+    workspaceId: string,
+    cardId: string
+  ): Promise<string | null> {
+    try {
+      const [fieldValueResponse, fieldDefResponse] = await Promise.all([
+        this.customFieldRepo.getCardCustomField(workspaceId, cardId, fieldId),
+        this.customFieldRepo.getCustomFieldById(fieldId),
+      ]);
+
+      // Always include the field definition if it exists, even if there's no value
+      if (
+        fieldDefResponse?.status_code === StatusCodes.OK &&
+        fieldDefResponse.data
+      ) {
+        const fieldDef = fieldDefResponse.data;
+        let displayValue = "N/A"; // Default value if no value is found
+
+        // Only try to get the value if we have a valid response
+        if (
+          fieldValueResponse?.status_code === StatusCodes.OK &&
+          fieldValueResponse.data
+        ) {
+          const value = fieldValueResponse.data as CustomFieldValue;
+          displayValue = await this.formatCustomFieldValue(value, fieldDef);
+        }
+
+        return `- ${fieldDef.name}: ${displayValue}`;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error processing field ${fieldId}:`, error);
+      return null;
+    }
+  }
+
+  private async formatCustomFieldValue(
+    value: CustomFieldValue,
+    fieldDef: any
+  ): Promise<string> {
+    // Always include the field, even if the value is empty
+    if (value.value_option !== undefined && value.value_option !== null) {
+      return this.formatOptionValue(value.value_option, fieldDef.options);
+    }
+
+    if (value.value_string !== undefined) {
+      return value.value_string !== null ? value.value_string : "N/A";
+    }
+
+    if (value.value_number !== undefined) {
+      return value.value_number !== null
+        ? value.value_number.toString()
+        : "N/A";
+    }
+
+    if (value.value_checkbox !== undefined) {
+      return value.value_checkbox !== null
+        ? value.value_checkbox
+          ? "Yes"
+          : "No"
+        : "N/A";
+    }
+
+    if (value.value_user_id !== undefined) {
+      return value.value_user_id
+        ? await this.formatUserValue(value.value_user_id)
+        : "N/A";
+    }
+
+    if (value.value_date !== undefined) {
+      return value.value_date
+        ? new Date(value.value_date).toLocaleString()
+        : "N/A";
+    }
+
+    return "N/A";
+  }
+
+  private formatOptionValue(optionId: any, options?: any[]): string {
+    if (optionId === null || optionId === undefined) return "N/A";
+    const selectedOption = options?.find((opt: any) => opt.id === optionId);
+    return selectedOption?.name || optionId || "N/A";
+  }
+  private hasValue(value: any): boolean {
+    return value !== null && value !== undefined && value !== "";
+  }
+
+  private async formatUserValue(userId: string): Promise<string> {
+    try {
+      const userResponse = await this.userRepo.getUser({ id: userId });
+
+      if (userResponse.status_code === StatusCodes.OK && userResponse.data) {
+        return userResponse.data.username || `User (${userId})`;
+      }
+
+      return `User ID: ${userId}`;
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      return `User ID: ${userId}`;
+    }
+  }
+
   private formatPhoneNumber(phone: string): string | null {
     if (!phone) return null;
 
-    // Remove all non-digit characters
     const digitsOnly = phone.replace(/\D/g, "");
 
-    // If the number starts with '0', replace with country code (assuming Indonesia +62)
+    // Replace leading '0' with Indonesian country code
     if (digitsOnly.startsWith("0")) {
       return "62" + digitsOnly.substring(1);
     }
 
-    // If it already has a country code, return as is
     return digitsOnly;
   }
 }

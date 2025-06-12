@@ -903,4 +903,70 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
       );
     }
   }
+
+  async getCustomFieldById(
+    id: string
+  ): Promise<ResponseData<CustomFieldDetail | undefined>> {
+    try {
+      const result = await db
+        .selectFrom("custom_field")
+        .select([
+          "custom_field.id",
+          "custom_field.name",
+          "custom_field.description",
+          "custom_field.workspace_id",
+          "custom_field.trigger_id",
+          "custom_field.source",
+          "custom_field.order",
+          "custom_field.type",
+          "custom_field.is_show_at_front",
+          "custom_field.options",
+        ])
+        .where("custom_field.id", "=", id)
+        .executeTakeFirst();
+
+      if (!result) {
+        return new ResponseData({
+          status_code: StatusCodes.NOT_FOUND,
+          message: "Custom field not found",
+          data: undefined,
+        });
+      }
+
+      const options = (() => {
+        if (!result.options) return undefined;
+        try {
+          return typeof result.options === "string"
+            ? JSON.parse(result.options)
+            : result.options;
+        } catch (e) {
+          console.error("Error parsing options:", e);
+          return undefined;
+        }
+      })();
+
+      const customFieldDetail = new CustomFieldDetail({
+        id: result.id,
+        name: result.name,
+        description: result.description,
+        workspace_id: result.workspace_id,
+        source: result.source as EnumCustomFieldSource,
+        order: result.order,
+        type: result.type as EnumCustomFieldType,
+        is_show_at_front: Boolean(result.is_show_at_front),
+        options: options,
+      });
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "Custom field found",
+        data: customFieldDetail,
+      });
+    } catch (e) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
 }

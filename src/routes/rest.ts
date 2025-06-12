@@ -151,13 +151,17 @@ export default async function (): Promise<Router> {
   );
   const whatsapp_controller = new WhatsAppController(
     whatsapp_service,
-    user_repo
+    user_repo,
+    card_repo,
+    custom_field_repo
   );
   const automation_rule_controller = new AutomationRuleController(
     automation_rule_repo,
     automation_rule_action_repo,
     card_controller,
-    whatsapp_controller
+    whatsapp_controller,
+    custom_field_repo,
+    user_repo
   );
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
@@ -168,6 +172,7 @@ export default async function (): Promise<Router> {
   // Link publisher
   const eventPublisher = automationServiceFactory.getPublisher();
   card_controller.SetEventPublisher(eventPublisher);
+  custom_field_controller.SetEventPublisher(eventPublisher);
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
   // Views

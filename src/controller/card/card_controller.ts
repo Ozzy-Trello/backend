@@ -32,9 +32,7 @@ import {
   CustomFieldRepositoryI,
 } from "@/repository/custom_field/custom_field_interfaces";
 import { TriggerControllerI } from "../trigger/trigger_interfaces";
-import {
-  CardActivityType,
-} from "@/types/custom_field";
+import { CardActivityType } from "@/types/custom_field";
 import {
   CardAttachmentDetail,
   CardAttachmentRepositoryI,
@@ -48,7 +46,10 @@ import {
   CardBoardTimeRepositoryI,
 } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
-import { AutomationRuleControllerI, AutomationRuleFilter } from '../automation_rule/automation_rule_interface';
+import {
+  AutomationRuleControllerI,
+  AutomationRuleFilter,
+} from "../automation_rule/automation_rule_interface";
 import { EventPublisher } from "@/event_publisher";
 import { EnumUserActionEvent } from "@/types/event";
 
@@ -61,7 +62,7 @@ export class CardController implements CardControllerI {
   private card_attachmment_repo: CardAttachmentRepositoryI;
   private card_list_time_repo: CardListTimeRepositoryI;
   private card_board_time_repo: CardBoardTimeRepositoryI;
-  private automation_rule_controller: AutomationRuleControllerI | undefined
+  private automation_rule_controller: AutomationRuleControllerI | undefined;
 
   constructor(
     card_repo: CardRepositoryI,
@@ -70,7 +71,7 @@ export class CardController implements CardControllerI {
     trigger_controller: TriggerControllerI,
     card_attachmment_repo: CardAttachmentRepositoryI,
     card_list_time_repo: CardListTimeRepositoryI,
-    card_board_time_repo: CardBoardTimeRepositoryI,
+    card_board_time_repo: CardBoardTimeRepositoryI
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
@@ -93,7 +94,9 @@ export class CardController implements CardControllerI {
     this.GetListCustomField = this.GetListCustomField.bind(this);
   }
 
-  SetAutomationRuleController(automation_rule_controller: AutomationRuleControllerI): void {
+  SetAutomationRuleController(
+    automation_rule_controller: AutomationRuleControllerI
+  ): void {
     this.automation_rule_controller = automation_rule_controller;
   }
 
@@ -101,8 +104,11 @@ export class CardController implements CardControllerI {
     this.event_publisher = event_publisher;
   }
 
-  async ArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>> {
-    if (!isValidUUID(card_id)){
+  async ArchiveCard(
+    user_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
+    if (!isValidUUID(card_id)) {
       return new ResponseData({
         message: "'card_id' is not valid uuid",
         status_code: StatusCodes.BAD_REQUEST,
@@ -188,6 +194,8 @@ export class CardController implements CardControllerI {
     value: string | number
   ): Promise<ResponseData<null>> {
     let warning = undefined;
+    console.log("update custom field");
+
     if (!isValidUUID(card_id)) {
       return new ResponseData({
         message: "'card_id' is not valid uuid",
@@ -550,7 +558,7 @@ export class CardController implements CardControllerI {
       order: data.order,
       listId: data.list_id,
       createdAt: createResponse.data?.created_at,
-      createdBy: user_id
+      createdBy: user_id,
     };
 
     // Broadcast to WebSocket clients
@@ -572,7 +580,7 @@ export class CardController implements CardControllerI {
     //     card_id: createResponse.data?.id
     //   }
     // })
-    
+
     // execute automation
     // if (this.automation_rule_controller) {
     //   this.automation_rule_controller.FindMatchingRules(
@@ -586,6 +594,7 @@ export class CardController implements CardControllerI {
     //     })
     //   );
     // }
+    console.log(this.event_publisher, "<< ini apa isinya");
     if (this.event_publisher) {
       console.log("publishing event loh...");
       await this.event_publisher.publishUserAction({
@@ -595,7 +604,7 @@ export class CardController implements CardControllerI {
         timestamp: new Date(),
         data: {
           card: cardResponse,
-        }
+        },
       });
     } else {
       console.log("engga publishing event loh...");
@@ -658,7 +667,10 @@ export class CardController implements CardControllerI {
     });
   }
 
-  async MoveCard(user_id: string, filter: CardMoveData): Promise<ResponseData<CardResponse>> {
+  async MoveCard(
+    user_id: string,
+    filter: CardMoveData
+  ): Promise<ResponseData<CardResponse>> {
     try {
       // 1. Validate card ID
       if (!filter.id || !isValidUUID(filter.id)) {
@@ -684,7 +696,7 @@ export class CardController implements CardControllerI {
         target_list_id: filter.target_list_id,
         previous_position: filter.previous_position,
         target_position: filter.target_position,
-        target_position_top_or_bottom: filter?.target_position_top_or_bottom
+        target_position_top_or_bottom: filter?.target_position_top_or_bottom,
       });
 
       if (moveResponse.status_code !== StatusCodes.OK) {
