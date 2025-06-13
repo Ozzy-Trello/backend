@@ -44,7 +44,10 @@ export interface CardRepositoryI {
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
   countAllCards(): Promise<number>;
   countCardsWithFilters(filters: FilterConfig[]): Promise<number>;
-  copyCardWithMirror(card_id: string, target_list_id: string): Promise<ResponseData<CardDetail>>;
+  copyCardWithMirror(
+    card_id: string,
+    target_list_id: string
+  ): Promise<ResponseData<CardDetail>>;
 }
 
 export class CardActivity {
@@ -224,6 +227,7 @@ export class CardDetail {
   public completed_at?: Date; // Added
   public mirror_id?: string | null;
   public is_mirror: boolean = false;
+  public item_dashcard?: IItemDashcard[] | null;
 
   constructor(payload: Partial<CardDetail>) {
     Object.assign(this, payload);
@@ -256,6 +260,25 @@ export interface filterCount {
   _matches_board?: string;
   _starts_with_list?: string;
   _matches_list?: string;
+}
+
+export type TDynamicColumnDashcard = {
+  type: string;
+  column: string;
+  value: string;
+};
+
+export type TMemberDashcard = {
+  id: string;
+  name: string;
+};
+
+export interface IItemDashcard {
+  id: string;
+  name: string;
+  member: TMemberDashcard[];
+  description: string;
+  columns: TDynamicColumnDashcard[];
 }
 
 export class CardResponse {
