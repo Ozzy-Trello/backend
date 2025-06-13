@@ -310,7 +310,7 @@ export class BoardRepository implements BoardRepositoryI {
 
       paginate.setTotal(total);
 
-      query = query.offset(paginate.getOffset()).limit(paginate.limit);
+      // query = query.offset(paginate.getOffset()).limit(paginate.limit);
 
       const boards = await query.execute();
 

@@ -25,7 +25,8 @@ export interface CustomFieldControllerI {
   ): Promise<ResponseData<CustomFieldResponse>>;
   GetListCustomField(
     filter: CustomFieldFilter,
-    paginate: Paginate
+    paginate: Paginate,
+    user_id?: string
   ): Promise<ResponseListData<Array<CustomFieldResponse>>>;
   DeleteCustomField(filter: CustomFieldFilter): Promise<ResponseData<null>>;
   UpdateCustomField(
@@ -35,7 +36,8 @@ export interface CustomFieldControllerI {
 
   GetListCardCustomField(
     workspace_id: string,
-    card_id: string
+    card_id: string,
+    user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
   SetCardCustomFieldValue(
     workspace_id: string,
@@ -63,6 +65,8 @@ export class CustomFieldResponse {
   is_show_at_front!: boolean;
   options?: CustomOptions | string;
   order!: number;
+  can_view?: string[];
+  can_edit?: string[];
 
   constructor(payload: Partial<CustomFieldResponse>) {
     Object.assign(this, payload);
@@ -89,6 +93,8 @@ export function fromCustomFieldDetailToCustomFieldResponse(
     description: data.description,
     source: data.source,
     trigger_id: data.trigger?.id,
+    can_view: data.can_view,
+    can_edit: data.can_edit,
   });
 }
 
@@ -108,6 +114,8 @@ export class UpdateCustomFieldData {
   workspace_id?: string;
   trigger_id?: string;
   order?: number;
+  can_view?: string[];
+  can_edit?: string[];
 
   constructor(payload: Partial<UpdateCustomFieldData>) {
     Object.assign(this, payload);
@@ -121,7 +129,9 @@ export class UpdateCustomFieldData {
       this.name == undefined &&
       this.description == undefined &&
       this.trigger_id == undefined &&
-      this.order == undefined
+      this.order == undefined &&
+      this.can_view == undefined &&
+      this.can_edit == undefined
     );
   }
 
@@ -131,6 +141,8 @@ export class UpdateCustomFieldData {
       description: this.description,
       trigger_id: this.trigger_id,
       order: this.order,
+      can_view: this.can_view,
+      can_edit: this.can_edit,
     });
   }
 
@@ -203,6 +215,8 @@ export class CustomFieldCreateData {
   is_show_at_front!: boolean;
   options?: CustomOptions | string;
   order!: number;
+  can_view?: string[];
+  can_edit?: string[];
 
   constructor(payload: Partial<CustomFieldCreateData>) {
     Object.assign(this, payload);
@@ -232,6 +246,8 @@ export class CustomFieldCreateData {
       is_show_at_front: this.is_show_at_front,
       options: this.options,
       order: this.order,
+      can_view: this.can_view,
+      can_edit: this.can_edit,
       trigger: {
         id: this.trigger_id!,
         condition_value: "",
