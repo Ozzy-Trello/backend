@@ -1,35 +1,35 @@
+import { ExpressionBuilder } from "kysely";
 import { v4 as uuidv4 } from "uuid";
-import { ExpressionBuilder, JSONColumnType } from "kysely";
 
+import db from "@/database";
+import CardCustomField from "@/database/schemas/card_custom_field";
+import Role from "@/database/schemas/role";
+import User from "@/database/schemas/user";
 import {
-  filterCustomFieldDetail,
+  AssignCardDetail,
+  CardCustomFieldDetail,
+  CardCustomFieldResponse,
+  CardCustomFieldValueUpdate,
+  CustomFieldCardDetail,
   CustomFieldDetail,
   CustomFieldDetailUpdate,
   CustomFieldRepositoryI,
-  CustomFieldCardDetail,
-  AssignCardDetail,
-  CardCustomFieldDetail,
-  filterCustomValueDetail,
   CustomValueDetail,
   CustomValueDetailUpdate,
-  CustomFieldTrigger,
-  CardCustomFieldResponse,
-  CardCustomFieldValueUpdate,
+  filterCustomFieldDetail,
+  filterCustomValueDetail,
 } from "@/repository/custom_field/custom_field_interfaces";
-import { Error } from "sequelize";
+import {
+  EnumCustomFieldSource,
+  EnumCustomFieldType,
+} from "@/types/custom_field";
+import { Database } from "@/types/database";
+import { Paginate } from "@/utils/data_utils";
+import { InternalServerError } from "@/utils/errors";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
-import { InternalServerError } from "@/utils/errors";
-import { Paginate } from "@/utils/data_utils";
-import CardCustomField from "@/database/schemas/card_custom_field";
-import db from "@/database";
 import { Transaction, sql } from "kysely";
-import { Database } from "@/types/database";
-import {
-  ActionsValue,
-  EnumCustomFieldType,
-  EnumCustomFieldSource,
-} from "@/types/custom_field";
+import { Error } from "sequelize";
 
 export class CustomFieldRepository implements CustomFieldRepositoryI {
   createValueFilter(
@@ -327,11 +327,19 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
           name: data.name,
           type: data.type,
           is_show_at_front: data.is_show_at_front,
-          options: JSON.stringify(data?.options) || {},
+          options: data?.options
+            ? sql`${JSON.stringify(data.options)}::jsonb`
+            : sql`'[]'::jsonb`,
           order: data.order,
           source: data?.source || EnumCustomFieldSource.Custom,
           id: id,
           trigger_id: data.trigger?.id,
+          can_view: data.can_view
+            ? sql`${JSON.stringify(data.can_view)}::jsonb`
+            : sql`'[]'::jsonb`,
+          can_edit: data.can_edit
+            ? sql`${JSON.stringify(data.can_edit)}::jsonb`
+            : sql`'[]'::jsonb`,
         })
         .execute();
       console.log("in repo ini");
@@ -347,6 +355,8 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
           order: data.order,
           is_show_at_front: data.is_show_at_front,
           options: data?.options || {},
+          can_view: data.can_view || [],
+          can_edit: data.can_edit || [],
         }),
       });
     } catch (e) {
@@ -396,74 +406,118 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
   async getListCustomField(
     filter: filterCustomFieldDetail,
-    paginate: Paginate
+    paginate: Paginate,
+    user_id?: string
   ): Promise<ResponseListData<Array<CustomFieldDetail>>> {
     try {
-      const qry = db
+      // Get user role information
+      const user = await User.findOne({ where: { id: user_id } });
+      const userRole = await Role.findOne({ where: { id: user?.role_id } });
+      const isSuperAdmin = userRole?.name === "Super Admin";
+
+      // Build query
+      let qry = db
         .selectFrom("custom_field")
         .leftJoin("trigger", "trigger.id", "custom_field.trigger_id")
         .where((eb) => {
           let query = eb.and([]);
-          if (filter.id)
+
+          // Apply basic filters
+          if (filter.id) {
             query = eb.and([query, eb("custom_field.id", "=", filter.id)]);
-          if (filter.name)
+          }
+          if (filter.name) {
             query = eb.and([query, eb("custom_field.name", "=", filter.name)]);
-          if (filter.workspace_id)
+          }
+          if (filter.workspace_id) {
             query = eb.and([
               query,
               eb("custom_field.workspace_id", "=", filter.workspace_id),
             ]);
+          }
 
+          // We'll handle role-based filtering in memory after fetching the data
+          // to avoid the parameter binding issues with JSONB
+
+          // OR conditions
           const orConditions = [];
-          if (filter.__orId)
+          if (filter.__orId) {
             orConditions.push(eb("custom_field.id", "=", filter.__orId));
-          if (filter.__orName)
+          }
+          if (filter.__orName) {
             orConditions.push(eb("custom_field.name", "=", filter.__orName));
-          if (filter.__orWorkspaceId)
+          }
+          if (filter.__orWorkspaceId) {
             orConditions.push(
               eb("custom_field.workspace_id", "=", filter.__orWorkspaceId)
             );
-
+          }
           if (orConditions.length > 0) {
             query = eb.and([query, eb.or(orConditions)]);
           }
 
           // NOT conditions
-          const notConditions = [];
-          if (filter.__notId)
-            notConditions.push(eb("custom_field.id", "!=", filter.__notId));
-          if (filter.__notName)
-            notConditions.push(eb("custom_field.name", "!=", filter.__notName));
-          if (filter.__notWorkspaceId)
-            notConditions.push(
-              eb("custom_field.workspace_id", "!=", filter.__notWorkspaceId)
-            );
-
-          if (notConditions.length > 0) {
-            query = eb.and([query, ...notConditions]);
+          if (filter.__notId) {
+            query = eb.and([
+              query,
+              eb("custom_field.id", "!=", filter.__notId),
+            ]);
           }
+          if (filter.__notName) {
+            query = eb.and([
+              query,
+              eb("custom_field.name", "!=", filter.__notName),
+            ]);
+          }
+          if (filter.__notWorkspaceId) {
+            query = eb.and([
+              query,
+              eb("custom_field.workspace_id", "!=", filter.__notWorkspaceId),
+            ]);
+          }
+
           return query;
         });
 
-      const total = await qry
-        .select(({ fn }) => fn.count<number>("custom_field.id").as("count"))
-        .executeTakeFirst();
-      paginate.setTotal(total?.count!);
+      if (!isSuperAdmin && user?.role_id) {
+        qry = qry.where((eb) =>
+          eb.or([
+            eb("custom_field.can_view", "is", null),
+            sql<boolean>`jsonb_array_length(custom_field.can_view) = 0`,
+            sql<boolean>`custom_field.can_view @> ${sql.lit(
+              JSON.stringify([user.role_id])
+            )}::jsonb`,
+          ])
+        );
+      }
 
-      const lists = await qry
+      // Now get the correct filtered total
+      const countResult = await qry
+        .select(sql<number>`count(custom_field.id)::integer`.as("total"))
+        .executeTakeFirst();
+      paginate.setTotal(countResult?.total || 0);
+
+      // console.log(qry.compile().sql);
+      // console.log(qry.compile().parameters);
+
+      let lists = await qry
         .select([
-          sql<string>`custom_field.id`.as("id"),
-          sql<string>`custom_field.name`.as("name"),
-          sql<string>`custom_field.description`.as("description"),
-          sql<EnumCustomFieldSource>`custom_field.source`.as("source"),
-          sql<EnumCustomFieldType>`custom_field.type`.as("type"),
-          sql<number>`custom_field.order`.as("order"),
-          sql<boolean>`custom_field.is_show_at_front`.as("is_show_at_front"),
-          sql<JSON>`custom_field.options`.as("options"),
-          sql<string>`trigger.id`.as("trigger_id"),
-          sql<string>`trigger.condition`.as("condition"),
-          sql<ActionsValue>`trigger.action`.as("action"),
+          "custom_field.id as id",
+          "custom_field.name as name",
+          "custom_field.description as description",
+          "custom_field.type as type",
+          "custom_field.workspace_id as workspace_id",
+          "custom_field.source as source",
+          "custom_field.order as order",
+          "custom_field.is_show_at_front as is_show_at_front",
+          "custom_field.options as options",
+          "custom_field.can_view as can_view",
+          "custom_field.can_edit as can_edit",
+          "trigger.id as trigger_id",
+          "trigger.condition as condition",
+          "trigger.action as action",
         ])
+        .orderBy("custom_field.order asc")
         .offset(paginate.getOffset())
         .limit(paginate.limit)
         .execute();
@@ -471,25 +525,21 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
       return new ResponseListData(
         {
           status_code: StatusCodes.OK,
-          message: "custom_field list",
+          message: "list custom field",
           data: lists.map(
             (item) =>
               new CustomFieldDetail({
                 id: item.id,
                 name: item.name,
                 description: item.description,
-                source: item.source,
                 type: item.type,
+                workspace_id: item.workspace_id,
+                source: item.source,
                 order: item.order,
                 is_show_at_front: item.is_show_at_front ? true : false,
                 options: item?.options,
-                trigger: item.trigger_id
-                  ? {
-                      id: item.trigger_id,
-                      condition_value: item.condition,
-                      action: item.action,
-                    }
-                  : undefined,
+                can_view: item?.can_view,
+                can_edit: item?.can_edit,
               })
           ),
         },
@@ -508,9 +558,20 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
     data: CustomFieldDetailUpdate
   ): Promise<number> {
     try {
+      // Create update object with proper JSONB handling
+      const updateData: any = {};
+      if (data.name) updateData.name = data.name;
+      if (data.description) updateData.description = data.description;
+      if (data.order) updateData.order = data.order;
+      if (data.trigger_id) updateData.trigger_id = data.trigger_id;
+      if (data.can_view)
+        updateData.can_view = sql`${JSON.stringify(data.can_view)}::jsonb`;
+      if (data.can_edit)
+        updateData.can_edit = sql`${JSON.stringify(data.can_edit)}::jsonb`;
+
       const result = await db
         .updateTable("custom_field")
-        .set(data.toObject())
+        .set(updateData)
         .where((eb) => this.createValueFilter(eb, filter))
         .executeTakeFirst();
 
@@ -746,10 +807,23 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
   async getListCardCustomField(
     workspace_id: string,
-    card_id: string
+    card_id: string,
+    user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
     try {
-      const result = await db
+      let isSuperAdmin = false;
+      let role_id: string | undefined;
+
+      if (user_id) {
+        const user = await User.findOne({ where: { id: user_id } });
+        if (user?.role_id) {
+          role_id = user.role_id;
+          const role = await Role.findOne({ where: { id: role_id } });
+          isSuperAdmin = role?.name === "Super Admin";
+        }
+      }
+
+      let query = db
         .selectFrom("custom_field as cs")
         .leftJoin("card_custom_field as ccs", (join) =>
           join
@@ -758,7 +832,6 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
         )
         .selectAll("cs")
         .select([
-          // Changed 'css' to 'ccs' to match the alias defined in leftJoin
           sql<boolean>`ccs.value_checkbox`.as("value_checkbox"),
           sql<string>`ccs.value_user_id`.as("value_user_id"),
           sql<string>`ccs.value_option`.as("value_option"),
@@ -767,8 +840,19 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
           sql<Date>`ccs.value_date`.as("value_date"),
         ] as const)
         .where("cs.workspace_id", "=", workspace_id)
-        .orderBy("cs.order", "asc")
-        .execute();
+        .orderBy("cs.order", "asc");
+
+      if (!isSuperAdmin && role_id) {
+        query = query.where((eb) =>
+          eb.or([
+            eb("cs.can_view", "is", null),
+            sql<boolean>`jsonb_array_length(cs.can_view) = 0`,
+            sql<boolean>`cs.can_view @> ${JSON.stringify([role_id])}::jsonb`,
+          ])
+        );
+      }
+
+      const result = await query.execute();
 
       return new ResponseData({
         status_code: StatusCodes.OK,

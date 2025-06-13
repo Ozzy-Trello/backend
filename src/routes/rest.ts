@@ -48,6 +48,8 @@ import WorkspaceRestView from "@/views/rest/workspace_view";
 import { Router } from "express";
 import { LabelRepository } from "@/repository/label/label_repository";
 import { LabelController } from "@/controller/label/label_controller";
+import { RoleController } from "@/controller/role/role_controller";
+import RoleRestView from "@/views/rest/role_view";
 import LabelRestView from "@/views/rest/label_view";
 import { CardMemberRepository } from "@/repository/card/card_member_repository";
 import { CardMemberController } from "@/controller/card/card_member_controller";
@@ -144,6 +146,7 @@ export default async function (): Promise<Router> {
   const accurate_controller = new AccurateController(accurate_repo);
   const request_controller = new RequestController(request_repo, accurate_repo);
   const label_controller = new LabelController(label_repo, workspace_repo);
+  const role_controller = new RoleController(role_repo);
   const card_member_controller = new CardMemberController(
     card_member_repo,
     card_repo,
@@ -194,6 +197,7 @@ export default async function (): Promise<Router> {
     card_attachment_controller
   );
   const label_rest_view = new LabelRestView(label_controller);
+  const role_rest_view = new RoleRestView(role_controller);
   const card_member_rest_view = new CardMemberRestView(card_member_controller);
 
   const checklist_rest_view = new ChecklistRestView(checklist_controller);
@@ -539,6 +543,12 @@ export default async function (): Promise<Router> {
     router_label.delete("/:id", restJwt, label_rest_view.DeleteLabel);
   }
 
+  const router_role = Router();
+  {
+    router_role.get("/", restJwt, role_rest_view.GetRoleList);
+    router_role.get("/:id", restJwt, role_rest_view.GetRole);
+  }
+
   const automation_rule_router = Router();
   {
     automation_rule_router.post(
@@ -569,6 +579,7 @@ export default async function (): Promise<Router> {
   root_router.use("/request", router_request);
   root_router.use("/additional-field", router_additional_field);
   root_router.use("/label", router_label);
+  root_router.use("/roles", router_role);
   root_router.use("/automation-rule", automation_rule_router);
 
   return root_router;

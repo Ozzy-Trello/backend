@@ -196,7 +196,8 @@ export class CustomFieldController implements CustomFieldControllerI {
 
   async GetListCustomField(
     filter: CustomFieldFilter,
-    paginate: Paginate
+    paginate: Paginate,
+    user_id?: string
   ): Promise<ResponseListData<Array<CustomFieldResponse>>> {
     let errorFiled = filter.getErrorfield();
     if (errorFiled) {
@@ -226,7 +227,8 @@ export class CustomFieldController implements CustomFieldControllerI {
 
     let custom_fields = await this.custom_field_repo.getListCustomField(
       filter.toFilterCustomFieldDetail(),
-      paginate
+      paginate,
+      user_id
     );
     return new ResponseListData(
       {
@@ -387,12 +389,14 @@ export class CustomFieldController implements CustomFieldControllerI {
 
   async GetListCardCustomField(
     workspace_id: string,
-    card_id: string
+    card_id: string,
+    user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
     const cardListCardCustomField =
       await this.custom_field_repo.getListCardCustomField(
         workspace_id,
-        card_id
+        card_id,
+        user_id
       );
     return cardListCardCustomField;
   }

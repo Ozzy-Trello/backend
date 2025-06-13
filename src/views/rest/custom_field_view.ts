@@ -41,6 +41,8 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
         options: req.body.options,
         order: req.body.order,
         trigger_id: req.body.trigger_id,
+        can_view: req.body.can_view,
+        can_edit: req.body.can_edit,
       })
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
@@ -92,12 +94,17 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
+    const user_id = req.auth?.user_id;
+
     let accResponse = await this.custom_field_controller.GetListCustomField(
       new CustomFieldFilter({
         workspace_id: req.header("workspace-id")?.toString(),
       }),
-      paginate
+      paginate,
+      user_id
     );
+
+    console.log(accResponse, "<< ini acc");
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -130,6 +137,8 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
         workspace_id: req.body.workspace_id?.toString(),
         trigger_id: req.body.trigger_id,
         order: req.body.order,
+        can_view: req.body.can_view,
+        can_edit: req.body.can_edit,
       })
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
@@ -180,9 +189,11 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
   async GetListCardCustomField(req: Request, res: Response): Promise<void> {
     let workspace_id = req.header("workspace-id")?.toString();
     let card_id = req.params.id;
+    console.log(req.auth, "<< ini re qauth");
     let accResponse = await this.custom_field_controller.GetListCardCustomField(
       workspace_id || "",
-      card_id
+      card_id,
+      req.auth?.user_id
     );
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

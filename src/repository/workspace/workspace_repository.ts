@@ -158,6 +158,48 @@ export class WorkspaceRepository implements WorkspaceRepositoryI {
 		}
 	}
 
+	async getUserRole(workspace_id: string, user_id: string): Promise<ResponseData<string>> {
+		try {
+			// Get the user's role in the workspace
+			const member = await WorkspaceMember.findOne({
+				where: { workspace_id, user_id },
+				attributes: ['role_id']
+			});
+
+			if (!member) {
+				return new ResponseData({
+					status_code: StatusCodes.NOT_FOUND,
+					message: "User is not a member of this workspace"
+				});
+			}
+
+			// Get the role name from the role_id
+			const role = await db
+				.selectFrom('role')
+				.select(['name'])
+				.where('id', '=', member.role_id)
+				.executeTakeFirst();
+
+			if (!role) {
+				return new ResponseData({
+					status_code: StatusCodes.NOT_FOUND,
+					message: "Role not found"
+				});
+			}
+
+			return new ResponseData({
+				status_code: StatusCodes.OK,
+				message: "User role retrieved successfully",
+				data: role.name
+			});
+		} catch (e) {
+			if (e instanceof Error) {
+				throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+			}
+			throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+		}
+	}
+
 	async getWorkspace(filter: filterWorkspaceDetail): Promise<ResponseData<WorkspaceDetail>> {
 		try {
 			if (isFilterEmpty(filter)) {

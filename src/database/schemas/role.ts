@@ -1,13 +1,11 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '@/database/connections';
-import { isPermissionStructure, PermissionStructure } from '@/utils/security_utils';
 
 interface RoleAttributes {
   id: string;
   name: string;
   description: string;
   default: boolean;
-  permissions?: PermissionStructure;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -19,7 +17,6 @@ class Role extends Model<RoleAttributes, RoleCreationAttributes> implements Role
   public name!: string;
   public description!: string;
   public default!: boolean;
-  public permissions?: PermissionStructure;
 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -46,22 +43,7 @@ Role.init(
       allowNull: false,
       defaultValue: false,
     },
-    permissions: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      defaultValue: {
-        board: { create: false, read: true, update: false, delete: false },
-        list: { create: false, read: true, update: false, delete: false },
-        card: { create: false, read: true, update: false, delete: false },
-      },
-      validate: {
-        isEven(value:any) {
-          if (!isPermissionStructure(value)) {
-            throw new Error('is not valid permission object!');
-          }
-        }
-      }
-    },
+
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,
