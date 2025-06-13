@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import db from "@/database";
 import CardCustomField from "@/database/schemas/card_custom_field";
-import Role from "@/database/schemas/role";
+import { Role } from "@/database/schemas/role";
 import User from "@/database/schemas/user";
 import {
   AssignCardDetail,
@@ -412,7 +412,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
     try {
       // Get user role information
       const user = await User.findOne({ where: { id: user_id } });
-      const userRole = await Role.findOne({ where: { id: user?.role_id } });
+      const userRole = await Role.findOne({ where: { id: user?.role_id! } });
       const isSuperAdmin = userRole?.name === "Super Admin";
 
       // Build query

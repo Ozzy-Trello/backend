@@ -182,7 +182,8 @@ export class BoardController implements BoardControllerI {
 
   async GetListBoard(
     filter: BoardFilter,
-    paginate: Paginate
+    paginate: Paginate,
+    userId?: string
   ): Promise<ResponseListData<Array<BoardResponse>>> {
     if (filter.workspace_id && filter.workspace_user_id_owner) {
       return new ResponseListData(
@@ -231,10 +232,11 @@ export class BoardController implements BoardControllerI {
       filter.workspace_id = workspace.data?.id!;
     }
 
-    let boards = await this.board_repo.getBoardList(
-      filter.toFilterBoardDetail(),
-      paginate
-    );
+    const boardFilter = filter.toFilterBoardDetail();
+    if (userId) {
+      (boardFilter as any).userId = userId;
+    }
+    let boards = await this.board_repo.getBoardList(boardFilter, paginate);
     return new ResponseListData(
       {
         message: "board list",

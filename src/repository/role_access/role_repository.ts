@@ -5,13 +5,14 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { InternalServerError } from "@/utils/errors";
 import { Paginate } from "@/utils/data_utils";
-import Role from "@/database/schemas/role";
+import { Role } from "@/database/schemas/role";
 import {
   filterRoleDetail,
   RoleDetail,
   RoleDetailUpdate,
   RoleRepositoryI,
 } from "@/repository/role_access/role_interfaces";
+import { defaultPermission } from "@/utils/security_utils";
 import db from "@/database";
 
 export class RoleRepository implements RoleRepositoryI {
@@ -74,6 +75,7 @@ export class RoleRepository implements RoleRepositoryI {
       const role = await Role.create({
         name: data.name,
         description: data.description,
+        default: data.default,
       });
       return new ResponseData({
         status_code: StatusCodes.OK,
@@ -110,13 +112,23 @@ export class RoleRepository implements RoleRepositoryI {
             message: "role is not found",
           };
         }
+        const role = await db
+          .insertInto("role")
+          .values({
+            id: uuidv4(),
+            name: "defautl",
+            description: "default role",
+            permissions: defaultPermission,
+            default: true,
+          })
+          .returningAll()
+          .executeTakeFirst();
         statusCode = StatusCodes.CREATED;
       }
       let result = new RoleDetail({
         id: role?.id,
         name: role?.name,
         description: role?.description,
-        default: role?.default,
       });
 
       return new ResponseData({

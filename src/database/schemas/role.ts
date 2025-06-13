@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '@/database/connections';
+import { DataTypes, Model, Optional } from "sequelize";
+import sequelize from "@/database/connections";
 
 interface RoleAttributes {
   id: string;
@@ -10,9 +10,13 @@ interface RoleAttributes {
   updated_at?: Date;
 }
 
-interface RoleCreationAttributes extends Optional<RoleAttributes, 'id' | 'default'> {}
+interface RoleCreationAttributes
+  extends Optional<RoleAttributes, "id" | "created_at" | "updated_at"> {}
 
-class Role extends Model<RoleAttributes, RoleCreationAttributes> implements RoleCreationAttributes {
+class Role
+  extends Model<RoleAttributes, RoleCreationAttributes>
+  implements RoleAttributes
+{
   public id!: string;
   public name!: string;
   public description!: string;
@@ -30,13 +34,14 @@ Role.init(
       primaryKey: true,
     },
     name: {
-      type: DataTypes.STRING(128),
+      type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
+      defaultValue: "",
     },
     default: {
       type: DataTypes.BOOLEAN,
@@ -50,19 +55,20 @@ Role.init(
       defaultValue: DataTypes.NOW,
     },
     updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
   },
   {
-    tableName: 'role',
+    tableName: "role",
     sequelize,
     timestamps: true,
     underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    createdAt: "created_at",
+    updatedAt: "updated_at",
   }
 );
 
-export default Role;
+export { Role };
+export type { RoleAttributes, RoleCreationAttributes };

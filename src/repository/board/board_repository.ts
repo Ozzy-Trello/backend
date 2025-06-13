@@ -1,17 +1,18 @@
+import db from "@/database";
 import {
-  filterBoardDetail,
   BoardDetail,
   BoardDetailUpdate,
   BoardRepositoryI,
+  filterBoardDetail,
 } from "@/repository/board/board_interfaces";
-import Board from "@/database/schemas/board";
-import { Error, Op } from "sequelize";
+import { Paginate } from "@/utils/data_utils";
+import { InternalServerError } from "@/utils/errors";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
-import { InternalServerError } from "@/utils/errors";
-import { Paginate } from "@/utils/data_utils";
-import BoardMember from "@/database/schemas/board_member";
-import db from "@/database";
+import { sql } from "kysely";
+import Board from "@/database/schemas/board";
+import { BoardRole } from "@/database/schemas/board_role";
+import { Op } from "sequelize";
 
 export class BoardRepository implements BoardRepositoryI {
   createFilter(filter: filterBoardDetail): any {
@@ -108,14 +109,11 @@ export class BoardRepository implements BoardRepositoryI {
     role_id: string
   ): Promise<number> {
     try {
-      await db
-        .insertInto("board_member")
-        .values({
-          board_id: id,
-          user_id: user_id,
-          role_id: role_id,
-        })
-        .execute();
+      await BoardRole.create({
+        board_id: id,
+        user_id: user_id,
+        role_id: role_id,
+      });
       return StatusCodes.NO_CONTENT;
     } catch (e) {
       if (e instanceof Error) {
@@ -133,7 +131,7 @@ export class BoardRepository implements BoardRepositoryI {
 
   async removeMember(id: string, user_id: string): Promise<number> {
     try {
-      const board = await BoardMember.destroy({
+      const board = await BoardRole.destroy({
         where: { user_id, board_id: id },
       });
       if (board <= 0) {
@@ -154,15 +152,12 @@ export class BoardRepository implements BoardRepositoryI {
     }
   }
 
-  async isMember(id: string, user_id: string): Promise<number> {
+  async isMember(id: string, user_id: string): Promise<boolean> {
     try {
-      const total = await BoardMember.count({
+      const count = await BoardRole.count({
         where: { user_id, board_id: id },
       });
-      if (total <= 0) {
-        return StatusCodes.NOT_FOUND;
-      }
-      return StatusCodes.NO_CONTENT;
+      return count > 0;
     } catch (e) {
       if (e instanceof Error) {
         throw new InternalServerError(
@@ -216,48 +211,169 @@ export class BoardRepository implements BoardRepositoryI {
   }
 
   async getBoardList(
-    filter: filterBoardDetail,
+    filter: filterBoardDetail & { userId?: string },
     paginate: Paginate
   ): Promise<ResponseListData<Array<BoardDetail>>> {
-    let result: Array<BoardDetail> = [];
-    paginate.setTotal(await Board.count({ where: this.createFilter(filter) }));
-    const boards = await Board.findAll({
-      where: this.createFilter(filter),
-      // offset: paginate.getOffset(),
-      // limit: paginate.limit,
-    });
-    for (const board of boards) {
-      result.push(
-        new BoardDetail({
-          id: board.id,
-          name: board.name,
-          description: board.description,
-          background: board.background,
-        })
+    try {
+      console.log(filter, "<< ini filter");
+
+      let query = db.selectFrom("board").selectAll();
+
+      if (filter.id) query = query.where("board.id", "=", filter.id);
+      if (filter.name) query = query.where("board.name", "=", filter.name);
+      if (filter.description)
+        query = query.where("board.description", "=", filter.description);
+      if (filter.workspace_id)
+        query = query.where("board.workspace_id", "=", filter.workspace_id);
+
+      if (
+        filter.__orId ||
+        filter.__orName ||
+        filter.__orDescription ||
+        filter.__orWorkspaceId
+      ) {
+        query = query.where((eb) => {
+          const orConditions = [];
+          if (filter.__orId)
+            orConditions.push(eb("board.id", "=", filter.__orId));
+          if (filter.__orName)
+            orConditions.push(eb("board.name", "=", filter.__orName));
+          if (filter.__orDescription)
+            orConditions.push(
+              eb("board.description", "=", filter.__orDescription)
+            );
+          if (filter.__orWorkspaceId)
+            orConditions.push(
+              eb("board.workspace_id", "=", filter.__orWorkspaceId)
+            );
+          return eb.or(orConditions);
+        });
+      }
+
+      if (filter.__notId) query = query.where("board.id", "!=", filter.__notId);
+      if (filter.__notName)
+        query = query.where("board.name", "!=", filter.__notName);
+      if (filter.__notDescription)
+        query = query.where("board.description", "!=", filter.__notDescription);
+      if (filter.__notWorkspaceId)
+        query = query.where(
+          "board.workspace_id",
+          "!=",
+          filter.__notWorkspaceId
+        );
+
+      if (filter.userId) {
+        type UserWithRole = { id: string; role_id?: string };
+        const user = (await db
+          .selectFrom("user")
+          .selectAll()
+          .where("id", "=", filter.userId)
+          .executeTakeFirst()) as UserWithRole | undefined;
+
+        console.log(user, "<< ini isi user");
+
+        if (!user) {
+          throw new InternalServerError(
+            StatusCodes.NOT_FOUND,
+            "User not found"
+          );
+        }
+
+        query = query.where(({ or }) => {
+          const publicBoardsCondition = sql<boolean>`board.visibility = 'public'`;
+
+          const roleMembershipCondition = user?.role_id
+            ? sql<boolean>`EXISTS (
+                SELECT 1 FROM board_roles 
+                WHERE board_roles.board_id = board.id 
+                AND board_roles.role_id = ${user.role_id}
+              )`
+            : sql<boolean>`FALSE`;
+
+          return or([publicBoardsCondition, roleMembershipCondition]);
+        });
+      }
+
+      let countQuery = db
+        .selectFrom("board")
+        .select((eb) => eb.fn.countAll().as("count"));
+
+      if (filter.id) countQuery = countQuery.where("id", "=", filter.id);
+      if (filter.name) countQuery = countQuery.where("name", "=", filter.name);
+      if (filter.description)
+        countQuery = countQuery.where("description", "=", filter.description);
+      if (filter.workspace_id)
+        countQuery = countQuery.where("workspace_id", "=", filter.workspace_id);
+
+      const countResult = await countQuery.executeTakeFirst();
+      const total = Number(countResult?.count || 0);
+
+      paginate.setTotal(total);
+
+      // query = query.offset(paginate.getOffset()).limit(paginate.limit);
+
+      const boards = await query.execute();
+
+      const result = boards.map((board) => {
+        const typedBoard = board as unknown as {
+          id: string;
+          name: string;
+          description: string;
+          background: string;
+          workspace_id: string;
+          visibility: string;
+          created_at: Date;
+          updated_at: Date;
+        };
+
+        return {
+          id: typedBoard.id,
+          name: typedBoard.name,
+          description: typedBoard.description,
+          background: typedBoard.background,
+          workspace_id: typedBoard.workspace_id,
+          visibility: typedBoard.visibility,
+          created_at: typedBoard.created_at,
+          updated_at: typedBoard.updated_at,
+        };
+      });
+
+      return new ResponseListData(
+        {
+          status_code: StatusCodes.OK,
+          message: "list board",
+          data: result,
+        },
+        paginate
+      );
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        error instanceof Error ? error.message : "Unknown error"
       );
     }
-    return new ResponseListData(
-      {
-        status_code: StatusCodes.OK,
-        message: "list board",
-        data: result,
-      },
-      paginate
-    );
   }
 
   async updateBoard(
     filter: filterBoardDetail,
-    data: BoardDetailUpdate
+    data: BoardDetailUpdate & { roleIds?: string[] },
+    userRole?: string[]
   ): Promise<number> {
     try {
-      const effected = await Board.update(data.toObject(), {
+      const board = await Board.findOne({
         where: this.createFilter(filter),
       });
-      if (effected[0] == 0) {
+
+      if (!board) {
         return StatusCodes.NOT_FOUND;
       }
-      return StatusCodes.NO_CONTENT;
+
+      const [affectedCount] = await Board.update(data, {
+        where: this.createFilter(filter),
+      });
+
+      return affectedCount > 0 ? StatusCodes.NO_CONTENT : StatusCodes.NOT_FOUND;
     } catch (e) {
       if (e instanceof Error) {
         throw new InternalServerError(
