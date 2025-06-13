@@ -25,7 +25,8 @@ export interface CustomFieldRepositoryI {
   ): Promise<number>;
   getListCustomField(
     filter: filterCustomFieldDetail,
-    paginate: Paginate
+    paginate: Paginate,
+    user_id?: string
   ): Promise<ResponseListData<Array<CustomFieldDetail>>>;
 
   getCustomValue(
@@ -46,7 +47,8 @@ export interface CustomFieldRepositoryI {
 
   getListCardCustomField(
     workspace_id: string,
-    card_id: string
+    card_id: string,
+    user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
   getCardCustomField(
     workspace_id: string,
@@ -102,6 +104,8 @@ export interface filterCustomFieldDetail {
   trigger_id?: string;
   source?: EnumCustomFieldSource;
   order?: number;
+  can_view?: string[];
+  can_edit?: string[];
 
   __orId?: string;
   __orName?: string;
@@ -121,6 +125,8 @@ export class CustomFieldDetailUpdate {
   public description?: string;
   public order?: number;
   public trigger_id?: string;
+  public can_view?: string[];
+  public can_edit?: string[];
 
   constructor(payload: Partial<CustomFieldDetailUpdate>) {
     Object.assign(this, payload);
@@ -198,6 +204,8 @@ export class CustomFieldDetail {
   public value_checkbox?: boolean;
   public value_option?: string;
   public value_date?: Date;
+  public can_view?: string[];
+  public can_edit?: string[];
 
   constructor(payload: Partial<CustomFieldDetail>) {
     Object.assign(this, payload);

@@ -75,7 +75,7 @@ export class RoleRepository implements RoleRepositoryI {
       const role = await Role.create({
         name: data.name,
         description: data.description,
-        is_default: data.default,
+        default: data.default,
       });
       return new ResponseData({
         status_code: StatusCodes.OK,
@@ -158,8 +158,8 @@ export class RoleRepository implements RoleRepositoryI {
     paginate.setTotal(await Role.count({ where: this.createFilter(filter) }));
     const roles = await Role.findAll({
       where: this.createFilter(filter),
-      offset: paginate.getOffset(),
-      limit: paginate.limit,
+      // offset: paginate.getOffset(),
+      // limit: paginate.limit,
     });
     for (const role of roles) {
       result.push(

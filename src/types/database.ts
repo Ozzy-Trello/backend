@@ -65,6 +65,8 @@ export interface CustomFieldTable {
   is_show_at_front: boolean;
   options?: any;
   order: number;
+  can_view?: string[];
+  can_edit?: string[];
 }
 
 export interface BoardCustomFieldTable {

@@ -40,7 +40,7 @@ export default class AccountRestView implements AccountRestViewI {
 
 	async GetAccountList(req: Request, res: Response): Promise<void> {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
-    let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
+    let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 1000;
 		let paginate = new Paginate(page, limit);
 		let accResponse = await this.account_controller.GetAccountList(new AccountFilter({}), paginate)
 		if (accResponse.status_code !== StatusCodes.OK) {

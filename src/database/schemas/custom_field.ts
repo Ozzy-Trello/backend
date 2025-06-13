@@ -14,6 +14,8 @@ interface CustomFieldAttributes {
   workspace_id: string;
   source: EnumCustomFieldSource;
   trigger_id?: string;
+  can_view?: string[];
+  can_edit?: string[];
   created_at?: Date;
   updated_at?: Date;
 }
@@ -31,6 +33,8 @@ class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttrib
   public workspace_id!: string;
   public source!: EnumCustomFieldSource;
   public trigger_id?: string;
+  public can_view?: string[];
+  public can_edit?: string[];
 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -102,7 +106,17 @@ CustomField.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW
-    }
+    },
+    can_view: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: []
+    },
+    can_edit: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: []
+    },
   },
   {
     tableName: 'custom_field',
