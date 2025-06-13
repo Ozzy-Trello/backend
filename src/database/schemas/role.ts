@@ -1,25 +1,26 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '@/database/connections';
-import { isPermissionStructure, PermissionStructure } from '@/utils/security_utils';
+import { DataTypes, Model, Optional } from "sequelize";
+import sequelize from "@/database/connections";
 
 interface RoleAttributes {
   id: string;
   name: string;
   description: string;
   default: boolean;
-  permissions?: PermissionStructure;
   created_at?: Date;
   updated_at?: Date;
 }
 
-interface RoleCreationAttributes extends Optional<RoleAttributes, 'id' | 'default'> {}
+interface RoleCreationAttributes
+  extends Optional<RoleAttributes, "id" | "created_at" | "updated_at"> {}
 
-class Role extends Model<RoleAttributes, RoleCreationAttributes> implements RoleCreationAttributes {
+class Role
+  extends Model<RoleAttributes, RoleCreationAttributes>
+  implements RoleAttributes
+{
   public id!: string;
   public name!: string;
   public description!: string;
   public default!: boolean;
-  public permissions?: PermissionStructure;
 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -33,54 +34,41 @@ Role.init(
       primaryKey: true,
     },
     name: {
-      type: DataTypes.STRING(128),
+      type: DataTypes.STRING,
       allowNull: false,
       unique: true,
     },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
+      defaultValue: "",
     },
     default: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
     },
-    permissions: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      defaultValue: {
-        board: { create: false, read: true, update: false, delete: false },
-        list: { create: false, read: true, update: false, delete: false },
-        card: { create: false, read: true, update: false, delete: false },
-      },
-      validate: {
-        isEven(value:any) {
-          if (!isPermissionStructure(value)) {
-            throw new Error('is not valid permission object!');
-          }
-        }
-      }
-    },
+
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
     updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
     },
   },
   {
-    tableName: 'role',
+    tableName: "role",
     sequelize,
     timestamps: true,
     underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    createdAt: "created_at",
+    updatedAt: "updated_at",
   }
 );
 
-export default Role;
+export { Role };
+export type { RoleAttributes, RoleCreationAttributes };

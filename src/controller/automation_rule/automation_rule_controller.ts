@@ -18,11 +18,12 @@ import {
 import { CardControllerI, CardMoveData } from "../card/card_interfaces";
 import {
   EnumActions,
+  EnumTriggeredBy,
   EnumUserActionEvent,
   UserActionEvent,
 } from "@/types/event";
-import { ActionType } from "@/types/automation_rule";
-import { EnumOptionPosition } from "@/types/options";
+import { ActionType, EnumSelectionType } from "@/types/automation_rule";
+import { EnumOptionPosition, EnumOptionsSubject } from "@/types/options";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
 import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
@@ -172,16 +173,48 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         // Process rules in parallel for better performance
         const processingPromises = rules.data.map((rule) => {
           if (rule?.id) {
-            return this.ProcessAutomationAction(
-              recentUserAction,
-              new AutomationRuleFilter({
-                id: rule.id,
-                group_type: rule?.group_type,
-                type: rule.type,
-                workspace_id: rule.workspace_id,
-                condition: rule.condition,
-              })
-            );
+
+            let isPermsissable = true;
+
+            // if (rule.condition?.[EnumSelectionType.Board]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
+            // } 
+
+            // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
+            // } 
+
+            if (rule.condition?.[EnumSelectionType.List]) {
+              console.log("rule has list dependency");
+              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
+              console.log("condition.list_id: ", rule.condition?.[EnumSelectionType.List])
+              if (recentUserAction?.data?.card?.list_id != rule.condition?.[EnumSelectionType.List]) {
+                isPermsissable = false;
+              }
+            }
+
+            if (rule.condition?.[EnumSelectionType.OptionalList]) {
+              console.log("rule has optional list dependency");
+              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
+              console.log("condition.list_id: ", rule.condition?.[EnumSelectionType.OptionalList])
+              if (recentUserAction?.data?.card?.list_id !== rule.condition?.[EnumSelectionType.OptionalList]) isPermsissable = false;
+            }
+
+            if (isPermsissable) {
+              return this.ProcessAutomationAction(
+                recentUserAction,
+                new AutomationRuleFilter({
+                  id: rule.id,
+                  group_type: rule?.group_type,
+                  type: rule.type,
+                  workspace_id: rule.workspace_id,
+                  condition: rule.condition,
+                })
+              );
+            }
+            return `rule is not permissable`;
           }
           return Promise.resolve();
         });
@@ -203,6 +236,10 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       });
     }
   }
+
+  // const isRulePermissable(): boolean {
+
+  // }
 
   async ProcessAutomationAction(
     recentUserAction: UserActionEvent,
@@ -243,6 +280,11 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
   }
 
+  /**
+   * Action mapper
+   * @param action 
+   * @param recentUserAction 
+   */
   private async executeAutomationAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
@@ -257,10 +299,23 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           console.log("executeAutomationAction: notify");
           await this.handleNotifyAction(action, recentUserAction);
           break;
+        case EnumActions.ArchiveCard:
+          console.log(`executeAutomationAction: ${EnumActions.ArchiveCard}`);
+          await this.handleArchiveCardAction(action, recentUserAction);
+          break;
+        case EnumActions.UnarchiveCard:
+          console.log(`executeAutomationAction: ${EnumActions.UnarchiveCard}`);
+          await this.handleUnarchiveCardAction(action, recentUserAction);
+          break;
+        case EnumActions.CopyCard:
+          console.log(`executeAutomationAction: ${EnumActions.CopyCard}`);
+          await this.handleCopyCardAction(action, recentUserAction);
+          break;
         default:
           console.warn(
             `Unknown automation action: ${action?.condition?.action}`
           );
+          break;
       }
     } catch (error) {
       console.error(
@@ -271,6 +326,10 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
   }
 
+
+  /**
+   * actual handlers of each actions type 
+   */
   private async handleNotifyAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
@@ -313,6 +372,27 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           : "bottom",
     });
 
-    await this.card_controller.MoveCard("recentUserAction.user_id", moveData);
+    await this.card_controller.MoveCard("recentUserAction.user_id", moveData, EnumTriggeredBy.OzzyAutomation);
+  }
+
+  private async handleArchiveCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    await this.card_controller.ArchiveCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card?.id, EnumTriggeredBy.OzzyAutomation);
+  }
+
+  private async handleUnarchiveCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {;
+    await this.card_controller.UnArchiveCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card?.id, EnumTriggeredBy.OzzyAutomation);
+  }
+
+  private async handleCopyCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    await this.card_controller.CreateCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card, EnumTriggeredBy.OzzyAutomation);
   }
 }

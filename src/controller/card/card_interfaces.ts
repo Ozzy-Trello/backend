@@ -20,11 +20,13 @@ import { AutomationCondition } from "@/types/trigger";
 import { CardListTimeDetail } from "@/repository/card_list_time/card_list_time_interface";
 import { CardBoardTimeDetail } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
+import { EnumTriggeredBy } from "@/types/event";
 
 export interface CardControllerI {
   CreateCard(
     user_id: string,
-    data: CardCreateData
+    data: CardCreateData,
+    triggerdBy: EnumTriggeredBy 
   ): Promise<ResponseData<CreateCardResponse>>;
   GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>>;
   GetListCard(
@@ -35,26 +37,30 @@ export interface CardControllerI {
     filter: CardSearch,
     paginate: Paginate
   ): Promise<ResponseListData<Array<CardResponse>>>;
-  DeleteCard(filter: CardFilter): Promise<ResponseData<null>>;
+  DeleteCard(filter: CardFilter, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>;
   MoveCard(
     user_id: string,
-    filter: CardMoveData
+    filter: CardMoveData,
+    triggerdBy: EnumTriggeredBy 
   ): Promise<ResponseData<CardResponse>>;
-  ArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>>;
-  UnArchiveCard(user_id: string, card_id: string): Promise<ResponseData<null>>;
+  ArchiveCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>;
+  UnArchiveCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy ): Promise<ResponseData<null>>;
   AddCustomField(
     card_id: string,
     custom_field_id: string,
-    value: string | number
+    value: string | number,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
   RemoveCustomField(
     card_id: string,
-    custom_field_id: string
+    custom_field_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
   UpdateCustomField(
     card_id: string,
     custom_field_id: string,
-    value: string | number
+    value: string | number,
+    triggerdBy: EnumTriggeredBy 
   ): Promise<ResponseData<null>>;
   GetListCustomField(
     card_id: string,
@@ -63,11 +69,12 @@ export interface CardControllerI {
   UpdateCard(
     user_id: string,
     filter: CardFilter,
-    data: UpdateCardData
+    data: UpdateCardData,
+    triggerdBy: EnumTriggeredBy 
   ): Promise<ResponseData<null>>;
   GetCardActivity(
     card_id: string,
-    paginate: Paginate
+    paginate: Paginate,
   ): Promise<ResponseListData<Array<CardResponse>>>;
   GetCardTimeInList(
     card_id: string
@@ -77,12 +84,13 @@ export interface CardControllerI {
     board_id: string
   ): Promise<ResponseData<CardBoardTimeDetail>>;
   GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>;
-  CompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>>; // Added
-  IncompleteCard(user_id: string, card_id: string): Promise<ResponseData<null>>; // Added
+  CompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
+  IncompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
   MakeMirrorCard(
     user_id: string,
     card_id: string,
-    target_list_id: string
+    target_list_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardDetail>>;
 }
 
