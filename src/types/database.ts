@@ -31,6 +31,8 @@ export interface Database {
   label: LabelTable;
   card_label: CardLabelTable;
   card_member: CardMemberTable;
+  split_job_template: SplitJobTemplateTable;
+  split_job_value: SplitJobValueTable;
 }
 
 export interface UserTable {
@@ -239,4 +241,25 @@ export interface CardMemberTable {
   card_id: string;
   user_id: string;
   created_at: Date;
+}
+
+export interface SplitJobTemplateTable {
+  id: Generated<string>;
+  name: string;
+  workspace_id: string;
+  custom_field_id: string;
+  description?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface SplitJobValueTable {
+  id: Generated<string>;
+  name: string;
+  split_job_template_id: string;
+  card_id: string;
+  custom_field_id: string;
+  value: number;
+  created_at?: Date;
+  updated_at?: Date;
 }
