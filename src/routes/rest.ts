@@ -7,6 +7,7 @@ import { CardController } from "@/controller/card/card_controller";
 import { CustomFieldController } from "@/controller/custom_field/custom_field_controller";
 import { ListController } from "@/controller/list/list_controller";
 import { RequestController } from "@/controller/request/request_controller";
+import { SplitJobController } from "@/controller/split_job/split_job_controller";
 import { TriggerController } from "@/controller/trigger/trigger_controller";
 import { WorkspaceController } from "@/controller/workspace/workspace_controller";
 import { restJwt } from "@/middleware/rest_middleware";
@@ -17,6 +18,7 @@ import { CustomFieldRepository } from "@/repository/custom_field/custom_field_re
 import { ListRepository } from "@/repository/list/list_repository";
 import { RequestRepository } from "@/repository/request/request_repository";
 import { RoleRepository } from "@/repository/role_access/role_repository";
+import { SplitJobRepository } from "@/repository/split_job/split_job_repository";
 import { TriggerRepository } from "@/repository/trigger/trigger_repository";
 import { UserRepository } from "@/repository/user/user_repository";
 import { WorkspaceRepository } from "@/repository/workspace/workspace_repository";
@@ -29,6 +31,7 @@ import CardRestView from "@/views/rest/card_view";
 import CustomFieldRestView from "@/views/rest/custom_field_view";
 import ListRestView from "@/views/rest/list_view";
 import RequestRestView from "@/views/rest/request_view";
+import { SplitJobRestView } from "@/routes/split_job/split_job_view";
 import TriggerRestView from "@/views/rest/trigger_view";
 import { FileRepository } from "@/repository/file/file_repository";
 import { FileController } from "@/controller/file/file_controllers";
@@ -167,6 +170,14 @@ export default async function (): Promise<Router> {
     user_repo
   );
   card_controller.SetAutomationRuleController(automation_rule_controller);
+
+  // Setup split job repository and controller
+  const split_job_repo = new SplitJobRepository();
+  const split_job_controller = new SplitJobController(
+    split_job_repo,
+    workspace_repo,
+    custom_field_repo
+  );
 
   // Setup automation
   automationProcessor.setController(automation_rule_controller);
@@ -563,15 +574,17 @@ export default async function (): Promise<Router> {
     );
   }
 
+  // Initialize split job view with controller
+  const split_job_rest_view = new SplitJobRestView(split_job_controller);
+
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);
   root_router.use("/workspace", router_workspace);
   root_router.use("/board", router_board);
-  root_router.use("/trigger", router_trigger);
-  root_router.use("/access-control", router_access_control);
   root_router.use("/list", router_list);
   root_router.use("/card", router_card);
   root_router.use("/custom-field", router_custom_field);
+  root_router.use("/split-job", split_job_rest_view.router);
   root_router.use("/file", router_file);
   root_router.use("/card-attachment", router_card_attachment);
   root_router.use("/checklist", router_checklist);
