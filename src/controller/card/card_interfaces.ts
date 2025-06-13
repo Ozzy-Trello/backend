@@ -6,6 +6,7 @@ import {
   CardDetail,
   CardDetailUpdate,
   filterCardDetail,
+  IItemDashcard,
 } from "@/repository/card/card_interfaces";
 import { AssignCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import {
@@ -114,6 +115,7 @@ export class CardResponse {
   due_date_reminder?: string;
   is_mirror?: boolean;
   archive?: boolean;
+  item_dashcard?: IItemDashcard[] | null;
   constructor(payload: Partial<CardResponse>) {
     Object.assign(this, payload);
   }
@@ -152,7 +154,8 @@ export function fromCardDetailToCardResponse(data: CardDetail): CardResponse {
     due_date: data.due_date,
     due_date_reminder: data.due_date_reminder,
     is_mirror: data.is_mirror,
-    archive: data.archive
+    archive: data.archive,
+    item_dashcard: data.item_dashcard,
   });
 }
 
@@ -312,28 +315,28 @@ export class CardSearch {
 }
 
 export class CardMoveData {
-	id!: string;
-	previous_list_id!: string;
-	target_list_id!: string;
-	previous_position?: number;
-	target_position?: number;
-	target_position_top_or_bottom?: string;
-	constructor(payload: Partial<CardMoveData>) {
-		Object.assign(this, payload)
-		this.getErrorField = this.getErrorField.bind(this);
-	}
-	getErrorField(): string | null {
-		if (this.id && !isValidUUID(this.id)) {
-			return "'id' is not valid uuid"
-		}
-		if (this.previous_list_id && !isValidUUID(this.previous_list_id)) {
-			return "'previous_list_id' is not valid uuid"
-		}
-		if (this.target_list_id && !isValidUUID(this.target_list_id)) {
-			return "'target_list_id' is not valid uuid"
-		}
-		return null
-	}
+  id!: string;
+  previous_list_id!: string;
+  target_list_id!: string;
+  previous_position?: number;
+  target_position?: number;
+  target_position_top_or_bottom?: string;
+  constructor(payload: Partial<CardMoveData>) {
+    Object.assign(this, payload);
+    this.getErrorField = this.getErrorField.bind(this);
+  }
+  getErrorField(): string | null {
+    if (this.id && !isValidUUID(this.id)) {
+      return "'id' is not valid uuid";
+    }
+    if (this.previous_list_id && !isValidUUID(this.previous_list_id)) {
+      return "'previous_list_id' is not valid uuid";
+    }
+    if (this.target_list_id && !isValidUUID(this.target_list_id)) {
+      return "'target_list_id' is not valid uuid";
+    }
+    return null;
+  }
 }
 
 export class CardCreateData {
