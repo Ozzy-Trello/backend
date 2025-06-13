@@ -9,6 +9,7 @@ import {
   CustomFieldCardDetail,
   CustomFieldDetail,
 } from "@/repository/custom_field/custom_field_interfaces";
+import { EnumTriggeredBy } from "@/types/event";
 import { Paginate } from "@/utils/data_utils";
 import { CustomFieldRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -232,7 +233,8 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
         workspace_id || "",
         card_id,
         custom_field_id,
-        data
+        data,
+        EnumTriggeredBy.User
       );
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {

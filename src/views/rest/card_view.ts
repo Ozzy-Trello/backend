@@ -6,6 +6,7 @@ import {
   CardSearch,
   UpdateCardData,
 } from "@/controller/card/card_interfaces";
+import { EnumTriggeredBy } from "@/types/event";
 import { Paginate } from "@/utils/data_utils";
 import { CardRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -41,7 +42,8 @@ export default class CardRestView implements CardRestViewI {
   async ArchiveCard(req: Request, res: Response): Promise<void> {
     let updateResponse = await this.card_controller.ArchiveCard(
       req.auth!.user_id,
-      req.params.id?.toString()
+      req.params.id?.toString(),
+      EnumTriggeredBy.User
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -64,7 +66,8 @@ export default class CardRestView implements CardRestViewI {
   async UnArchiveCard(req: Request, res: Response): Promise<void> {
     let updateResponse = await this.card_controller.UnArchiveCard(
       req.auth!.user_id,
-      req.params.id?.toString()
+      req.params.id?.toString(),
+      EnumTriggeredBy.User
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -88,7 +91,8 @@ export default class CardRestView implements CardRestViewI {
     let updateResponse = await this.card_controller.UpdateCustomField(
       req.params.id?.toString(),
       req.params.custom_field_id?.toString(),
-      req.body.value
+      req.body.value,
+      EnumTriggeredBy.User
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -120,7 +124,8 @@ export default class CardRestView implements CardRestViewI {
     let accResponse = await this.card_controller.AddCustomField(
       req.params.id?.toString(),
       req.params.custom_field_id?.toString(),
-      req.body.value
+      req.body.value,
+      EnumTriggeredBy.User
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -143,7 +148,8 @@ export default class CardRestView implements CardRestViewI {
   async RemoveCustomField(req: Request, res: Response): Promise<void> {
     let accResponse = await this.card_controller.RemoveCustomField(
       req.params.id?.toString(),
-      req.params.custom_field_id?.toString()
+      req.params.custom_field_id?.toString(),
+      EnumTriggeredBy.User
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -200,7 +206,8 @@ export default class CardRestView implements CardRestViewI {
         type: req.body?.type?.toString(),
         order: 1,
         dash_config: req.body?.dash_config,
-      })
+      }),
+      EnumTriggeredBy.User
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -281,15 +288,11 @@ export default class CardRestView implements CardRestViewI {
   }
 
   async SearchCard(req: Request, res: Response): Promise<void> {
-    console.log("SearchCard: in rest..");
     let name = req.query.name?.toString() || "";
     let description = req.query.description?.toString() || "";
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 10;
     let paginate = new Paginate(page, limit);
-
-    console.log("in view: name: ", name);
-    console.log("in view: desc: ", description);
 
     let accResponse = await this.card_controller.SearchCard(
       new CardSearch({
@@ -330,7 +333,8 @@ export default class CardRestView implements CardRestViewI {
         target_position: req.body.target_position
           ? parseInt(req.body.target_position.toString())
           : 0,
-      })
+      }),
+      EnumTriggeredBy.User
     );
 
     console.log("in view: MoveCard: accResponse: %o", accResponse);
@@ -397,7 +401,8 @@ export default class CardRestView implements CardRestViewI {
         start_date: req.body.start_date,
         due_date: req.body.due_date,
         due_date_reminder: req.body.due_date_reminder,
-      })
+      }),
+      EnumTriggeredBy.User
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
       if (updateResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -423,7 +428,8 @@ export default class CardRestView implements CardRestViewI {
       new CardFilter({
         id: req.params.id?.toString(),
         list_id: req.header("list-id")?.toString(),
-      })
+      }),
+      EnumTriggeredBy.User
     );
     if (delResponse.status_code !== StatusCodes.OK) {
       if (delResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -524,7 +530,7 @@ export default class CardRestView implements CardRestViewI {
   async CompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.CompleteCard(user_id, card_id);
+    const result = await this.card_controller.CompleteCard(user_id, card_id, EnumTriggeredBy.User);
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;
@@ -535,7 +541,7 @@ export default class CardRestView implements CardRestViewI {
   async IncompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.IncompleteCard(user_id, card_id);
+    const result = await this.card_controller.IncompleteCard(user_id, card_id, EnumTriggeredBy.User);
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;
@@ -555,7 +561,8 @@ export default class CardRestView implements CardRestViewI {
     const result = await this.card_controller.MakeMirrorCard(
       req.auth!.user_id,
       cardId,
-      targetListId
+      targetListId,
+      EnumTriggeredBy.User
     );
     if (result.status_code !== StatusCodes.CREATED) {
       res.status(result.status_code).json({

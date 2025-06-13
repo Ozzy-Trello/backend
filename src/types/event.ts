@@ -1,6 +1,11 @@
 import { CardLabelAttributes } from "@/database/schemas/card_label";
 import User from "@/database/schemas/user";
 
+export enum EnumTriggeredBy {
+  User = "user",
+  OzzyAutomation = "ozzy-automation"
+}
+
 export enum EnumUserActionEvent {
   CardCreated = "card.created",
   CardUpdated = "card.updated",
@@ -33,12 +38,15 @@ export enum EnumActions {
 }
 
 export interface UserActionEvent {
+  eventId: string;
   type: EnumUserActionEvent;
   workspace_id: string;
   user_id: string;
   timestamp: Date;
   data: {
     card?: any;
+    list?: any;
+    board?: any;
     label?: CardLabelAttributes;
     member?: User;
     previous_data?: any;

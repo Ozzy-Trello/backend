@@ -1,10 +1,9 @@
-import { validate as isValidUUID } from "uuid";
-
+import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { broadcastToWebSocket } from "@/server";
-import { EnumUserActionEvent } from "@/types/event";
+import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
 import { EventPublisher } from "@/event_publisher";
 import {
   CardCustomFieldResponse,
@@ -405,7 +404,8 @@ export class CustomFieldController implements CustomFieldControllerI {
     workspace_id: string,
     card_id: string,
     custom_field_id: string,
-    data: CardCustomFieldValueUpdate
+    data: CardCustomFieldValueUpdate,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardCustomFieldResponse>> {
     // Check if the record exists
     const findData = await this.custom_field_repo.getCardCustomField(
@@ -438,7 +438,7 @@ export class CustomFieldController implements CustomFieldControllerI {
           });
 
           // Publish user action event for automation
-          if (this.event_publisher) {
+          if (this.event_publisher &&  triggerdBy === EnumTriggeredBy.User) {
             const eventData: any = {
               card: { id: card_id },
               previous_data: findData.data,
@@ -449,13 +449,17 @@ export class CustomFieldController implements CustomFieldControllerI {
               Object.assign(eventData, updatedData.data);
             }
 
-            await this.event_publisher.publishUserAction({
+            // publish event
+            const event: UserActionEvent = {
+              eventId: uuidv4(),
               type: EnumUserActionEvent.CardCustomFieldChange,
               workspace_id: "",
               user_id: "system",
               timestamp: new Date(),
               data: eventData,
-            });
+            }
+            console.log("Trying to publish event: %s", event.eventId);
+            this.event_publisher.publishUserAction(event);
           }
 
           return new ResponseData({
@@ -504,13 +508,19 @@ export class CustomFieldController implements CustomFieldControllerI {
               Object.assign(eventData, fieldData.data);
             }
 
-            await this.event_publisher.publishUserAction({
-              type: EnumUserActionEvent.CardCustomFieldChange,
-              workspace_id: "",
-              user_id: "system",
-              timestamp: new Date(),
-              data: eventData,
-            });
+            if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+              // publish event
+              const event: UserActionEvent = {
+                eventId: uuidv4(),
+                type: EnumUserActionEvent.CardCustomFieldChange,
+                workspace_id: "",
+                user_id: "system",
+                timestamp: new Date(),
+                data: eventData,
+              }
+              console.Console;
+              this.event_publisher.publishUserAction(event);
+            }
           }
 
           return new ResponseData({

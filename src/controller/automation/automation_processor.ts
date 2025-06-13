@@ -27,14 +27,4 @@ export class AutomationProcessor {
       console.error('Error processing automation:', error);
     }
   }
-
-  // private getAutomationTypeFromEvent(eventType: string): string {
-  //   const typeMap: Record<string, string> = {
-  //     'card.moved': 'card_moved',
-  //     'label.added': 'label_added',
-  //     'card.created': 'card_created',
-  //     'member.added': 'member_added'
-  //   };
-  //   return typeMap[eventType] || 'unknown';
-  // }
 }

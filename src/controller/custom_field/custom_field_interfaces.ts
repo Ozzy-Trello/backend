@@ -14,6 +14,7 @@ import {
   EnumCustomFieldType,
   EnumCustomFieldSource,
 } from "@/types/custom_field";
+import { EnumTriggeredBy } from "@/types/event";
 
 export interface CustomFieldControllerI {
   CreateCustomField(
@@ -43,7 +44,8 @@ export interface CustomFieldControllerI {
     workspace_id: string,
     card_id: string,
     custom_field_id: string,
-    data: CardCustomFieldValueUpdate
+    data: CardCustomFieldValueUpdate,
+    triggeredBy: EnumTriggeredBy
   ): Promise<ResponseData<CardCustomFieldResponse>>;
 }
 

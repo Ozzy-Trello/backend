@@ -76,7 +76,7 @@ export default {
         "permission_id",
         {
           type: DataTypes.UUID,
-          allowNull: false,
+          allowNull: true,
           references: {
             model: "board_permissions",
             key: "id",

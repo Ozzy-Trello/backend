@@ -17,7 +17,7 @@ export class EventPublisher {
 
     const subject = `user.action.${event.type}`;
     await this.nc.publish(subject, this.sc.encode(JSON.stringify(event)));
-    console.log(`Published event: ${subject}`);
+    console.log(`Published event: ${subject} with id: ${event.eventId}`);
   }
 
   async close() {
