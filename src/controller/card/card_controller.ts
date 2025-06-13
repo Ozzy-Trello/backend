@@ -1,6 +1,5 @@
-import { validate as isValidUUID } from "uuid";
+import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
 import { Op } from "sequelize";
-
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
@@ -51,7 +50,8 @@ import {
   AutomationRuleFilter,
 } from "../automation_rule/automation_rule_interface";
 import { EventPublisher } from "@/event_publisher";
-import { EnumUserActionEvent } from "@/types/event";
+import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import { UUID } from "sequelize";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
@@ -106,7 +106,8 @@ export class CardController implements CardControllerI {
 
   async ArchiveCard(
     user_id: string,
-    card_id: string
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
@@ -115,6 +116,7 @@ export class CardController implements CardControllerI {
       });
     }
     let checkCard = await this.card_repo.getCard({ id: card_id });
+    console.log("hasil checking.. archiving the card nih...", checkCard);
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -129,6 +131,28 @@ export class CardController implements CardControllerI {
       });
     }
 
+    broadcastToWebSocket(EnumUserActionEvent.CardArchived, {
+      card: checkCard.data,
+      listId: checkCard?.data?.list_id,
+      createdBy: user_id,
+    });
+
+    // publish event
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
+        type: EnumUserActionEvent.CardArchived,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          card: checkCard.data
+        }
+      }
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+    }
+
     const updateResponse = await this.card_repo.updateCard(
       new CardFilter({ id: card_id }),
       new CardDetailUpdate({ archive: true })
@@ -139,7 +163,6 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.NOT_FOUND,
       });
     }
-
     return new ResponseData({
       message: "success",
       status_code: StatusCodes.OK,
@@ -148,7 +171,8 @@ export class CardController implements CardControllerI {
 
   async UnArchiveCard(
     user_id: string,
-    card_id: string
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
@@ -171,6 +195,28 @@ export class CardController implements CardControllerI {
       });
     }
 
+    broadcastToWebSocket(EnumUserActionEvent.CardArchived, {
+      card: checkCard.data,
+      listId: checkCard?.data?.list_id,
+      createdBy: user_id,
+    });
+
+    // publish event
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
+        type: EnumUserActionEvent.CardUnarchived,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          card: checkCard.data
+        }
+      }
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+    }
+
     const updateResponse = await this.card_repo.updateCard(
       new CardFilter({ id: card_id }),
       new CardDetailUpdate({ archive: false })
@@ -191,7 +237,8 @@ export class CardController implements CardControllerI {
   async UpdateCustomField(
     card_id: string,
     custom_field_id: string,
-    value: string | number
+    value: string | number,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     let warning = undefined;
     console.log("update custom field");
@@ -268,7 +315,8 @@ export class CardController implements CardControllerI {
   async AddCustomField(
     card_id: string,
     custom_field_id: string,
-    value: string | number
+    value: string | number,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     let data = new CustomFieldCardDetail({ card_id: card_id });
     if (!isValidUUID(card_id)) {
@@ -373,7 +421,8 @@ export class CardController implements CardControllerI {
 
   async RemoveCustomField(
     card_id: string,
-    custom_field_id: string
+    custom_field_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
@@ -477,7 +526,8 @@ export class CardController implements CardControllerI {
 
   async CreateCard(
     user_id: string,
-    data: CardCreateData
+    data: CardCreateData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CreateCardResponse>> {
     let paylodCheck = data.checkRequired();
     if (paylodCheck) {
@@ -562,7 +612,7 @@ export class CardController implements CardControllerI {
     };
 
     // Broadcast to WebSocket clients
-    broadcastToWebSocket("card:created", {
+    broadcastToWebSocket(EnumUserActionEvent.CardCreated, {
       card: cardResponse,
       listId: data.list_id,
       createdBy: user_id,
@@ -583,7 +633,7 @@ export class CardController implements CardControllerI {
 
     // execute automation
     // if (this.automation_rule_controller) {
-    //   this.automation_rule_controller.FindMatchingRules(
+    //   this.automation_rule_controller.ingRules(
     //     {
     //       card: createResponse.data
     //     },
@@ -594,20 +644,25 @@ export class CardController implements CardControllerI {
     //     })
     //   );
     // }
-    console.log(this.event_publisher, "<< ini apa isinya");
-    if (this.event_publisher) {
-      console.log("publishing event loh...");
-      await this.event_publisher.publishUserAction({
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
         type: EnumUserActionEvent.CardCreated,
         workspace_id: "",
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: cardResponse,
+          card: {
+            id: cardResponse.id,
+            list_id: cardResponse.listId
+          },
+          list: {
+            id: cardResponse.listId
+          }
         },
-      });
-    } else {
-      console.log("engga publishing event loh...");
+      }
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
     }
 
     return new ResponseData({
@@ -669,7 +724,8 @@ export class CardController implements CardControllerI {
 
   async MoveCard(
     user_id: string,
-    filter: CardMoveData
+    filter: CardMoveData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardResponse>> {
     try {
       // 1. Validate card ID
@@ -754,7 +810,7 @@ export class CardController implements CardControllerI {
       const cardResponse = fromCardDetailToCardResponse(moveResponse.data!);
 
       // Broadcast to WebSocket clients
-      broadcastToWebSocket("card:moved", {
+      broadcastToWebSocket(EnumUserActionEvent.CardMoved, {
         card: cardResponse,
         fromListId: sourceListId,
         toListId: targetListId,
@@ -762,27 +818,30 @@ export class CardController implements CardControllerI {
       });
 
       // 6. publish event
-      // if (this.event_publisher) {
-      //   await this.event_publisher.publishUserAction({
-      //     type: EnumUserActionEvent.CardMoved,
-      //     workspace_id: "",
-      //     user_id: user_id,
-      //     timestamp: new Date(),
-      //     data: {
-      //       card: {
-      //         id: cardResponse.id,
-      //         description: cardResponse.description!,
-      //         type: CardType.Regular,
-      //         list_id: cardResponse.list_id!,
-      //         is_mirror: cardResponse.is_mirror!,
-      //       },
-      //       previous_data: {
-      //         list_id: card.data?.list_id,
-      //         order: card.data?.order
-      //       }
-      //     }
-      //   });
-      // }
+      if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+        const event: UserActionEvent = {
+          eventId: uuidv4(),
+          type: EnumUserActionEvent.CardMoved,
+          workspace_id: "",
+          user_id: user_id,
+          timestamp: new Date(),
+          data: {
+            card: {
+              id: cardResponse.id,
+              description: cardResponse.description!,
+              type: CardType.Regular,
+              list_id: cardResponse.list_id!,
+              is_mirror: cardResponse.is_mirror!,
+            },
+            previous_data: {
+              list_id: card.data?.list_id,
+              order: card.data?.order
+            }
+          }
+        }
+        console.log("Trying to publish event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event);
+      }
 
       // 7. Return the moved card data
       return new ResponseData({
@@ -1017,7 +1076,7 @@ export class CardController implements CardControllerI {
     );
   }
 
-  async DeleteCard(filter: CardFilter): Promise<ResponseData<null>> {
+  async DeleteCard(filter: CardFilter, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>> {
     if (filter.isEmpty()) {
       return new ResponseData({
         message: "you need filter to delete",
@@ -1056,7 +1115,8 @@ export class CardController implements CardControllerI {
   async UpdateCard(
     user_id: string,
     filter: CardFilter,
-    data: UpdateCardData
+    data: UpdateCardData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     let warning = undefined;
     let move_to_other_board = false;
@@ -1156,6 +1216,13 @@ export class CardController implements CardControllerI {
       filter.toFilterCardDetail(),
       data.toCardDetailUpdate()
     );
+
+    broadcastToWebSocket(EnumUserActionEvent.CardUpdated, {
+      card: data,
+      listId: filter?.list_id || data?.list_id,
+      udpatedBy: user_id,
+    });
+
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Card is not found",
@@ -1209,7 +1276,8 @@ export class CardController implements CardControllerI {
 
   async CompleteCard(
     user_id: string,
-    card_id: string
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
@@ -1248,7 +1316,8 @@ export class CardController implements CardControllerI {
 
   async IncompleteCard(
     user_id: string,
-    card_id: string
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
@@ -1454,7 +1523,8 @@ export class CardController implements CardControllerI {
   async MakeMirrorCard(
     user_id: string,
     card_id: string,
-    target_list_id: string
+    target_list_id: string,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardDetail>> {
     if (!isValidUUID(card_id)) {
       return new ResponseData({
