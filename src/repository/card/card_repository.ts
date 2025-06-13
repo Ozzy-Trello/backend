@@ -11,6 +11,7 @@ import {
   CardActivityMoveList,
   filterMoveCard,
   filterCount,
+  IItemDashcard,
 } from "@/repository/card/card_interfaces";
 import { Error, Op, Sequelize } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
@@ -19,7 +20,12 @@ import { InternalServerError } from "@/utils/errors";
 import { isFilterEmpty, Paginate } from "@/utils/data_utils";
 import db from "@/database";
 import { CardTable, Database } from "@/types/database";
-import { ExpressionBuilder, Transaction, sql } from "kysely";
+import {
+  ExpressionBuilder,
+  SelectQueryBuilder,
+  Transaction,
+  sql,
+} from "kysely";
 import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
@@ -312,6 +318,7 @@ export class CardRepository implements CardRepositoryI {
           message: "card is not found",
         };
       }
+
       let result = new CardDetail({
         id: card.id,
         name: card.name,
@@ -326,12 +333,296 @@ export class CardRepository implements CardRepositoryI {
         due_date_reminder: card?.due_date_reminder,
       });
 
+      if (card?.dash_config) {
+        const dashConfig =
+          typeof card.dash_config === "string"
+            ? JSON.parse(card.dash_config)
+            : card.dash_config;
+
+        const filters = (dashConfig?.filters || []) as {
+          type: string;
+          value: string;
+          operator: string;
+        }[];
+
+        const cardListDashCard: IItemDashcard[] = [];
+
+        if (filters.length > 0) {
+          for (const filter of filters) {
+            const value = filter.value;
+            const operator = filter.operator;
+            const type = filter.type;
+
+            if (type === "board") {
+              const boardIds: string[] = [];
+
+              if (value) {
+                switch (operator) {
+                  case "starts_with":
+                    const queryBoardStartsWith = await db
+                      .selectFrom("board")
+                      .select(["id"])
+                      .where((eb) => eb("name", "like", eb.val(`${value}%`)))
+                      .execute();
+
+                    boardIds.push(...queryBoardStartsWith.map((b) => b.id));
+                    break;
+                  case "matches_with":
+                  case "any":
+                  default:
+                    const queryBoard = await db
+                      .selectFrom("board")
+                      .select(["id"])
+                      .where("name", "=", value)
+                      .execute();
+
+                    boardIds.push(...queryBoard.map((b) => b.id));
+                    break;
+                }
+              }
+
+              if (boardIds.length > 0) {
+                const lists = await db
+                  .selectFrom("list")
+                  .select(["id"])
+                  .where((eb) => eb("board_id", "in", boardIds))
+                  .execute();
+
+                const listIds = lists.map((l) => l.id);
+
+                if (listIds.length > 0) {
+                  const cardList = await db
+                    .selectFrom("card")
+                    .select(["card.id", "card.name", "card.description"])
+                    .where((eb) => eb("card.list_id", "in", listIds))
+                    .execute();
+
+                  const resultCards: IItemDashcard[] = cardList.map((card) => {
+                    return {
+                      id: card.id,
+                      name: card.name,
+                      description: card.description,
+                      member: [],
+                      columns: [],
+                    };
+                  });
+
+                  for (let i = 0; i < resultCards.length; i++) {
+                    const cardItem = resultCards[i];
+                    const customFields = await db
+                      .selectFrom("card_custom_field")
+                      .leftJoin(
+                        "custom_field",
+                        "card_custom_field.custom_field_id",
+                        "custom_field.id"
+                      )
+                      .select(["custom_field.name", "custom_field.type"])
+                      .where("card_custom_field.card_id", "=", cardItem.id)
+                      .execute();
+
+                    const members = await db
+                      .selectFrom("card_member")
+                      .leftJoin("user", "card_member.user_id", "user.id")
+                      .select(["user.id", "user.username"])
+                      .where("card_member.card_id", "=", cardItem.id)
+                      .execute();
+
+                    cardItem.member = members.map((member) => ({
+                      id: member.id,
+                      name: member.username,
+                    })) as any;
+                    cardItem.columns = customFields.map((item) => {
+                      return {
+                        type: item.type,
+                        column: item.name,
+                        value: "",
+                      };
+                    }) as any;
+                  }
+
+                  cardListDashCard.push(...resultCards);
+                }
+              }
+            }
+
+            if (type === "list") {
+              const listIds: string[] = [];
+              if (value) {
+                switch (operator) {
+                  case "starts_with":
+                    const queryListStartsWith = await db
+                      .selectFrom("list")
+                      .select(["id"])
+                      .where((eb) => eb("name", "like", eb.val(`${value}%`)))
+                      .execute();
+
+                    listIds.push(...queryListStartsWith.map((l) => l.id));
+                    break;
+                  case "matches_with":
+                  case "any":
+                  default:
+                    const queryList = await db
+                      .selectFrom("list")
+                      .select(["id"])
+                      .where("name", "=", value)
+                      .execute();
+
+                    listIds.push(...queryList.map((l) => l.id));
+                    break;
+                }
+              }
+
+              if (listIds.length > 0) {
+                // First get all cards
+                const cardList = await db
+                  .selectFrom("card")
+                  .select(["card.id", "card.name", "card.description"])
+                  .where((eb) => eb("card.list_id", "in", listIds))
+                  .execute();
+
+                // Then get all custom fields for these cards
+
+                const resultCards: IItemDashcard[] = cardList.map((card) => {
+                  return {
+                    id: card.id,
+                    name: card.name,
+                    description: card.description,
+                    member: [],
+                    columns: [],
+                  };
+                });
+
+                for (let i = 0; i < resultCards.length; i++) {
+                  const cardItem = resultCards[i];
+                  const customFields = await db
+                    .selectFrom("card_custom_field")
+                    .leftJoin(
+                      "custom_field",
+                      "card_custom_field.custom_field_id",
+                      "custom_field.id"
+                    )
+                    .select(["custom_field.name", "custom_field.type"])
+                    .where("card_custom_field.card_id", "=", cardItem.id)
+                    .execute();
+
+                  const members = await db
+                    .selectFrom("card_member")
+                    .leftJoin("user", "card_member.user_id", "user.id")
+                    .select(["user.id", "user.username"])
+                    .where("card_member.card_id", "=", cardItem.id)
+                    .execute();
+
+                  cardItem.member = members.map((member) => ({
+                    id: member.id,
+                    name: member.username,
+                  })) as any;
+                  cardItem.columns = customFields.map((item) => {
+                    return {
+                      type: item.type,
+                      column: item.name,
+                      value: "",
+                    };
+                  }) as any;
+                }
+
+                cardListDashCard.push(...resultCards);
+              }
+            }
+
+            if (type === "assigned") {
+              const cardIds: string[] = [];
+
+              if (value) {
+                switch (operator) {
+                  case "includes_any_of":
+                    console.log(value, "queryAssignInclude");
+                    const queryAssignInclude = await db
+                      .selectFrom("card_member")
+                      .select(["card_id"])
+                      .where("user_id", "in", [value])
+                      .execute();
+
+                    console.log({ queryAssignInclude }, "queryAssignInclude");
+                    cardIds.push(...queryAssignInclude.map((a) => a.card_id));
+                    break;
+
+                  case "does_not_include":
+                    const queryAssignNotInclude = await db
+                      .selectFrom("card_member")
+                      .select(["card_id"])
+                      .where("user_id", "not in", [value])
+                      .execute();
+                    cardIds.push(
+                      ...queryAssignNotInclude.map((a) => a.card_id)
+                    );
+                    break;
+
+                  default:
+                    break;
+                }
+              }
+
+              if (cardIds.length > 0) {
+                const cardList = await db
+                  .selectFrom("card")
+                  .select(["card.id", "card.name", "card.description"])
+                  .where("card.id", "in", cardIds)
+                  .execute();
+                const resultCards: IItemDashcard[] = cardList.map((card) => {
+                  return {
+                    id: card.id,
+                    name: card.name,
+                    description: card.description,
+                    member: [],
+                    columns: [],
+                  };
+                });
+                for (let i = 0; i < resultCards.length; i++) {
+                  const cardItem = resultCards[i];
+                  const customFields = await db
+                    .selectFrom("card_custom_field")
+                    .leftJoin(
+                      "custom_field",
+                      "card_custom_field.custom_field_id",
+                      "custom_field.id"
+                    )
+                    .select(["custom_field.name", "custom_field.type"])
+                    .where("card_custom_field.card_id", "=", cardItem.id)
+                    .execute();
+                  const members = await db
+                    .selectFrom("card_member")
+                    .leftJoin("user", "card_member.user_id", "user.id")
+                    .select(["user.id", "user.username"])
+                    .where("card_member.card_id", "=", cardItem.id)
+                    .execute();
+                  cardItem.member = members.map((member) => ({
+                    id: member.id,
+                    name: member.username,
+                  })) as any;
+                  cardItem.columns = customFields.map((item) => {
+                    return {
+                      type: item.type,
+                      column: item.name,
+                      value: "",
+                    };
+                  }) as any;
+                }
+                cardListDashCard.push(...resultCards);
+              }
+            }
+          }
+        }
+
+        result.item_dashcard = Array.from(new Set(cardListDashCard));
+      }
+
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "card detail",
         data: result,
       });
     } catch (e) {
+      console.log("errorBaba", e);
       if (e instanceof Error) {
         throw new InternalServerError(
           StatusCodes.INTERNAL_SERVER_ERROR,
