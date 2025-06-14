@@ -24,6 +24,7 @@ import {
   AssignCardResponse,
   CardMoveData,
   CardSearch,
+  CopyCardData,
 } from "@/controller/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
@@ -52,6 +53,7 @@ import {
 import { EventPublisher } from "@/event_publisher";
 import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
 import { UUID } from "sequelize";
+import { EnumOptionPosition } from "@/types/options";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
@@ -138,7 +140,7 @@ export class CardController implements CardControllerI {
     });
 
     // publish event
-    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User && checkCard?.data) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
         type: EnumUserActionEvent.CardArchived,
@@ -146,7 +148,10 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: checkCard.data
+          card: {
+            id: checkCard.data.id,
+            list_id: checkCard.data.list_id
+          }
         }
       }
       console.log("Trying to publish event: %s", event.eventId);
@@ -210,7 +215,10 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: checkCard.data
+          card: {
+            id: checkCard.data.id,
+            list_id: checkCard.data.list_id
+          }
         }
       }
       console.log("Trying to publish event: %s", event.eventId);
@@ -617,33 +625,7 @@ export class CardController implements CardControllerI {
       listId: data.list_id,
       createdBy: user_id,
     });
-    // this.trigger_controller.doTrigger({
-    //   type: ConditionType.CardInBoard,
-    //   workspace_id: listCheck.data?.workspace_id!,
-    //   condition: {
-    //     action: 'added',
-    //     by: 'anyone',
-    //     board: listCheck.data?.board_id!,
-    //   },
-    //   group_type: TriggerTypes.CardMove,
-    //   data: {
-    //     card_id: createResponse.data?.id
-    //   }
-    // })
 
-    // execute automation
-    // if (this.automation_rule_controller) {
-    //   this.automation_rule_controller.ingRules(
-    //     {
-    //       card: createResponse.data
-    //     },
-    //     new AutomationRuleFilter({
-    //       condition: {
-    //         action: "added_to"
-    //       }
-    //     })
-    //   );
-    // }
     if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
@@ -673,6 +655,98 @@ export class CardController implements CardControllerI {
       }),
     });
   }
+
+  async CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>> {
+    if (!copyCardData?.card_id) {
+      return new ResponseData({
+        message: "'card_id' cannot be empty",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    if (!isValidUUID(copyCardData?.card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    // find source card
+    let checkedData = await this.card_repo.getCard({id: copyCardData?.card_id});
+    if (checkedData.status_code != StatusCodes.OK || !checkedData.data) {
+      return new ResponseData({
+        message: "no source card found",
+        status_code: checkedData.status_code,
+      });
+    }
+    let cardToCopied = checkedData?.data;
+
+    // re-adjust copied card before
+    if (copyCardData.target_list_id) cardToCopied.list_id = copyCardData?.target_list_id;
+
+    // insert the data
+    const createCardResult = await this.card_repo.createCard(checkedData?.data);
+     if (checkedData.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: createCardResult.message,
+        status_code: createCardResult.status_code,
+      });
+    }
+
+    // do the async procedures
+    // re-adjust copycard data position
+    let moveCardParams = {  
+      id: createCardResult?.data?.id,
+      previous_list_id: createCardResult?.data?.id,
+      target_list_id: createCardResult?.data?.id,
+    };
+    this.card_repo.moveCard(moveCardParams);
+
+    // insert attachment
+    if (copyCardData.is_with_attachment) {
+      this.card_attachmment_repo.getCardAttachmentList({card_id: createCardResult?.data?.id}, new Paginate(0, 0)).then(result => {
+        if (result.status_code === StatusCodes.OK && result.data) {
+          const attachments = result?.data?.map(item => ({
+            ...item,
+            card_id: createCardResult?.data?.id as string,
+          }));
+
+          // insert in bulk
+          this.card_attachmment_repo.createCardAttachmentInBulk(attachments);
+        }
+      })
+    }
+
+    // insert checklist
+    if (copyCardData.is_with_checklist) {
+
+    }
+
+    // insert comments
+    if (copyCardData.is_with_comments) {
+
+    }
+
+    // insert labels
+    if (copyCardData.is_with_labels) {
+
+    }
+
+    // insert members
+    if (copyCardData.is_with_members) {
+
+    }
+
+    return new ResponseData({
+      message: "Card copied successfully",
+      status_code: StatusCodes.CREATED,
+      data: new CreateCardResponse({
+        id: createCardResult.data?.id,
+      }),
+    });
+
+  }
+
 
   async GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>> {
     if (filter.isEmpty()) {
@@ -1429,43 +1503,6 @@ export class CardController implements CardControllerI {
       data: res.data!,
     });
   }
-
-  // async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
-  //   try {
-  //     // Get the dashcard
-  //     const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
-
-  //     if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
-  //       return new ResponseData({
-  //         message: "Dashcard not found",
-  //         status_code: StatusCodes.NOT_FOUND,
-  //         data: 0
-  //       });
-  //     }
-
-  //     const config = dashcardResponse?.data?.getDashConfig();
-  //     if (config?.filters?.)
-
-  //     // ANY - just count all non-dashcard cards
-  //     const count = await this.card_repo.countCards({
-  //       type: { [Op.ne]: 'dashcard' },
-
-  //     });
-
-  //     return new ResponseData({
-  //       status_code: StatusCodes.OK,
-  //       message: "Dashcard count retrieved successfully",
-  //       data: count
-  //     });
-  //   } catch (e) {
-  //     return new ResponseData({
-  //       message: "Internal server error",
-  //       status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-  //       data: 0
-  //     });
-  //   }
-  // }
-  // In your controller:
 
   async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
     try {

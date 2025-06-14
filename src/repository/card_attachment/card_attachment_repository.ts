@@ -94,6 +94,66 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
     }
   }
 
+  async createCardAttachmentInBulk(
+    dataList: CardAttachmentDetail[]
+  ): Promise<ResponseData<CardAttachmentDetail[]>> {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const now = new Date();
+
+      // Prepare payloads
+      const attachmentsToCreate = dataList.map((data) => ({
+        id: uuidv4(),
+        card_id: data.card_id,
+        attachable_type: data.attachable_type,
+        attachable_id: data.attachable_id,
+        is_cover: data.is_cover,
+        metadata: data.metadata,
+        created_by: data.created_by!,
+        created_at: now,
+        updated_at: now,
+      }));
+
+      // Bulk create
+      const createdAttachments = await CardAttachment.bulkCreate(
+        attachmentsToCreate,
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      // Format response
+      const formatted = createdAttachments.map(
+        (attachment) =>
+          new CardAttachmentDetail({
+            id: attachment.id,
+            card_id: attachment.card_id,
+            attachable_type: attachment.attachable_type,
+            attachable_id: attachment.attachable_id,
+            is_cover: attachment.is_cover,
+            created_by: attachment.created_by,
+            created_at: attachment.created_at,
+            updated_at: attachment.updated_at,
+          })
+      );
+
+      return new ResponseData({
+        status_code: StatusCodes.CREATED,
+        message: "bulk create card attachments success",
+        data: formatted,
+      });
+    } catch (e) {
+      await transaction.rollback();
+
+      if (e instanceof Error) {
+        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+      }
+      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+    }
+  }
+
+
   async updateCardAttachment(filter: filterCardAttachmentDetail, data: CardAttachmentDetailUpdate): Promise<number> {
     // Use a transaction to ensure data consistency
     const transaction = await sequelize.transaction();

@@ -19,6 +19,8 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
     if (filter.workspace_id) where.workspace_id = filter.workspace_id;
     if (filter.group_type) where.group_type = filter.group_type;
     if (filter.type) where.type = filter.type;
+    if (filter.created_by) where.type = filter.created_by;
+    if (filter.updated_by) where.type = filter.updated_by;
 
     if (filter.__orId) or.push({ id: filter.__orId });
     if (filter.__orWorkspaceId) or.push({ workspace_id: filter.__orWorkspaceId });
@@ -88,6 +90,7 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
         group_type: data.group_type,
         type: data.type,
         condition: data.condition,
+        created_by: data?.created_by
       });
       return new ResponseData({
         status_code: StatusCodes.OK,

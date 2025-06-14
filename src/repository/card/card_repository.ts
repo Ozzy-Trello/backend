@@ -29,7 +29,8 @@ import {
 import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
-import { FilterConfig } from "@/controller/card/card_interfaces";
+import { CopyCardData, FilterConfig } from "@/controller/card/card_interfaces";
+import { EnumOptionPosition } from "@/types/options";
 
 export class CardRepository implements CardRepositoryI {
   createFilter(filter: filterCardDetail): any {
@@ -971,7 +972,6 @@ export class CardRepository implements CardRepositoryI {
   }
 
   async moveCard(filter: filterMoveCard): Promise<ResponseData<CardDetail>> {
-    console.log("In repo: Move Card: %o", filter);
     try {
       return await db
         .transaction()
@@ -1025,9 +1025,9 @@ export class CardRepository implements CardRepositoryI {
           let targetPosition: number;
 
           // Check if user wants to move to top or bottom
-          if (filter.target_position_top_or_bottom === "top") {
+          if (filter.target_position_top_or_bottom === "top" || filter.target_position_top_or_bottom === EnumOptionPosition.TopOfList) {
             targetPosition = 0;
-          } else if (filter.target_position_top_or_bottom === "bottom") {
+          } else if (filter.target_position_top_or_bottom === "bottom" || filter.target_position_top_or_bottom === EnumOptionPosition.BottomOfList) {
             targetPosition = cardsInTargetList.length;
           } else {
             // Use existing logic for numeric position
