@@ -391,6 +391,14 @@ export class CustomFieldController implements CustomFieldControllerI {
     card_id: string,
     user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
+
+    if (!isValidUUID(card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+
     const cardListCardCustomField =
       await this.custom_field_repo.getListCardCustomField(
         workspace_id,

@@ -9,17 +9,15 @@ import {
   AutomationRuleControllerI,
   AutomationRuleCreateData,
   AutomationRuleFilter,
-  RecentUserAction,
 } from "./automation_rule_interface";
 import {
   AutomationRuleActionDetail,
   AutomationRuleActionRepositoryI,
 } from "@/repository/automation_rule_action/automation_rule_action_interface";
-import { CardControllerI, CardMoveData } from "../card/card_interfaces";
+import { CardControllerI, CardCreateData, CardMoveData, CopyCardData } from "../card/card_interfaces";
 import {
   EnumActions,
   EnumTriggeredBy,
-  EnumUserActionEvent,
   UserActionEvent,
 } from "@/types/event";
 import { ActionType, EnumSelectionType } from "@/types/automation_rule";
@@ -66,7 +64,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-
+    
+    data.created_by = user_id
     let result = await this.automation_rule_repo.createRule(
       data.toAutomationRuleDetail()
     );
@@ -159,10 +158,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       );
 
       const rules = await this.automation_rule_repo.matchRules(
-        filter.toFilterAutomationRuleDetail()
+        filter
       );
-
-      console.log(rules, "Rules found");
 
       if (rules.status_code !== StatusCodes.OK) {
         return new ResponseData({
@@ -170,6 +167,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           status_code: rules.status_code,
         });
       }
+
+      console.log("filter are: %o", filter);
+      console.log("rules are: %o", rules);
 
       if (rules?.data) {
         // Process rules in parallel for better performance
@@ -180,40 +180,87 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             // if (rule.condition?.[EnumSelectionType.Board]) {
             //   console.log("rule has board dependency");
             //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
-            // }
+            // } 
 
             // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
             //   console.log("rule has board dependency");
             //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
-            // }
+            // } 
 
             if (rule.condition?.[EnumSelectionType.List]) {
               console.log("rule has list dependency");
-              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
-              console.log(
-                "condition.list_id: ",
-                rule.condition?.[EnumSelectionType.List]
-              );
-              if (
-                recentUserAction?.data?.card?.list_id !=
-                rule.condition?.[EnumSelectionType.List]
-              ) {
+              if (recentUserAction?.data?.card?.list_id != rule.condition?.[EnumSelectionType.List]) {
                 isPermsissable = false;
               }
             }
 
-            if (rule.condition?.[EnumSelectionType.OptionalList]) {
-              console.log("rule has optional list dependency");
-              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
-              console.log(
-                "condition.list_id: ",
-                rule.condition?.[EnumSelectionType.OptionalList]
-              );
-              if (
-                recentUserAction?.data?.card?.list_id !==
-                rule.condition?.[EnumSelectionType.OptionalList]
-              )
-                isPermsissable = false;
+            if (rule.condition?.[EnumSelectionType.OptionalBySubject]) {
+              console.log(`rule has optional ${EnumSelectionType.OptionalBySubject} dependency`);
+              
+              // by me
+              if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByMe) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              // by anyone, except me
+              if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptMe) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              if (typeof rule.condition?.[EnumSelectionType.OptionalBySubject] == 'object') {
+
+                // by specific user - baru bisa single user
+                if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.BySpecificUser) {
+                  if (!rule.condition?.[EnumSelectionType.OptionalBySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+
+                // anyone, except specific user
+                if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser) {
+                  if (rule.condition?.[EnumSelectionType.OptionalBySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+              }
+            }
+
+            if (rule.condition?.[EnumSelectionType.BySubject]) {
+              console.log(`rule has optional ${EnumSelectionType.BySubject} dependency`);
+
+              // by me
+              if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByMe) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              // by anyone, except me
+              if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptMe) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              if (typeof rule.condition?.[EnumSelectionType.BySubject] == 'object') {
+                // by specific user
+                if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.BySpecificUser) {
+                  if (!rule.condition?.[EnumSelectionType.BySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+
+                // anyone, except specific user
+                if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser) {
+                  if (rule.condition?.[EnumSelectionType.BySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+              }
             }
 
             if (isPermsissable) {
@@ -251,10 +298,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
   }
 
-  // const isRulePermissable(): boolean {
-
-  // }
-
   async ProcessAutomationAction(
     recentUserAction: UserActionEvent,
     filter: AutomationRuleFilter
@@ -267,13 +310,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         });
       }
 
-      console.log("Processing automation action");
-
       const actions = await this.automation_rule_action_repo.getByRuleId(
         filter.id
       );
-
-      console.log(actions, "Actions found");
 
       if (actions?.data) {
         // Process actions in parallel
@@ -300,8 +339,13 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
   /**
    * Action mapper
+<<<<<<< HEAD
    * @param action
    * @param recentUserAction
+=======
+   * @param action 
+   * @param recentUserAction 
+>>>>>>> 49a855f7757f47c41e5b4723fe41a0674ce8634e
    */
   private async executeAutomationAction(
     action: AutomationRuleActionDetail,
@@ -344,17 +388,15 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
   }
 
+
   /**
-   * actual handlers of each actions type
+   * actual handlers of each actions type 
    */
   private async handleNotifyAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
     if (!action?.condition?.channel || !recentUserAction?.data.card?.id) return;
-
-    console.log(action, "action");
-    console.log(recentUserAction, "recentUserAction");
 
     switch (action?.condition?.channel) {
       case "whatsapp":
@@ -393,43 +435,41 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           : "bottom",
     });
 
-    await this.card_controller.MoveCard(
-      "recentUserAction.user_id",
-      moveData,
-      EnumTriggeredBy.OzzyAutomation
-    );
+    await this.card_controller.MoveCard("recentUserAction.user_id", moveData, EnumTriggeredBy.OzzyAutomation);
   }
 
   private async handleArchiveCardAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.ArchiveCard(
-      recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
-      EnumTriggeredBy.OzzyAutomation
-    );
+    await this.card_controller.ArchiveCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card?.id, EnumTriggeredBy.OzzyAutomation);
   }
 
   private async handleUnarchiveCardAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
-  ): Promise<void> {
-    await this.card_controller.UnArchiveCard(
-      recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
-      EnumTriggeredBy.OzzyAutomation
-    );
+  ): Promise<void> {;
+    await this.card_controller.UnArchiveCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card?.id, EnumTriggeredBy.OzzyAutomation);
   }
 
   private async handleCopyCardAction(
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.CreateCard(
-      recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card,
-      EnumTriggeredBy.OzzyAutomation
-    );
+    await this.card_controller.CopyCard(
+      recentUserAction?.user_id || "", 
+      new CopyCardData({
+        card_id: recentUserAction?.data?.card?.id,
+        name: recentUserAction?.data?.card?.name,
+        target_list_id: action?.condition?.[EnumSelectionType.List] || action?.condition?.[EnumSelectionType.OptionalList],
+        position: action?.condition?.[EnumSelectionType.Position] || action?.condition?.[EnumSelectionType.OptionalPosition],
+        is_with_attachments: true,
+        is_with_checklist: true,
+        is_with_labels: true,
+        is_with_comments: true,
+        is_with_members: true,
+        is_wtih_custom_fields: true
+      }), 
+      EnumTriggeredBy.OzzyAutomation);
   }
 }

@@ -4,6 +4,7 @@ import {
   CardFilter,
   CardMoveData,
   CardSearch,
+  CopyCardData,
   UpdateCardData,
 } from "@/controller/card/card_interfaces";
 import { EnumTriggeredBy } from "@/types/event";
@@ -20,6 +21,7 @@ export default class CardRestView implements CardRestViewI {
     this.ArchiveCard = this.ArchiveCard.bind(this);
     this.UnArchiveCard = this.UnArchiveCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
+    this.CopyCard = this.CopyCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
     this.GetListCard = this.GetListCard.bind(this);
     this.SearchCard = this.SearchCard.bind(this);
@@ -206,6 +208,43 @@ export default class CardRestView implements CardRestViewI {
         type: req.body?.type?.toString(),
         order: 1,
         dash_config: req.body?.dash_config,
+      }),
+      EnumTriggeredBy.User
+    );
+    if (accResponse.status_code !== StatusCodes.CREATED) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(accResponse.status_code).json({
+        message: accResponse.message,
+      });
+      return;
+    }
+    res.status(accResponse.status_code).json({
+      data: accResponse.data,
+      message: accResponse.message,
+    });
+    return;
+  }
+
+  async CopyCard(req: Request, res: Response): Promise<void> {
+    let accResponse = await this.card_controller.CopyCard(
+      req.auth!.user_id,
+      new CopyCardData({
+        card_id: req.params.id?.toString(),
+        name: req.body?.name,
+        is_with_labels: req.body?.is_with_labels,
+        is_with_members: req.body?.is_with_members,
+        is_with_attachments: req.body?.is_with_attachments,
+        is_wtih_custom_fields: req.body?.is_wtih_custom_fields,
+        is_with_comments: req.body?.is_with_comments,
+        is_with_checklist: req.body?.is_with_checklist,
+        target_board_id: req.body?.target_board_id,
+        target_list_id: req.body?.target_list_id,
+        position: req.body?.position,
       }),
       EnumTriggeredBy.User
     );
@@ -530,7 +569,11 @@ export default class CardRestView implements CardRestViewI {
   async CompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.CompleteCard(user_id, card_id, EnumTriggeredBy.User);
+    const result = await this.card_controller.CompleteCard(
+      user_id,
+      card_id,
+      EnumTriggeredBy.User
+    );
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;
@@ -541,7 +584,11 @@ export default class CardRestView implements CardRestViewI {
   async IncompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.IncompleteCard(user_id, card_id, EnumTriggeredBy.User);
+    const result = await this.card_controller.IncompleteCard(
+      user_id,
+      card_id,
+      EnumTriggeredBy.User
+    );
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;

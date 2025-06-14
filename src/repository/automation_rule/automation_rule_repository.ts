@@ -25,6 +25,8 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
     if (filter.workspace_id) where.workspace_id = filter.workspace_id;
     if (filter.group_type) where.group_type = filter.group_type;
     if (filter.type) where.type = filter.type;
+    if (filter.created_by) where.type = filter.created_by;
+    if (filter.updated_by) where.type = filter.updated_by;
 
     if (filter.__orId) or.push({ id: filter.__orId });
     if (filter.__orWorkspaceId)
@@ -116,6 +118,7 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
         group_type: data.group_type,
         type: data.type,
         condition: data.condition,
+        created_by: data?.created_by,
       });
       return new ResponseData({
         status_code: StatusCodes.OK,
@@ -166,11 +169,10 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
   async matchRules(
     filter: filterAutomationRule
   ): Promise<ResponseData<Array<AutomationRuleDetail>>> {
-    const whereClause = this.createFilter(filter);
-
-    console.log(whereClause, "<< INI WHERE CLAUSE");
+    const f = this.createFilter(filter);
+    console.log("da fiilter is: %o", f);
     const actions = await AutomationRule.findAll({
-      where: this.createFilter(filter),
+      where: f,
     });
 
     const result = actions.map(

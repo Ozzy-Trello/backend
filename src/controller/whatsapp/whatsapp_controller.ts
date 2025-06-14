@@ -13,7 +13,7 @@ export interface WhatsAppControllerI {
     customFields?: any[],
     userFieldId?: string
   ): Promise<ResponseData<any>>;
-  
+
   sendMessageFromMention(
     mentionedUserIds: string[],
     cardId: string,
@@ -102,7 +102,7 @@ export class WhatsAppController implements WhatsAppControllerI {
       return new ResponseData({
         message: "WhatsApp notification sent successfully",
         status_code: StatusCodes.OK,
-        data: null,
+        data: sendResponse,
       });
     } catch (error) {
       console.error("Error sending WhatsApp notification:", error);
@@ -145,7 +145,9 @@ export class WhatsAppController implements WhatsAppControllerI {
           }
 
           // Build mention notification message
-          const formattedMessage = `Nama anda disebut di PO: "${cardResult.data!.name}"\n\n${cleanMessage}`;
+          const formattedMessage = `Nama anda disebut di PO: "${
+            cardResult.data!.name
+          }"\n\n${cleanMessage}`;
 
           // Send WhatsApp message
           await this.whatsappService.sendMessage({
@@ -155,19 +157,22 @@ export class WhatsAppController implements WhatsAppControllerI {
 
           return { success: true, userId };
         } catch (error) {
-          console.error(`Error sending mention notification to user ${userId}:`, error);
+          console.error(
+            `Error sending mention notification to user ${userId}:`,
+            error
+          );
           return { success: false, userId, error };
         }
       });
 
       // Wait for all notifications to complete
       const results = await Promise.allSettled(notificationPromises);
-      
+
       // Count successful and failed notifications
       const successful = results.filter(
-        (result) => result.status === 'fulfilled' && result.value.success
+        (result) => result.status === "fulfilled" && result.value.success
       ).length;
-      
+
       const failed = results.length - successful;
 
       return new ResponseData({
@@ -460,20 +465,21 @@ export class WhatsAppController implements WhatsAppControllerI {
   private cleanMentionMessage(message: string): string {
     // Remove HTML tags but preserve the text content
     let cleanMessage = message.replace(/<[^>]*>/g, "");
-    
+
     // Remove any extra whitespace and special characters
     cleanMessage = cleanMessage.replace(/[\u200B-\u200D\uFEFF]/g, ""); // Remove zero-width characters
     cleanMessage = cleanMessage.replace(/\s+/g, " ").trim(); // Normalize whitespace
-    
+
     return cleanMessage;
   }
 
   static extractMentionedUserIds(htmlContent: string): string[] {
     const mentionedUserIds: string[] = [];
-    
+
     // Regex to match mention spans with data-id attribute
-    const mentionRegex = /<span[^>]*class="mention"[^>]*data-id="([^"]*)"[^>]*>/g;
-    
+    const mentionRegex =
+      /<span[^>]*class="mention"[^>]*data-id="([^"]*)"[^>]*>/g;
+
     let match;
     while ((match = mentionRegex.exec(htmlContent)) !== null) {
       const userId = match[1];
@@ -481,7 +487,7 @@ export class WhatsAppController implements WhatsAppControllerI {
         mentionedUserIds.push(userId);
       }
     }
-    
+
     return mentionedUserIds;
   }
 }

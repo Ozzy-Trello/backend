@@ -280,6 +280,7 @@ export default async function (): Promise<Router> {
     router_card.get("/:id/activity", restJwt, card_rest_view.GetCardActivity);
     router_card.delete("/:id", restJwt, card_rest_view.DeleteCard);
     router_card.post("/:id/move", restJwt, card_rest_view.MoveCard);
+    router_card.post("/:id/copy", restJwt, card_rest_view.CopyCard);
     router_card.post("/:id/archive", restJwt, card_rest_view.ArchiveCard);
     router_card.post("/:id/unarchive", restJwt, card_rest_view.UnArchiveCard);
     // router_card.post("/:id/custom-field/:custom_field_id", restJwt, card_rest_view.AddCustomField);

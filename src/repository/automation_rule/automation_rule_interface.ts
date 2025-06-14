@@ -18,6 +18,8 @@ export interface filterAutomationRule {
   group_type?: string;
   type?: string;
   condition?: Record<string, any>;
+  created_by?: string;
+  updated_by?: string;
 
   __orId?: string;
   __orWorkspaceId?: string;
@@ -40,6 +42,8 @@ export class AutomationRuleDetail {
   public action?: any[];
   public created_at?: Date;
   public updated_at?: Date;
+  public created_by?: string;
+  public updated_by?: string;
 
   constructor(payload: Partial<AutomationRuleDetail>) {
     Object.assign(this, payload);
@@ -51,6 +55,7 @@ export class AutomationRuleUpdate {
   public group_type?: string;
   public type?: string;
   public condition?: any;
+  public updated_by?: string;
 
   constructor(payload: Partial<AutomationRuleUpdate>) {
     Object.assign(this, payload);

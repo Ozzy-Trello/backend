@@ -118,6 +118,8 @@ export class AutomationRuleCreateData {
   workspace_id!: string;
   group_type?: string;
   type!: string;
+  created_by?: string;
+  updated_by?: string;
   condition!: Record<string, any>;
   action!: AutomationRuleActionData[];
 
@@ -155,6 +157,8 @@ export class AutomationRuleCreateData {
       type: this.type,
       condition: this.condition,
       action: this.action,
+      created_by: this.created_by,
+      updated_by: this.updated_by
     });
   }
 }
