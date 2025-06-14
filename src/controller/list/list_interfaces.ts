@@ -166,6 +166,7 @@ export class ListCreateData {
   background?: string;
   board_id!: string;
   card_limit?: number;
+  created_by?: string;
 
   constructor(payload: Partial<ListCreateData>) {
     Object.assign(this, payload);
@@ -180,6 +181,7 @@ export class ListCreateData {
       background: this.background,
       board_id: this.board_id,
       card_limit: this.card_limit,
+      created_by: this.created_by
     });
   }
 

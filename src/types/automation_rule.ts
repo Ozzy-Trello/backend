@@ -81,7 +81,6 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       [EnumSelectionType.Action]: [
         EnumUserActionEvent.CardAddedTo,
         EnumUserActionEvent.CreatedIn,
-        EnumUserActionEvent.CardEmailedInto,
         EnumUserActionEvent.CardMovedInto,
         EnumUserActionEvent.CardMovedOutOf,
       ],
@@ -108,7 +107,6 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       [EnumSelectionType.Action]: [
         EnumUserActionEvent.CardAddedTo,
         EnumUserActionEvent.CreatedIn,
-        EnumUserActionEvent.CardEmailedInto,
         EnumUserActionEvent.CardMovedInto,
         EnumUserActionEvent.CardMovedOutOf,
       ],

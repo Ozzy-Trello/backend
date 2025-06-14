@@ -11,6 +11,8 @@ interface ListAttributes {
     background: string;
     created_at?: Date;
     updated_at?: Date;
+    created_by?: string;
+    updated_by?: string;
 }
 
 interface ListCreationAttributes extends Optional<ListAttributes, 'id'> {}
@@ -22,6 +24,8 @@ class List extends Model<ListAttributes, ListCreationAttributes> implements List
     public card_limit?: number;
     public name!: string;
     public background! : string;
+    public created_by?: string;
+    public updated_by?: string;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -62,6 +66,14 @@ List.init(
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW,
+        },
+        created_by: {
+            allowNull: true,
+            type: DataTypes.UUID,
+        },
+        updated_by: {
+            allowNull: true,
+            type: DataTypes.UUID,
         },
     },
     {

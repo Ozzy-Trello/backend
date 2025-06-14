@@ -70,6 +70,7 @@ export class ListDetail {
   public board_id!: string;
   public order!: number;
   public card_limit!: number;
+  public created_by?: string;
 
   constructor(payload: Partial<ListDetail>) {
     Object.assign(this, payload);

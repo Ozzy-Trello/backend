@@ -646,6 +646,11 @@ export class CardController implements CardControllerI {
       }
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
+
+      event.eventId = uuidv4();
+      event.type = EnumUserActionEvent.CreatedIn;
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
     }
 
     return new ResponseData({
@@ -699,8 +704,46 @@ export class CardController implements CardControllerI {
       });
     }
 
-    // do the async procedures
-   
+    
+    /**
+     * do the asyb procedures below
+     * 1. broadcast to websocket
+     * 2. publish event
+     * 3. re-position card in list if applicable
+     * 5. insert time in list and time in board
+     * 6. insert other card attributes if applicable
+     */
+    
+    // Broadcast to WebSocket clients
+    broadcastToWebSocket(EnumUserActionEvent.CardCreated, {
+      card: createCardResult.data,
+      listId: copyCardData.target_list_id,
+      createdBy: user_id,
+    });
+
+    // publish event
+    if (this.event_publisher && triggeredBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
+        type: EnumUserActionEvent.CardCopied,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          card: {
+            id: createCardResult.data,
+            list_id: copyCardData.target_list_id,
+          },
+          list: {
+            id: copyCardData.target_list_id
+          }
+        },
+      }
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+    }
+
+
     if (copyCardData?.position) {
       // re-adjust copycard data position
       let moveCardParams: filterMoveCard = {  
@@ -946,6 +989,9 @@ export class CardController implements CardControllerI {
               list_id: cardResponse.list_id!,
               is_mirror: cardResponse.is_mirror!,
             },
+            list: {
+              id: targetListId
+            },
             previous_data: {
               list_id: card.data?.list_id,
               order: card.data?.order
@@ -953,7 +999,17 @@ export class CardController implements CardControllerI {
           }
         }
         console.log("Trying to publish event: %s", event.eventId);
-        this.event_publisher.publishUserAction(event);
+        this.event_publisher.publishUserAction(event); //general move
+
+        event.eventId = uuidv4();
+        event.type = EnumUserActionEvent.CardMovedInto;
+        console.log("Trying to publish event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event); //moved into
+
+        event.eventId = uuidv4();
+        event.type = EnumUserActionEvent.CardMovedOutOf;
+        console.log("Trying to publish event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event); //moved out of
       }
 
       // 7. Return the moved card data
