@@ -9,9 +9,11 @@ import {
 } from "@/types/custom_field";
 import { date } from "zod";
 import {
+  CopyCardData,
   DashCardConfig,
   FilterConfig,
 } from "@/controller/card/card_interfaces";
+import { EnumOptionPosition } from "@/types/options";
 
 export interface CardRepositoryI {
   getCard(filter: filterCardDetail): Promise<ResponseData<CardDetail>>;
@@ -166,7 +168,7 @@ export interface filterMoveCard {
   target_list_id?: string;
   previous_position?: number;
   target_position?: number;
-  target_position_top_or_bottom?: string;
+  target_position_top_or_bottom?: string | EnumOptionPosition;
 }
 
 export class CardDetailUpdate {

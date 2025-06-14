@@ -9,17 +9,15 @@ import {
   AutomationRuleControllerI,
   AutomationRuleCreateData,
   AutomationRuleFilter,
-  RecentUserAction,
 } from "./automation_rule_interface";
 import {
   AutomationRuleActionDetail,
   AutomationRuleActionRepositoryI,
 } from "@/repository/automation_rule_action/automation_rule_action_interface";
-import { CardControllerI, CardMoveData } from "../card/card_interfaces";
+import { CardControllerI, CardCreateData, CardMoveData } from "../card/card_interfaces";
 import {
   EnumActions,
   EnumTriggeredBy,
-  EnumUserActionEvent,
   UserActionEvent,
 } from "@/types/event";
 import { ActionType, EnumSelectionType } from "@/types/automation_rule";
@@ -66,7 +64,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-
+    
+    data.created_by = user_id
     let result = await this.automation_rule_repo.createRule(
       data.toAutomationRuleDetail()
     );
@@ -188,18 +187,78 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
             if (rule.condition?.[EnumSelectionType.List]) {
               console.log("rule has list dependency");
-              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
-              console.log("condition.list_id: ", rule.condition?.[EnumSelectionType.List])
               if (recentUserAction?.data?.card?.list_id != rule.condition?.[EnumSelectionType.List]) {
                 isPermsissable = false;
               }
             }
 
-            if (rule.condition?.[EnumSelectionType.OptionalList]) {
-              console.log("rule has optional list dependency");
-              console.log("list_id: ", recentUserAction?.data?.card?.list_id);
-              console.log("condition.list_id: ", rule.condition?.[EnumSelectionType.OptionalList])
-              if (recentUserAction?.data?.card?.list_id !== rule.condition?.[EnumSelectionType.OptionalList]) isPermsissable = false;
+            if (rule.condition?.[EnumSelectionType.OptionalBySubject]) {
+              console.log(`rule has optional ${EnumSelectionType.OptionalBySubject} dependency`);
+              
+              // by me
+              if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByMe) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              // by anyone, except me
+              if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptMe) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              if (typeof rule.condition?.[EnumSelectionType.OptionalBySubject] == 'object') {
+
+                // by specific user - baru bisa single user
+                if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.BySpecificUser) {
+                  if (!rule.condition?.[EnumSelectionType.OptionalBySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+
+                // anyone, except specific user
+                if ( rule.condition?.[EnumSelectionType.OptionalBySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser) {
+                  if (rule.condition?.[EnumSelectionType.OptionalBySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+              }
+            }
+
+            if (rule.condition?.[EnumSelectionType.BySubject]) {
+              console.log(`rule has optional ${EnumSelectionType.BySubject} dependency`);
+
+              // by me
+              if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByMe) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              // by anyone, except me
+              if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptMe) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
+
+              if (typeof rule.condition?.[EnumSelectionType.BySubject] == 'object') {
+                // by specific user
+                if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.BySpecificUser) {
+                  if (!rule.condition?.[EnumSelectionType.BySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+
+                // anyone, except specific user
+                if ( rule.condition?.[EnumSelectionType.BySubject]?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser) {
+                  if (rule.condition?.[EnumSelectionType.BySubject]?.data.includes(recentUserAction?.user_id)) {
+                    isPermsissable = false;
+                  }
+                }
+              }
             }
 
             if (isPermsissable) {
@@ -236,10 +295,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       });
     }
   }
-
-  // const isRulePermissable(): boolean {
-
-  // }
 
   async ProcessAutomationAction(
     recentUserAction: UserActionEvent,
@@ -393,6 +448,17 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.CreateCard(recentUserAction?.data?.value_user_id || "", recentUserAction?.data?.card, EnumTriggeredBy.OzzyAutomation);
+    await this.card_controller.CreateCard(
+      recentUserAction?.user_id || "", 
+      new CardCreateData({
+        // name: req.body.name?.toString(),
+        // description: req.body?.description?.toString(),
+        // list_id: req.body.list_id?.toString(),
+        // type: req.body?.type?.toString(),
+        // order: 1,
+        // dash_config: req.body?.dash_config,
+
+      }), 
+      EnumTriggeredBy.OzzyAutomation);
   }
 }
