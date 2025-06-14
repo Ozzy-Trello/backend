@@ -112,6 +112,7 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
     data: AutomationRuleDetail
   ): Promise<ResponseData<AutomationRuleDetail>> {
     try {
+      console.log(data, "<< di repo");
       const rule = await AutomationRule.create({
         id: data.id || uuidv4(),
         workspace_id: data.workspace_id,

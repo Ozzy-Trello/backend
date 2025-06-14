@@ -74,7 +74,7 @@ export class ListController implements ListControllerI {
         status_code: StatusCodes.CONFLICT,
       });
     }
-
+    data.created_by = user_id;
     let createResponse = await this.list_repo.createList(data.toListDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({

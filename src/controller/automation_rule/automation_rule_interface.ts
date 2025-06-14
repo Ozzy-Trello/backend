@@ -150,6 +150,7 @@ export class AutomationRuleCreateData {
   }
 
   toAutomationRuleDetail(): AutomationRuleDetail {
+    console.log(this.condition, "<< ini condition");
     return new AutomationRuleDetail({
       id: this.id,
       workspace_id: this.workspace_id,
@@ -158,7 +159,7 @@ export class AutomationRuleCreateData {
       condition: this.condition,
       action: this.action,
       created_by: this.created_by,
-      updated_by: this.updated_by
+      updated_by: this.updated_by,
     });
   }
 }
