@@ -123,8 +123,10 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
   }
 
   async matchRules(filter: filterAutomationRule): Promise<ResponseData<Array<AutomationRuleDetail>>> {
+    const f = this.createFilter(filter);
+    console.log("da fiilter is: %o", f);
     const actions = await AutomationRule.findAll({
-      where: this.createFilter(filter),
+      where: f,
     });
 
     const result = actions.map(action => new AutomationRuleDetail(action.toJSON()));

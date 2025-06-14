@@ -563,9 +563,10 @@ export class DashCardConfig {
 
 export class CopyCardData {
   card_id?: string;
+  name?: string;
   is_with_labels?: boolean;
   is_with_members?: boolean;
-  is_with_attachment?: boolean;
+  is_with_attachments?: boolean;
   is_wtih_custom_fields?: boolean;
   is_with_comments?: boolean;
   is_with_checklist?: boolean;

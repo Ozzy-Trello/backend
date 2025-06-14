@@ -1,5 +1,4 @@
 import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
-import { Op } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
@@ -10,6 +9,7 @@ import {
   CardDetail,
   CardDetailUpdate,
   CardRepositoryI,
+  filterMoveCard,
 } from "@/repository/card/card_interfaces";
 import {
   CreateCardResponse,
@@ -89,6 +89,7 @@ export class CardController implements CardControllerI {
     this.DeleteCard = this.DeleteCard.bind(this);
     this.UpdateCard = this.UpdateCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
+    this.CopyCard = this.CopyCard.bind(this);
 
     this.UpdateCustomField = this.UpdateCustomField.bind(this);
     this.AddCustomField = this.AddCustomField.bind(this);
@@ -657,6 +658,7 @@ export class CardController implements CardControllerI {
   }
 
   async CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>> {
+    console.log("in controller copying card: %o", copyCardData);
     if (!copyCardData?.card_id) {
       return new ResponseData({
         message: "'card_id' cannot be empty",
@@ -672,21 +674,25 @@ export class CardController implements CardControllerI {
     }
 
     // find source card
-    let checkedData = await this.card_repo.getCard({id: copyCardData?.card_id});
-    if (checkedData.status_code != StatusCodes.OK || !checkedData.data) {
+    let checkedData = await this.card_repo.getListCard({id: copyCardData?.card_id}, new Paginate(0, 0));
+    console.log("in controller copying card: checkedData: %o", checkedData);
+
+    if (checkedData.status_code != StatusCodes.OK || !checkedData.data || checkedData.data?.length < 1) {
       return new ResponseData({
         message: "no source card found",
         status_code: checkedData.status_code,
       });
     }
-    let cardToCopied = checkedData?.data;
+    let cardToCopied = checkedData?.data[0];
 
     // re-adjust copied card before
     if (copyCardData.target_list_id) cardToCopied.list_id = copyCardData?.target_list_id;
+    if (copyCardData.name) cardToCopied.name = copyCardData?.name;
+    if (!cardToCopied.type) cardToCopied.type = CardType.Regular;
 
     // insert the data
-    const createCardResult = await this.card_repo.createCard(checkedData?.data);
-     if (checkedData.status_code != StatusCodes.OK) {
+    const createCardResult = await this.card_repo.createCard(cardToCopied);
+    if (checkedData.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: createCardResult.message,
         status_code: createCardResult.status_code,
@@ -694,17 +700,50 @@ export class CardController implements CardControllerI {
     }
 
     // do the async procedures
-    // re-adjust copycard data position
-    let moveCardParams = {  
-      id: createCardResult?.data?.id,
-      previous_list_id: createCardResult?.data?.id,
-      target_list_id: createCardResult?.data?.id,
-    };
-    this.card_repo.moveCard(moveCardParams);
+   
+    if (copyCardData?.position) {
+      // re-adjust copycard data position
+      let moveCardParams: filterMoveCard = {  
+        id: createCardResult?.data?.id,
+        previous_list_id: copyCardData.target_list_id,
+        target_list_id: copyCardData.target_list_id,
+      };
+      
+      if ([EnumOptionPosition.BottomOfList, EnumOptionPosition.TopOfList].includes(copyCardData?.position as EnumOptionPosition)) {
+        moveCardParams.target_position_top_or_bottom = copyCardData?.position as string;
+      } else {
+        moveCardParams.target_position = copyCardData?.position as number;
+      }
+
+      this.card_repo.moveCard(moveCardParams);
+    }
+    
+
+    // insert time tracking record for inserted card in related list
+    this.card_list_time_repo.createCardTimeInList(
+      new CardListTimeDetail({
+        card_id: createCardResult?.data?.id!,
+        list_id: copyCardData?.target_list_id,
+        entered_at: createCardResult?.data?.created_at! || new Date(),
+      })
+    );
+
+    this.list_repo.getList({ id: copyCardData?.target_list_id }).then(result => {
+      if (result.status_code == StatusCodes.OK) {
+        // insert time tracking record for inserted card in related board
+        this.card_board_time_repo.createCardTimeInBoard(
+          new CardBoardTimeDetail({
+            card_id: createCardResult.data?.id!,
+            board_id: result?.data?.board_id!,
+            entered_at: createCardResult?.data?.created_at || new Date(),
+          })
+        );
+      }
+    })
 
     // insert attachment
-    if (copyCardData.is_with_attachment) {
-      this.card_attachmment_repo.getCardAttachmentList({card_id: createCardResult?.data?.id}, new Paginate(0, 0)).then(result => {
+    if (copyCardData.is_with_attachments) {
+      this.card_attachmment_repo.getCardAttachmentList({card_id: copyCardData?.card_id}, new Paginate(0, 0)).then(result => {
         if (result.status_code === StatusCodes.OK && result.data) {
           const attachments = result?.data?.map(item => ({
             ...item,
@@ -712,9 +751,9 @@ export class CardController implements CardControllerI {
           }));
 
           // insert in bulk
-          this.card_attachmment_repo.createCardAttachmentInBulk(attachments);
+          this.card_attachmment_repo.createCardAttachmentInBulk(attachments).then(result => console.log("insert attachment in bulk: %o", result));
         }
-      })
+      });
     }
 
     // insert checklist

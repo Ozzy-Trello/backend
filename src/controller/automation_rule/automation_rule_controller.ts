@@ -14,7 +14,7 @@ import {
   AutomationRuleActionDetail,
   AutomationRuleActionRepositoryI,
 } from "@/repository/automation_rule_action/automation_rule_action_interface";
-import { CardControllerI, CardCreateData, CardMoveData } from "../card/card_interfaces";
+import { CardControllerI, CardCreateData, CardMoveData, CopyCardData } from "../card/card_interfaces";
 import {
   EnumActions,
   EnumTriggeredBy,
@@ -158,7 +158,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       );
 
       const rules = await this.automation_rule_repo.matchRules(
-        filter.toFilterAutomationRuleDetail()
+        filter
       );
 
       if (rules.status_code !== StatusCodes.OK) {
@@ -167,6 +167,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           status_code: rules.status_code,
         });
       }
+
+      console.log("filter are: %o", filter);
+      console.log("rules are: %o", rules);
 
       if (rules?.data) {
         // Process rules in parallel for better performance
@@ -448,16 +451,19 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.CreateCard(
+    await this.card_controller.CopyCard(
       recentUserAction?.user_id || "", 
-      new CardCreateData({
-        // name: req.body.name?.toString(),
-        // description: req.body?.description?.toString(),
-        // list_id: req.body.list_id?.toString(),
-        // type: req.body?.type?.toString(),
-        // order: 1,
-        // dash_config: req.body?.dash_config,
-
+      new CopyCardData({
+        card_id: recentUserAction?.data?.card?.id,
+        name: recentUserAction?.data?.card?.name,
+        target_list_id: action?.condition?.[EnumSelectionType.List] || action?.condition?.[EnumSelectionType.OptionalList],
+        position: action?.condition?.[EnumSelectionType.Position] || action?.condition?.[EnumSelectionType.OptionalPosition],
+        is_with_attachments: true,
+        is_with_checklist: true,
+        is_with_labels: true,
+        is_with_comments: true,
+        is_with_members: true,
+        is_wtih_custom_fields: true
       }), 
       EnumTriggeredBy.OzzyAutomation);
   }

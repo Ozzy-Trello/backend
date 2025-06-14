@@ -98,7 +98,7 @@ export class CardAttachmentRepository implements CardAttachmentRepositoryI {
     dataList: CardAttachmentDetail[]
   ): Promise<ResponseData<CardAttachmentDetail[]>> {
     const transaction = await sequelize.transaction();
-
+    console.log("createCardAttachmentInBulk: in repo");
     try {
       const now = new Date();
 
