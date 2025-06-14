@@ -16,6 +16,8 @@ import {
   UpdateListData,
 } from "@/controller/list/list_interfaces";
 import { BoardRepositoryI } from "@/repository/board/board_interfaces";
+import { broadcastToWebSocket } from "@/server";
+import { EnumUserActionEvent } from "@/types/event";
 
 export class ListController implements ListControllerI {
   private list_repo: ListRepositoryI;
@@ -82,6 +84,39 @@ export class ListController implements ListControllerI {
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
+
+    // Broadcast to WebSocket clients
+    broadcastToWebSocket(EnumUserActionEvent.ListCreated, {
+      list: createResponse.data,
+      boardId: createResponse.data?.board_id,
+      createdBy: user_id,
+    });
+
+    // if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+    //   const event: UserActionEvent = {
+    //     eventId: uuidv4(),
+    //     type: EnumUserActionEvent.CardCreated,
+    //     workspace_id: "",
+    //     user_id: user_id,
+    //     timestamp: new Date(),
+    //     data: {
+    //       card: {
+    //         id: cardResponse.id,
+    //         list_id: cardResponse.listId
+    //       },
+    //       list: {
+    //         id: cardResponse.listId
+    //       }
+    //     },
+    //   }
+    //   console.log("Trying to publish event: %s", event.eventId);
+    //   this.event_publisher.publishUserAction(event);
+
+    //   event.eventId = uuidv4();
+    //   event.type = EnumUserActionEvent.CreatedIn;
+    //   console.log("Trying to publish event: %s", event.eventId);
+    //   this.event_publisher.publishUserAction(event);
+    // }
 
     return new ResponseData({
       message: "List created successfully",
