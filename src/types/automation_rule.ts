@@ -32,6 +32,7 @@ export enum EnumSelectionType {
   OptionalList = "list",
   Fields = "fields*",
   FieldValue = "field_value*",
+  Set = "set*",
 }
 
 export enum EnumInputType {
@@ -56,6 +57,9 @@ export enum TriggerType {
 
   // "when-custom-fields-<fields>-is-set-to-<field_value>-<optional_by>"
   WhenCustomFieldsIsSetToFieldValue = `when-custom-fields-<${EnumSelectionType.Fields}>-is-set-to-<${EnumSelectionType.FieldValue}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when-custom-fields-<fields>-is-<set>-<optional_by>"
+  WhenCustomFieldsIsSet = `when-custom-fields-<${EnumSelectionType.Fields}>-is-<${EnumSelectionType.Set}>-<${EnumSelectionType.OptionalBySubject}>`,
 
   // add more..
 }

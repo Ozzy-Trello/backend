@@ -888,7 +888,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
           sql<number>`ccs.value_number`.as("value_number"),
           sql<Date>`ccs.value_date`.as("value_date"),
         ] as const)
-        .where("cs.workspace_id", "=", workspace_id)
+        // .where("cs.workspace_id", "=", workspace_id)
         .where("cs.id", "=", custom_field_id)
         .where("ccs.card_id", "=", card_id)
         .executeTakeFirst();

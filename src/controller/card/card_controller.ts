@@ -49,9 +49,9 @@ import {
   AutomationRuleControllerI,
   AutomationRuleFilter,
 } from "../automation_rule/automation_rule_interface";
-import { EventPublisher } from "@/event_publisher";
 import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
-import { UUID } from "sequelize";
+import { EventPublisher } from "@/event_publisher";
+import { WhatsAppControllerI, WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
@@ -63,6 +63,7 @@ export class CardController implements CardControllerI {
   private card_list_time_repo: CardListTimeRepositoryI;
   private card_board_time_repo: CardBoardTimeRepositoryI;
   private automation_rule_controller: AutomationRuleControllerI | undefined;
+  private whatsapp_controller: WhatsAppControllerI;
 
   constructor(
     card_repo: CardRepositoryI,
@@ -71,7 +72,8 @@ export class CardController implements CardControllerI {
     trigger_controller: TriggerControllerI,
     card_attachmment_repo: CardAttachmentRepositoryI,
     card_list_time_repo: CardListTimeRepositoryI,
-    card_board_time_repo: CardBoardTimeRepositoryI
+    card_board_time_repo: CardBoardTimeRepositoryI,
+    whatsapp_controller: WhatsAppControllerI
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
@@ -80,6 +82,7 @@ export class CardController implements CardControllerI {
     this.card_attachmment_repo = card_attachmment_repo;
     this.card_list_time_repo = card_list_time_repo;
     this.card_board_time_repo = card_board_time_repo;
+    this.whatsapp_controller = whatsapp_controller;
     this.ArchiveCard = this.ArchiveCard.bind(this);
     this.UnArchiveCard = this.UnArchiveCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
@@ -1216,6 +1219,34 @@ export class CardController implements CardControllerI {
       filter.toFilterCardDetail(),
       data.toCardDetailUpdate()
     );
+
+    // Check for mentions in description and send WhatsApp notifications
+    if (data.description && updateResponse === StatusCodes.NO_CONTENT) {
+      try {
+        // Extract mentioned user IDs from HTML content
+        const mentionedUserIds = WhatsAppController.extractMentionedUserIds(data.description);
+        
+        if (mentionedUserIds.length > 0) {
+          console.log(`Found mentions in card ${filter.id}:`, mentionedUserIds);
+          
+          // Send WhatsApp notifications to mentioned users
+          const notificationResult = await this.whatsapp_controller.sendMessageFromMention(
+            mentionedUserIds,
+            filter.id!,
+            data.description
+          );
+          
+          if (notificationResult.status_code !== StatusCodes.OK) {
+            console.warn('Failed to send mention notifications:', notificationResult.message);
+          } else {
+            console.log('Mention notifications sent successfully:', notificationResult.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing mention notifications:', error);
+        // Don't fail the card update if mention notifications fail
+      }
+    }
 
     broadcastToWebSocket(EnumUserActionEvent.CardUpdated, {
       card: data,
