@@ -17,7 +17,7 @@ export class AutomationProcessor {
       // Create filter based on event
       const filter = new AutomationRuleFilter({
         workspace_id: event.workspace_id,
-        type: event.type,
+        condition: {action: event.type},
       });
 
       // Process automation rules

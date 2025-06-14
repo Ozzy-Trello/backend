@@ -50,6 +50,7 @@ export interface ListRestViewI {
 
 export interface CardRestViewI {
   CreateCard(req: Request, res: Response): Promise<void>;
+  CopyCard(req: Request, res: Response): Promise<void>;
   GetCard(req: Request, res: Response): Promise<void>;
   GetListCard(req: Request, res: Response): Promise<void>;
   SearchCard(req: Request, res: Response): Promise<void>;
