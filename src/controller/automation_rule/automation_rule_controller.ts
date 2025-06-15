@@ -278,11 +278,11 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 const cardCount = result.data?.length || 0;
                 const numberToCompare = rule.condition?.[EnumInputType.Number];
 
-                if (rule.condition?.[EnumOptionsNumberComparisonOperators.Exactly]) {
+                if (rule?.condition?.[EnumSelectionType.NumberComparison] == rule.condition?.[EnumOptionsNumberComparisonOperators.Exactly]) {
                   if (cardCount != numberToCompare) isPermsissable = false;
-                } else if (rule.condition?.[EnumOptionsNumberComparisonOperators.FewerThan]) {
+                } else if (rule?.condition?.[EnumSelectionType.NumberComparison] == rule.condition?.[EnumOptionsNumberComparisonOperators.FewerThan]) {
                   if (cardCount >= numberToCompare) isPermsissable = false;
-                } else if (rule.condition?.[EnumOptionsNumberComparisonOperators.MoreThan]) {
+                } else if (rule?.condition?.[EnumSelectionType.NumberComparison] == rule.condition?.[EnumOptionsNumberComparisonOperators.MoreThan]) {
                   if (cardCount <= numberToCompare) isPermsissable = false;
                 }
               }
