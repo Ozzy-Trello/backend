@@ -1,5 +1,4 @@
 import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
-import { Op } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
@@ -10,6 +9,7 @@ import {
   CardDetail,
   CardDetailUpdate,
   CardRepositoryI,
+  filterMoveCard,
 } from "@/repository/card/card_interfaces";
 import {
   CreateCardResponse,
@@ -24,6 +24,7 @@ import {
   AssignCardResponse,
   CardMoveData,
   CardSearch,
+  CopyCardData,
 } from "@/controller/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
@@ -52,6 +53,7 @@ import {
 import { EventPublisher } from "@/event_publisher";
 import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
 import { UUID } from "sequelize";
+import { EnumOptionPosition } from "@/types/options";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
@@ -87,6 +89,7 @@ export class CardController implements CardControllerI {
     this.DeleteCard = this.DeleteCard.bind(this);
     this.UpdateCard = this.UpdateCard.bind(this);
     this.CreateCard = this.CreateCard.bind(this);
+    this.CopyCard = this.CopyCard.bind(this);
 
     this.UpdateCustomField = this.UpdateCustomField.bind(this);
     this.AddCustomField = this.AddCustomField.bind(this);
@@ -138,7 +141,7 @@ export class CardController implements CardControllerI {
     });
 
     // publish event
-    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User && checkCard?.data) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
         type: EnumUserActionEvent.CardArchived,
@@ -146,7 +149,10 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: checkCard.data
+          card: {
+            id: checkCard.data.id,
+            list_id: checkCard.data.list_id
+          }
         }
       }
       console.log("Trying to publish event: %s", event.eventId);
@@ -210,7 +216,10 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: checkCard.data
+          card: {
+            id: checkCard.data.id,
+            list_id: checkCard.data.list_id
+          }
         }
       }
       console.log("Trying to publish event: %s", event.eventId);
@@ -617,33 +626,7 @@ export class CardController implements CardControllerI {
       listId: data.list_id,
       createdBy: user_id,
     });
-    // this.trigger_controller.doTrigger({
-    //   type: ConditionType.CardInBoard,
-    //   workspace_id: listCheck.data?.workspace_id!,
-    //   condition: {
-    //     action: 'added',
-    //     by: 'anyone',
-    //     board: listCheck.data?.board_id!,
-    //   },
-    //   group_type: TriggerTypes.CardMove,
-    //   data: {
-    //     card_id: createResponse.data?.id
-    //   }
-    // })
 
-    // execute automation
-    // if (this.automation_rule_controller) {
-    //   this.automation_rule_controller.ingRules(
-    //     {
-    //       card: createResponse.data
-    //     },
-    //     new AutomationRuleFilter({
-    //       condition: {
-    //         action: "added_to"
-    //       }
-    //     })
-    //   );
-    // }
     if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
@@ -663,6 +646,16 @@ export class CardController implements CardControllerI {
       }
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
+
+      event.eventId = uuidv4();
+      event.type = EnumUserActionEvent.CreatedIn;
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+
+      // event.eventId = uuidv4();
+      // event.type = EnumUserActionEvent.CardAddedTo;
+      // console.log("Trying to publish event: %s", event.eventId);
+      // this.event_publisher.publishUserAction(event); //added to
     }
 
     return new ResponseData({
@@ -673,6 +666,180 @@ export class CardController implements CardControllerI {
       }),
     });
   }
+
+  async CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>> {
+    console.log("in controller copying card: %o", copyCardData);
+    if (!copyCardData?.card_id) {
+      return new ResponseData({
+        message: "'card_id' cannot be empty",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    if (!isValidUUID(copyCardData?.card_id)) {
+      return new ResponseData({
+        message: "'card_id' is not valid uuid",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+
+    // find source card
+    let checkedData = await this.card_repo.getListCard({id: copyCardData?.card_id}, new Paginate(0, 0));
+    console.log("in controller copying card: checkedData: %o", checkedData);
+
+    if (checkedData.status_code != StatusCodes.OK || !checkedData.data || checkedData.data?.length < 1) {
+      return new ResponseData({
+        message: "no source card found",
+        status_code: checkedData.status_code,
+      });
+    }
+    let cardToCopied = checkedData?.data[0];
+
+    // re-adjust copied card before
+    if (copyCardData.target_list_id) cardToCopied.list_id = copyCardData?.target_list_id;
+    if (copyCardData.name) cardToCopied.name = copyCardData?.name;
+    if (!cardToCopied.type) cardToCopied.type = CardType.Regular;
+
+    // insert the data
+    const createCardResult = await this.card_repo.createCard(cardToCopied);
+    if (checkedData.status_code != StatusCodes.OK) {
+      return new ResponseData({
+        message: createCardResult.message,
+        status_code: createCardResult.status_code,
+      });
+    }
+
+    
+    /**
+     * do the asyb procedures below
+     * 1. broadcast to websocket
+     * 2. publish event
+     * 3. re-position card in list if applicable
+     * 5. insert time in list and time in board
+     * 6. insert other card attributes if applicable
+     */
+    
+    // Broadcast to WebSocket clients
+    broadcastToWebSocket(EnumUserActionEvent.CardCreated, {
+      card: createCardResult.data,
+      listId: copyCardData.target_list_id,
+      createdBy: user_id,
+    });
+
+    // publish event
+    if (this.event_publisher && triggeredBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
+        type: EnumUserActionEvent.CardCopied,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          card: {
+            id: createCardResult.data,
+            list_id: copyCardData.target_list_id,
+          },
+          list: {
+            id: copyCardData.target_list_id
+          }
+        },
+      }
+
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+
+      // event.eventId = uuidv4();
+      // event.type = EnumUserActionEvent.CardAddedTo;
+      // console.log("Trying to publish event: %s", event.eventId);
+      // this.event_publisher.publishUserAction(event); //added to
+    }
+
+
+    if (copyCardData?.position) {
+      // re-adjust copycard data position
+      let moveCardParams: filterMoveCard = {  
+        id: createCardResult?.data?.id,
+        previous_list_id: copyCardData.target_list_id,
+        target_list_id: copyCardData.target_list_id,
+      };
+      
+      if ([EnumOptionPosition.BottomOfList, EnumOptionPosition.TopOfList].includes(copyCardData?.position as EnumOptionPosition)) {
+        moveCardParams.target_position_top_or_bottom = copyCardData?.position as string;
+      } else {
+        moveCardParams.target_position = copyCardData?.position as number;
+      }
+
+      this.card_repo.moveCard(moveCardParams);
+    }
+    
+
+    // insert time tracking record for inserted card in related list
+    this.card_list_time_repo.createCardTimeInList(
+      new CardListTimeDetail({
+        card_id: createCardResult?.data?.id!,
+        list_id: copyCardData?.target_list_id,
+        entered_at: createCardResult?.data?.created_at! || new Date(),
+      })
+    );
+
+    this.list_repo.getList({ id: copyCardData?.target_list_id }).then(result => {
+      if (result.status_code == StatusCodes.OK) {
+        // insert time tracking record for inserted card in related board
+        this.card_board_time_repo.createCardTimeInBoard(
+          new CardBoardTimeDetail({
+            card_id: createCardResult.data?.id!,
+            board_id: result?.data?.board_id!,
+            entered_at: createCardResult?.data?.created_at || new Date(),
+          })
+        );
+      }
+    })
+
+    // insert attachment
+    if (copyCardData.is_with_attachments) {
+      this.card_attachmment_repo.getCardAttachmentList({card_id: copyCardData?.card_id}, new Paginate(0, 0)).then(result => {
+        if (result.status_code === StatusCodes.OK && result.data) {
+          const attachments = result?.data?.map(item => ({
+            ...item,
+            card_id: createCardResult?.data?.id as string,
+          }));
+
+          // insert in bulk
+          this.card_attachmment_repo.createCardAttachmentInBulk(attachments).then(result => console.log("insert attachment in bulk: %o", result));
+        }
+      });
+    }
+
+    // insert checklist
+    if (copyCardData.is_with_checklist) {
+
+    }
+
+    // insert comments
+    if (copyCardData.is_with_comments) {
+
+    }
+
+    // insert labels
+    if (copyCardData.is_with_labels) {
+
+    }
+
+    // insert members
+    if (copyCardData.is_with_members) {
+
+    }
+
+    return new ResponseData({
+      message: "Card copied successfully",
+      status_code: StatusCodes.CREATED,
+      data: new CreateCardResponse({
+        id: createCardResult.data?.id,
+      }),
+    });
+
+  }
+
 
   async GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>> {
     if (filter.isEmpty()) {
@@ -833,14 +1000,34 @@ export class CardController implements CardControllerI {
               list_id: cardResponse.list_id!,
               is_mirror: cardResponse.is_mirror!,
             },
+            list: {
+              id: targetListId
+            },
             previous_data: {
               list_id: card.data?.list_id,
               order: card.data?.order
             }
           }
         }
+
         console.log("Trying to publish event: %s", event.eventId);
-        this.event_publisher.publishUserAction(event);
+        this.event_publisher.publishUserAction(event); //general move
+
+        // event.eventId = uuidv4();
+        // event.type = EnumUserActionEvent.CardAddedTo;
+        // console.log("Trying to publish event: %s", event.eventId);
+        // this.event_publisher.publishUserAction(event); //added to
+
+        event.eventId = uuidv4();
+        event.type = EnumUserActionEvent.CardMovedInto;
+        console.log("Trying to publish event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event); //moved into
+
+        event.eventId = uuidv4();
+        event.type = EnumUserActionEvent.CardMovedOutOf;
+        console.log("Trying to publish event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event); //moved out of
+
       }
 
       // 7. Return the moved card data
@@ -1429,43 +1616,6 @@ export class CardController implements CardControllerI {
       data: res.data!,
     });
   }
-
-  // async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
-  //   try {
-  //     // Get the dashcard
-  //     const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
-
-  //     if (dashcardResponse.status_code !== StatusCodes.OK || !dashcardResponse.data) {
-  //       return new ResponseData({
-  //         message: "Dashcard not found",
-  //         status_code: StatusCodes.NOT_FOUND,
-  //         data: 0
-  //       });
-  //     }
-
-  //     const config = dashcardResponse?.data?.getDashConfig();
-  //     if (config?.filters?.)
-
-  //     // ANY - just count all non-dashcard cards
-  //     const count = await this.card_repo.countCards({
-  //       type: { [Op.ne]: 'dashcard' },
-
-  //     });
-
-  //     return new ResponseData({
-  //       status_code: StatusCodes.OK,
-  //       message: "Dashcard count retrieved successfully",
-  //       data: count
-  //     });
-  //   } catch (e) {
-  //     return new ResponseData({
-  //       message: "Internal server error",
-  //       status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-  //       data: 0
-  //     });
-  //   }
-  // }
-  // In your controller:
 
   async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
     try {

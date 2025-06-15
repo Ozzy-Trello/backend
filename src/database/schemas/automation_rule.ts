@@ -9,19 +9,23 @@ interface AutomationRuleAttributes {
     condition: string;
     created_at?: Date;
     updated_at?: Date;
+    created_by?: string;
+    updated_by?: string;
 }
 
 interface AutomationRuleCreationAttributes extends AutomationRuleAttributes {}
 
 class AutomationRule extends Model<AutomationRuleAttributes, AutomationRuleCreationAttributes> implements AutomationRuleAttributes {
-    public id! : string;
-    public workspace_id!: string;
-    public group_type!: string;
-    public type!: string;
-    public condition!: string;
+  public id! : string;
+  public workspace_id!: string;
+  public group_type!: string;
+  public type!: string;
+  public condition!: string;
+  public created_by?: string;
+  public updated_by?: string;
 
-    public readonly created_at!: Date;
-    public readonly updated_at!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 AutomationRule.init(
@@ -55,6 +59,14 @@ AutomationRule.init(
       allowNull: false,
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+    },
+    created_by: {
+      allowNull: false,
+      type: DataTypes.UUID,
+    },
+    updated_by: {
+      allowNull: true,
+      type: DataTypes.UUID,
     },
   },
   {

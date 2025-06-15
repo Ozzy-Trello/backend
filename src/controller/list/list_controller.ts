@@ -1,5 +1,4 @@
-import { validate as isValidUUID } from "uuid";
-
+import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
@@ -16,10 +15,17 @@ import {
   UpdateListData,
 } from "@/controller/list/list_interfaces";
 import { BoardRepositoryI } from "@/repository/board/board_interfaces";
+import { broadcastToWebSocket } from "@/server";
+import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import { AutomationRuleControllerI } from "../automation_rule/automation_rule_interface";
+import { EventPublisher } from "@/event_publisher";
 
 export class ListController implements ListControllerI {
   private list_repo: ListRepositoryI;
   private board_repo: BoardRepositoryI;
+  private event_publisher: EventPublisher | undefined;
+  private automation_rule_controller: AutomationRuleControllerI | undefined;
+
 
   constructor(list_repo: ListRepositoryI, board_repo: BoardRepositoryI) {
     this.list_repo = list_repo;
@@ -32,9 +38,20 @@ export class ListController implements ListControllerI {
     this.MoveList = this.MoveList.bind(this);
   }
 
+  SetAutomationRuleController(
+    automation_rule_controller: AutomationRuleControllerI
+  ): void {
+    this.automation_rule_controller = automation_rule_controller;
+  }
+
+  SetEventPublisher(event_publisher: EventPublisher): void {
+    this.event_publisher = event_publisher;
+  }
+
   async CreateList(
     user_id: string,
-    data: ListCreateData
+    data: ListCreateData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CreateListResponse>> {
     let paylodCheck = data.checkRequired();
     if (paylodCheck) {
@@ -74,13 +91,47 @@ export class ListController implements ListControllerI {
         status_code: StatusCodes.CONFLICT,
       });
     }
-
+    data.created_by = user_id;
     let createResponse = await this.list_repo.createList(data.toListDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
         message: "internal server error",
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
+    }
+
+    /**
+     * Do async procedures
+     * 1. Broadcast websocket event
+     * 2. Publish useractionevent
+     */
+
+    // Broadcast to WebSocket clients
+    broadcastToWebSocket(EnumUserActionEvent.ListCreated, {
+      list: createResponse.data,
+      boardId: createResponse.data?.board_id,
+      createdBy: user_id,
+    });
+
+    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+      const event: UserActionEvent = {
+        eventId: uuidv4(),
+        type: EnumUserActionEvent.ListCreated,
+        workspace_id: "",
+        user_id: user_id,
+        timestamp: new Date(),
+        data: {
+          list: {
+            id: createResponse?.data?.id,
+            board_id: createResponse?.data?.board_id
+          },
+          board: {
+            id: createResponse?.data?.board_id
+          }
+        },
+      }
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
     }
 
     return new ResponseData({

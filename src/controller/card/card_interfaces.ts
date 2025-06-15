@@ -21,6 +21,8 @@ import { CardListTimeDetail } from "@/repository/card_list_time/card_list_time_i
 import { CardBoardTimeDetail } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
 import { EnumTriggeredBy } from "@/types/event";
+import { StringMappingType } from "typescript";
+import { EnumOptionPosition } from "@/types/options";
 
 export interface CardControllerI {
   CreateCard(
@@ -86,6 +88,7 @@ export interface CardControllerI {
   GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>;
   CompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
   IncompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
+  CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>>;
   MakeMirrorCard(
     user_id: string,
     card_id: string,
@@ -555,5 +558,23 @@ export class DashCardConfig {
     } catch (e) {
       throw new Error("Invalid DashCardConfig JSON");
     }
+  }
+}
+
+export class CopyCardData {
+  card_id?: string;
+  name?: string;
+  is_with_labels?: boolean;
+  is_with_members?: boolean;
+  is_with_attachments?: boolean;
+  is_wtih_custom_fields?: boolean;
+  is_with_comments?: boolean;
+  is_with_checklist?: boolean;
+  target_board_id?: string;
+  target_list_id?: string;
+  position?: string | number | EnumOptionPosition;
+
+  constructor(payload: Partial<CopyCardData>) {
+    Object.assign(this, payload);
   }
 }

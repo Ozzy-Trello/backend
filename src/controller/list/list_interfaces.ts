@@ -7,11 +7,13 @@ import {
   ListDetailUpdate,
   filterListDetail,
 } from "@/repository/list/list_interfaces";
+import { EnumTriggeredBy } from "@/types/event";
 
 export interface ListControllerI {
   CreateList(
     user_id: string,
-    data: ListCreateData
+    data: ListCreateData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CreateListResponse>>;
   GetList(filter: ListFilter): Promise<ResponseData<ListResponse>>;
   GetListList(
@@ -166,6 +168,7 @@ export class ListCreateData {
   background?: string;
   board_id!: string;
   card_limit?: number;
+  created_by?: string;
 
   constructor(payload: Partial<ListCreateData>) {
     Object.assign(this, payload);
@@ -180,6 +183,7 @@ export class ListCreateData {
       background: this.background,
       board_id: this.board_id,
       card_limit: this.card_limit,
+      created_by: this.created_by
     });
   }
 

@@ -5,6 +5,7 @@ import { AttachmentType } from "@/types/card_attachment";
 export interface CardAttachmentRepositoryI {
   getCardAttachment(filter: filterCardAttachmentDetail): Promise<ResponseData<CardAttachmentDetail>>;
   createCardAttachment(data: CardAttachmentDetail): Promise<ResponseData<CardAttachmentDetail>>;
+  createCardAttachmentInBulk(data: CardAttachmentDetail[]): Promise<ResponseData<CardAttachmentDetail[]>>;
   deleteCardAttachment(filter: filterCardAttachmentDetail): Promise<number>;
   getCardAttachmentList(filter: filterCardAttachmentDetail, paginate: Paginate): Promise<ResponseListData<Array<CardAttachmentDetail>>>;
   updateCardAttachment(filter: filterCardAttachmentDetail, data: CardAttachmentDetailUpdate): Promise<number>;

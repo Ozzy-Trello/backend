@@ -7,13 +7,14 @@ export enum EnumTriggeredBy {
 }
 
 export enum EnumUserActionEvent {
-  CardCreated = "card.created",
+   CardCreated = "card.created",
   CardUpdated = "card.updated",
   CardRenamed = "card.renamed",
   CardMoved = "card.moved",
   CardCopied = "card.copied",
   CardArchived = "card.archived",
   CardUnarchived = "card.unarchived",
+  CardDeleted = "card.deleted",
   CardLabelAdded = "card.label.added",
   CardMemberAdder = "card.member.added",
   CardCoverAdded = "card.cover.added",
@@ -24,9 +25,15 @@ export enum EnumUserActionEvent {
   CardDueDateAdded = "card.duedate.added",
   CardAddedTo = "card.added-to",
   CreatedIn = "card.created-in",
-  CardEmailedInto = "card.emailed-into",
   CardMovedInto = "card.moved-into",
   CardMovedOutOf = "card.moved-out-of",
+  ListCreated = "list.created",
+  ListMoved = "list.moved",
+  ListRenamed = "list.renamed",
+  ListArchived = "list.archived",
+  ListUnarchived = "list.unarchived",
+  ListUpdated = "list.updated",
+  ListDeleted = "list.deleted"
 }
 
 export enum EnumActions {

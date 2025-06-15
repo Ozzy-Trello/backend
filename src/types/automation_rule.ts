@@ -19,19 +19,24 @@ export interface Action {
 
 export enum EnumSelectionType {
   OptionalFilter = "filter",
-  Action = "action*",
-  OptionalAction = "action",
-  Position = "position*",
-  OptionalPosition = "position",
-  NumberComparison = "number-comparison*",
-  BySubject = "by*",
-  OptionalBySubject = "by",
-  Board = "board*",
-  OptionalBoard = "board",
-  List = "list*",
-  OptionalList = "list",
-  Fields = "fields*",
-  FieldValue = "field_value*",
+  Action = "action",
+  OptionalAction = "optional_action",
+  Position = "position",
+  OptionalPosition = "optional_position",
+  NumberComparison = "number_comparison",
+  BySubject = "by",
+  OptionalBySubject = "optional_by",
+  Board = "board",
+  OptionalBoard = "opational_board",
+  List = "list",
+  OptionalList = "optional_list",
+  Channel = "channel",
+  TextInput = "text_input",
+  User = "user",
+  Fields = "fields",
+  FieldValue = "field_value",
+  MultiFields = "multi_fields",
+  Set = "set",
 }
 
 export enum EnumInputType {
@@ -81,7 +86,6 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       [EnumSelectionType.Action]: [
         EnumUserActionEvent.CardAddedTo,
         EnumUserActionEvent.CreatedIn,
-        EnumUserActionEvent.CardEmailedInto,
         EnumUserActionEvent.CardMovedInto,
         EnumUserActionEvent.CardMovedOutOf,
       ],
@@ -108,7 +112,6 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       [EnumSelectionType.Action]: [
         EnumUserActionEvent.CardAddedTo,
         EnumUserActionEvent.CreatedIn,
-        EnumUserActionEvent.CardEmailedInto,
         EnumUserActionEvent.CardMovedInto,
         EnumUserActionEvent.CardMovedOutOf,
       ],

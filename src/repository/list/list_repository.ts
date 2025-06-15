@@ -263,6 +263,7 @@ export class ListRepository implements ListRepositoryI {
             board_id: data.board_id!,
             order: bottom_position.data!,
             card_limit: data.card_limit,
+            created_by: data?.created_by
           })
           .returningAll()
           .executeTakeFirstOrThrow();
