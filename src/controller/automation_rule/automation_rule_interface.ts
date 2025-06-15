@@ -69,6 +69,7 @@ export class AutomationRuleFilter {
   type?: string;
   workspace_id?: string;
   condition?: Record<any, string>;
+  action?: AutomationRuleActionDetail[];
 
   constructor(payload: Partial<AutomationRuleFilter>) {
     Object.assign(this, payload);

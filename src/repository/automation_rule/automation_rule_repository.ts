@@ -7,6 +7,10 @@ import { InternalServerError } from "@/utils/errors";
 import { Paginate } from "@/utils/data_utils";
 import { AutomationRuleDetail, AutomationRuleRepositoryI, AutomationRuleUpdate, filterAutomationRule } from "./automation_rule_interface";
 import { AutomationRuleResponse } from "@/controller/automation_rule/automation_rule_interface";
+import { EnumUserActionEvent } from "@/types/event";
+import { EnumOptionsNumberComparisonOperators } from "@/types/options";
+import { EnumSelectionType } from "@/types/automation_rule";
+import AutomationRuleAction from "@/database/schemas/automation_rule_action";
 
 export class AutomationRuleRepository implements AutomationRuleRepositoryI {
 
@@ -37,7 +41,24 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
         const val = filter.condition[key];
         if (val !== undefined) {
           if (!where[Op.and]) where[Op.and] = [];
-          where[Op.and].push(literal(`condition->>'${key}' = '${val}'`));
+          if (!where[Op.or]) where[Op.or] = [];
+          where[Op.or].push(literal(`condition->>'${key}' = '${val}'`));
+
+          if (
+            [
+              EnumUserActionEvent.CardMovedInto,
+              EnumUserActionEvent.CardMovedOutOf,
+              EnumUserActionEvent.CardCopied,
+              EnumUserActionEvent.CreatedIn,
+              EnumUserActionEvent.CardArchived,
+              EnumUserActionEvent.CardUnarchived
+            ].includes(val)
+          ) {
+            where[Op.or].push(literal(`condition->>'${EnumSelectionType.NumberComparison}' = '${EnumOptionsNumberComparisonOperators.Exactly}'`));
+            where[Op.or].push(literal(`condition->>'${EnumSelectionType.NumberComparison}' = '${EnumOptionsNumberComparisonOperators.FewerThan}'`));
+            where[Op.or].push(literal(`condition->>'${EnumSelectionType.NumberComparison}' = '${EnumOptionsNumberComparisonOperators.MoreThan}'`));
+            where[Op.or].push(literal(`condition->>'${EnumSelectionType.Action}' = '${EnumUserActionEvent.CardAddedTo}'`));
+          }
         }
       }
     }
@@ -122,20 +143,47 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
     }
   }
 
-  async matchRules(filter: filterAutomationRule): Promise<ResponseData<Array<AutomationRuleDetail>>> {
-    const f = this.createFilter(filter);
-    console.log("da fiilter is: %o", f);
-    const actions = await AutomationRule.findAll({
-      where: f,
-    });
+async matchRules(filter: filterAutomationRule): Promise<ResponseData<Array<AutomationRuleDetail>>> {
+  const f = this.createFilter(filter);
+  console.log("da fiilter is: %o", f);
 
-    const result = actions.map(action => new AutomationRuleDetail(action.toJSON()));
-    
+  const rules = await AutomationRule.findAll({ where: f });
+  const ids = rules.map(rule => rule.id);
+
+  if (ids.length === 0) {
     return new ResponseData({
       status_code: StatusCodes.OK,
-      message: "matched automation rule actions",
-      data: result,
+      message: "no matching automation rules",
+      data: [],
     });
   }
 
+  const actions = await AutomationRuleAction.findAll({
+    where: {
+      rule_id: {
+        [Op.in]: ids,
+      },
+    },
+  });
+
+  // Build a map of rule_id => action(s)
+  const actionMap = new Map<string, AutomationRuleAction[]>();
+  for (const act of actions) {
+    const list = actionMap.get(act.rule_id) || [];
+    list.push(act);
+    actionMap.set(act.rule_id, list);
+  }
+
+  const result = rules.map(rule => {
+    const detail = new AutomationRuleDetail(rule.toJSON());
+    detail.action = actionMap.get(rule.id) || [];
+    return detail;
+  });
+
+  return new ResponseData({
+    status_code: StatusCodes.OK,
+    message: "matched automation rule actions",
+    data: result,
+  });
+}
 }
