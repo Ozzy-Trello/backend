@@ -30,8 +30,8 @@ import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
 import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
-import { EnumOptionPosition } from "@/types/options";
 import { CopyCardData, FilterConfig } from "@/controller/card/card_interfaces";
+import { EnumOptionPosition } from "@/types/options";
 
 export class CardRepository implements CardRepositoryI {
   createFilter(filter: filterCardDetail): any {

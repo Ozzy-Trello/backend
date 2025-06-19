@@ -7,11 +7,13 @@ import {
   ListDetailUpdate,
   filterListDetail,
 } from "@/repository/list/list_interfaces";
+import { EnumTriggeredBy } from "@/types/event";
 
 export interface ListControllerI {
   CreateList(
     user_id: string,
-    data: ListCreateData
+    data: ListCreateData,
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CreateListResponse>>;
   GetList(filter: ListFilter): Promise<ResponseData<ListResponse>>;
   GetListList(

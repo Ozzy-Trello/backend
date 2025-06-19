@@ -17,12 +17,21 @@ import {
 import {
   CardControllerI,
   CardCreateData,
+  CardFilter,
   CardMoveData,
   CopyCardData,
 } from "../card/card_interfaces";
 import { EnumActions, EnumTriggeredBy, UserActionEvent } from "@/types/event";
-import { ActionType, EnumSelectionType } from "@/types/automation_rule";
-import { EnumOptionPosition, EnumOptionsSubject } from "@/types/options";
+import {
+  ActionType,
+  EnumInputType,
+  EnumSelectionType,
+} from "@/types/automation_rule";
+import {
+  EnumOptionPosition,
+  EnumOptionsNumberComparisonOperators,
+  EnumOptionsSubject,
+} from "@/types/options";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
 import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
@@ -67,7 +76,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
 
     data.created_by = user_id;
-    console.log(data, "<< ini isi data");
     let result = await this.automation_rule_repo.createRule(
       data.toAutomationRuleDetail()
     );
@@ -173,8 +181,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
       if (rules?.data) {
         // Process rules in parallel for better performance
-        const processingPromises = rules.data.map((rule) => {
+        const processingPromises = rules.data.map(async (rule) => {
           if (rule?.id) {
+            console.log("rule: is: %o", rule);
             let isPermsissable = true;
 
             // if (rule.condition?.[EnumSelectionType.Board]) {
@@ -187,6 +196,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
             // }
 
+            // list
             if (rule.condition?.[EnumSelectionType.List]) {
               console.log("rule has list dependency");
               if (
@@ -195,8 +205,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               ) {
                 isPermsissable = false;
               }
-            }
+            } // end of lsit
 
+            // optional by subject
             if (rule.condition?.[EnumSelectionType.OptionalBySubject]) {
               console.log(
                 `rule has optional ${EnumSelectionType.OptionalBySubject} dependency`
@@ -254,8 +265,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                   }
                 }
               }
-            }
+            } // end of optional by subject
 
+            // By subject
             if (rule.condition?.[EnumSelectionType.BySubject]) {
               console.log(
                 `rule has optional ${EnumSelectionType.BySubject} dependency`
@@ -312,7 +324,54 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                   }
                 }
               }
-            }
+            } // end of by subject
+
+            // number of cards in list
+            if (rule.condition?.[EnumSelectionType.NumberComparison]) {
+              console.log(
+                "rule has number of cards in list dependency dependency"
+              );
+              // check if list match first
+              if (
+                recentUserAction?.data?.card?.list_id !=
+                rule.condition?.[EnumSelectionType.List]
+              ) {
+                isPermsissable = false;
+              } else {
+                const result = await this.card_controller.GetListCard(
+                  new CardFilter({
+                    list_id: rule.condition?.[EnumSelectionType.List],
+                  }),
+                  new Paginate(0, 0)
+                );
+                console.log("COMPARE RESULT: %o", result);
+                if (result.status_code !== StatusCodes.OK && !result.data)
+                  isPermsissable = false;
+                const cardCount = result.data?.length || 0;
+                const numberToCompare = rule.condition?.[EnumInputType.Number];
+
+                if (
+                  rule?.condition?.[EnumSelectionType.NumberComparison] ==
+                  rule.condition?.[EnumOptionsNumberComparisonOperators.Exactly]
+                ) {
+                  if (cardCount != numberToCompare) isPermsissable = false;
+                } else if (
+                  rule?.condition?.[EnumSelectionType.NumberComparison] ==
+                  rule.condition?.[
+                    EnumOptionsNumberComparisonOperators.FewerThan
+                  ]
+                ) {
+                  if (cardCount >= numberToCompare) isPermsissable = false;
+                } else if (
+                  rule?.condition?.[EnumSelectionType.NumberComparison] ==
+                  rule.condition?.[
+                    EnumOptionsNumberComparisonOperators.MoreThan
+                  ]
+                ) {
+                  if (cardCount <= numberToCompare) isPermsissable = false;
+                }
+              }
+            } // end of number of cards in list
 
             if (isPermsissable) {
               console.log("passed permissable actually");
@@ -324,6 +383,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                   type: rule.type,
                   workspace_id: rule.workspace_id,
                   condition: rule.condition,
+                  action: rule.action,
                 })
               );
             }
@@ -362,14 +422,14 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         });
       }
 
-      const actions = await this.automation_rule_action_repo.getByRuleId(
-        filter.id
-      );
+      // const actions = await this.automation_rule_action_repo.getByRuleId(
+      //   filter.id
+      // );
 
-      if (actions?.data) {
+      if (filter.action) {
         // Process actions in parallel
-        const actionPromises = actions.data.map((action) =>
-          this.executeAutomationAction(action, recentUserAction)
+        const actionPromises = filter.action.map((act) =>
+          this.executeAutomationAction(act, recentUserAction)
         );
 
         await Promise.allSettled(actionPromises);
@@ -466,19 +526,15 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    if (!action?.condition?.position || !recentUserAction?.data.card?.id)
-      return;
-
     const moveData = new CardMoveData({
       id: recentUserAction.data.card.id,
       previous_list_id: recentUserAction.data.card.list_id,
       target_list_id:
-        action.condition.target_list_id || recentUserAction.data.card.list_id,
+        action.condition?.[EnumSelectionType.List] ||
+        action.condition?.[EnumSelectionType.OptionalList],
       previous_position: recentUserAction.data.card.order,
       target_position_top_or_bottom:
-        action.condition.position === EnumOptionPosition.TopOfList
-          ? "top"
-          : "bottom",
+        action.condition?.[EnumSelectionType.Position],
     });
 
     await this.card_controller.MoveCard(

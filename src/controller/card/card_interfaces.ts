@@ -21,8 +21,8 @@ import { CardListTimeDetail } from "@/repository/card_list_time/card_list_time_i
 import { CardBoardTimeDetail } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
 import { EnumTriggeredBy } from "@/types/event";
-import { EnumOptionPosition } from "@/types/options";
 import { StringMappingType } from "typescript";
+import { EnumOptionPosition } from "@/types/options";
 
 export interface CardControllerI {
   CreateCard(

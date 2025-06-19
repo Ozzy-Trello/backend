@@ -1,4 +1,5 @@
 import { ListControllerI, ListCreateData, ListFilter, ListMoveData, UpdateListData } from "@/controller/list/list_interfaces";
+import { EnumTriggeredBy } from "@/types/event";
 import { Paginate } from "@/utils/data_utils";
 import { ListRestViewI } from "@/views/rest/interfaces";
 import { Request, Response } from "express";
@@ -24,7 +25,8 @@ export default class ListRestView implements ListRestViewI {
       background: req.body.background?.toString(),
       board_id: req.body.board_id?.toString(),
       card_limit: req.body.card_limit
-    }))
+    }), EnumTriggeredBy.User);
+    
     if (accResponse.status_code !== StatusCodes.CREATED) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({

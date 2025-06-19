@@ -665,6 +665,16 @@ export class CardController implements CardControllerI {
       event.type = EnumUserActionEvent.CreatedIn;
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
+
+      event.eventId = uuidv4();
+      event.type = EnumUserActionEvent.CreatedIn;
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+
+      // event.eventId = uuidv4();
+      // event.type = EnumUserActionEvent.CardAddedTo;
+      // console.log("Trying to publish event: %s", event.eventId);
+      // this.event_publisher.publishUserAction(event); //added to
     }
 
     return new ResponseData({
@@ -764,8 +774,14 @@ export class CardController implements CardControllerI {
           },
         },
       };
+
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
+
+      // event.eventId = uuidv4();
+      // event.type = EnumUserActionEvent.CardAddedTo;
+      // console.log("Trying to publish event: %s", event.eventId);
+      // this.event_publisher.publishUserAction(event); //added to
     }
 
     if (copyCardData?.position) {
@@ -1032,8 +1048,14 @@ export class CardController implements CardControllerI {
             },
           },
         };
+
         console.log("Trying to publish event: %s", event.eventId);
         this.event_publisher.publishUserAction(event); //general move
+
+        // event.eventId = uuidv4();
+        // event.type = EnumUserActionEvent.CardAddedTo;
+        // console.log("Trying to publish event: %s", event.eventId);
+        // this.event_publisher.publishUserAction(event); //added to
 
         event.eventId = uuidv4();
         event.type = EnumUserActionEvent.CardMovedInto;

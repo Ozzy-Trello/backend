@@ -4,9 +4,9 @@ export enum EnumOptionPosition {
 }
 
 export enum EnumOptionsNumberComparisonOperators {
-  Exactly = "exacly",
+  Exactly = "exactly",
   FewerThan = "fewer-than",
-  MoreThan = "more-than"
+  MoreThan = "more-than",
 }
 
 export enum EnumOptionsSubject {

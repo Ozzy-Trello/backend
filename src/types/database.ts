@@ -155,6 +155,8 @@ export interface ListTable {
   name: string;
   background: string;
   card_limit: number;
+  created_by?: string;
+  updated_by?: string;
 }
 
 export interface CardActivityTable {
