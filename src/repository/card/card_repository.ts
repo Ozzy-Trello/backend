@@ -29,6 +29,7 @@ import {
 import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
+import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
 import { CopyCardData, FilterConfig } from "@/controller/card/card_interfaces";
 import { EnumOptionPosition } from "@/types/options";
 
@@ -469,6 +470,22 @@ export class CardRepository implements CardRepositoryI {
           .where("mirror_id", "=", filter.id!)
           .execute();
       }
+
+      // Check for mentions in description and send notifications
+      if (data.description) {
+        // Extract mentioned user IDs from HTML content using the static method
+        const mentionedUserIds = this.extractMentionedUserIds(data.description);
+
+        if (mentionedUserIds.length > 0) {
+          // Log the mentions for debugging
+          console.log(`Found mentions in card ${filter.id}:`, mentionedUserIds);
+
+          // Note: WhatsApp notification sending should be handled by the controller layer
+          // This is just logging for now - the actual notification logic should be
+          // implemented in the service/controller layer that calls this repository method
+        }
+      }
+
       return StatusCodes.NO_CONTENT;
     } catch (e) {
       if (e instanceof Error) {
@@ -753,9 +770,17 @@ export class CardRepository implements CardRepositoryI {
           let targetPosition: number;
 
           // Check if user wants to move to top or bottom
-          if (filter.target_position_top_or_bottom === "top" || filter.target_position_top_or_bottom === EnumOptionPosition.TopOfList) {
+          if (
+            filter.target_position_top_or_bottom === "top" ||
+            filter.target_position_top_or_bottom ===
+              EnumOptionPosition.TopOfList
+          ) {
             targetPosition = 0;
-          } else if (filter.target_position_top_or_bottom === "bottom" || filter.target_position_top_or_bottom === EnumOptionPosition.BottomOfList) {
+          } else if (
+            filter.target_position_top_or_bottom === "bottom" ||
+            filter.target_position_top_or_bottom ===
+              EnumOptionPosition.BottomOfList
+          ) {
             targetPosition = cardsInTargetList.length;
           } else {
             // Use existing logic for numeric position
@@ -982,6 +1007,24 @@ export class CardRepository implements CardRepositoryI {
       message: "success",
       status_code: StatusCodes.CREATED,
     });
+  }
+
+  extractMentionedUserIds(htmlContent: string): string[] {
+    const mentionedUserIds: string[] = [];
+
+    // Regex to match mention spans with data-id attribute
+    const mentionRegex =
+      /<span[^>]*class="mention"[^>]*data-id="([^"]*)"[^>]*>/g;
+
+    let match;
+    while ((match = mentionRegex.exec(htmlContent)) !== null) {
+      const userId = match[1];
+      if (userId && !mentionedUserIds.includes(userId)) {
+        mentionedUserIds.push(userId);
+      }
+    }
+
+    return mentionedUserIds;
   }
 
   async getItemsDashcard(filters: FilterConfig[]) {

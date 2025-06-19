@@ -82,21 +82,21 @@ export class BoardController implements BoardControllerI {
       });
     }
 
-    let defaultRole = await this.role_access_repo.getRole({
-      default: true,
-      createDefaultWhenNone: true,
-    });
-    if (
-      !(
-        defaultRole.status_code == StatusCodes.OK ||
-        defaultRole.status_code == StatusCodes.CREATED
-      )
-    ) {
-      return new ResponseData({
-        message: defaultRole.message,
-        status_code: defaultRole.status_code,
-      });
-    }
+    // let defaultRole = await this.role_access_repo.getRole({
+    //   default: true,
+    //   createDefaultWhenNone: true,
+    // });
+    // if (
+    //   !(
+    //     defaultRole.status_code == StatusCodes.OK ||
+    //     defaultRole.status_code == StatusCodes.CREATED
+    //   )
+    // ) {
+    //   return new ResponseData({
+    //     message: defaultRole.message,
+    //     status_code: defaultRole.status_code,
+    //   });
+    // }
 
     let createResponse = await this.board_repo.createBoard(
       data.toBoardDetail()

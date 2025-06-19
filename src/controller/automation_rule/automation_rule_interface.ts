@@ -1,24 +1,35 @@
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
 import { validate as isValidUUID } from "uuid";
-import { AutomationRuleDetail, filterAutomationRule } from "@/repository/automation_rule/automation_rule_interface";
+import {
+  AutomationRuleDetail,
+  filterAutomationRule,
+} from "@/repository/automation_rule/automation_rule_interface";
 import { AutomationRuleActionDetail } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import { CardDetail } from "@/repository/card/card_interfaces";
 import { UserActionEvent } from "@/types/event";
 
-
 export interface AutomationRuleControllerI {
-  CreateAutomationRule(user_id: string, data: AutomationRuleCreateData): Promise<ResponseData<AutomationRuleDetail>>;
+  CreateAutomationRule(
+    user_id: string,
+    data: AutomationRuleCreateData
+  ): Promise<ResponseData<AutomationRuleDetail>>;
   // GetAutomationRule(filter: AutomationRuleFilter): Promise<ResponseData<AutomationRuleResponse>>;
-  GetListAutomationRule(filter: AutomationRuleFilter, paginate: Paginate): Promise<ResponseListData<Array<AutomationRuleDetail>>>;
+  GetListAutomationRule(
+    filter: AutomationRuleFilter,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<AutomationRuleDetail>>>;
   // DeleteAutomationRule(filter: AutomationRuleFilter): Promise<ResponseData<null>>;
   // UpdateAutomationRule(filter: AutomationRuleFilter, data: UpdateAutomationRuleData): Promise<ResponseData<null>>;
-  FindMatchingRules(recentUserAction: UserActionEvent, filter: AutomationRuleFilter): Promise<ResponseData<Array<AutomationRuleDetail>>>;
+  FindMatchingRules(
+    recentUserAction: UserActionEvent,
+    filter: AutomationRuleFilter
+  ): Promise<ResponseData<Array<AutomationRuleDetail>>>;
 }
 
 // represent 'yang baru aja dilakukan user'
 export class RecentUserAction {
-  card?: CardDetail
+  card?: CardDetail;
 }
 
 export class CreateAutomationRuleResponse {
@@ -74,7 +85,8 @@ export class AutomationRuleFilter {
   constructor(payload: Partial<AutomationRuleFilter>) {
     Object.assign(this, payload);
     this.isEmpty = this.isEmpty.bind(this);
-    this.toFilterAutomationRuleDetail = this.toFilterAutomationRuleDetail.bind(this);
+    this.toFilterAutomationRuleDetail =
+      this.toFilterAutomationRuleDetail.bind(this);
   }
 
   isEmpty(): boolean {
@@ -86,7 +98,8 @@ export class AutomationRuleFilter {
       id: this.id,
       group_type: this.group_type,
       workspace_id: this.workspace_id,
-      condition: this.condition
+      condition: this.condition,
+      type: this.type,
     };
   }
 }
@@ -138,6 +151,7 @@ export class AutomationRuleCreateData {
   }
 
   toAutomationRuleDetail(): AutomationRuleDetail {
+    console.log(this.condition, "<< ini condition");
     return new AutomationRuleDetail({
       id: this.id,
       workspace_id: this.workspace_id,
@@ -146,7 +160,7 @@ export class AutomationRuleCreateData {
       condition: this.condition,
       action: this.action,
       created_by: this.created_by,
-      updated_by: this.updated_by
+      updated_by: this.updated_by,
     });
   }
 }
@@ -163,5 +177,4 @@ export class UpdateAutomationRuleData {
   isEmpty(): boolean {
     return !this.type && !this.groupType;
   }
-
 }

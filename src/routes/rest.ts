@@ -130,6 +130,13 @@ export default async function (): Promise<Router> {
     role_repo
   );
   const list_controller = new ListController(list_repo, board_repo);
+  const whatsapp_controller = new WhatsAppController(
+    whatsapp_service,
+    user_repo,
+    card_repo,
+    custom_field_repo
+  );
+
   const card_controller = new CardController(
     card_repo,
     list_repo,
@@ -137,7 +144,8 @@ export default async function (): Promise<Router> {
     trigger_controller,
     card_attachment_repository,
     card_list_time_history_repo,
-    card_board_time_history_repo
+    card_board_time_history_repo,
+    whatsapp_controller
   );
   const custom_field_controller = new CustomFieldController(
     custom_field_repo,
@@ -154,12 +162,6 @@ export default async function (): Promise<Router> {
     card_member_repo,
     card_repo,
     user_repo
-  );
-  const whatsapp_controller = new WhatsAppController(
-    whatsapp_service,
-    user_repo,
-    card_repo,
-    custom_field_repo
   );
   const automation_rule_controller = new AutomationRuleController(
     automation_rule_repo,
