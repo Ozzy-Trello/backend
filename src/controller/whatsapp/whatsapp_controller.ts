@@ -10,7 +10,14 @@ export interface WhatsAppControllerI {
     userId: string,
     message: string,
     data: any,
-    customFields?: any[]
+    customFields?: any[],
+    userFieldId?: string
+  ): Promise<ResponseData<any>>;
+
+  sendMessageFromMention(
+    mentionedUserIds: string[],
+    cardId: string,
+    message: string
   ): Promise<ResponseData<any>>;
 }
 
@@ -36,21 +43,42 @@ export class WhatsAppController implements WhatsAppControllerI {
     private customFieldRepo: CustomFieldRepositoryI
   ) {
     this.sendNotification = this.sendNotification.bind(this);
+    this.sendMessageFromMention = this.sendMessageFromMention.bind(this);
   }
 
   async sendNotification(
     userId: string,
     message: string,
     data: NotificationData,
-    customFields?: any[]
+    customFields?: any[],
+    userFieldId?: string
   ): Promise<ResponseData<any>> {
     try {
       // Validate input
-      const validationError = this.validateInput(userId, message);
-      if (validationError) return validationError;
+      // const validationError = this.validateInput(userId, message);
+      // console.log(validationError, "validationError");
+      // if (validationError) return validationError;
+      console.log("pass here");
+
+      console.log(customFields, "<< ini isi customfields");
+
+      let userInField = await this.customFieldRepo.getCardCustomField(
+        data?.workspace_id!,
+        data?.card?.id!,
+        userFieldId!
+      );
+
+      if (userInField?.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          message: "Failed to fetch user details",
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        });
+      }
 
       // Get user phone number
-      const phoneResult = await this.getUserPhoneNumber(userId);
+      const phoneResult = await this.getUserPhoneNumber(
+        userId ?? userInField.data?.value_user_id
+      );
       if (!phoneResult.success) return phoneResult.error!;
 
       // Get card details
@@ -80,6 +108,86 @@ export class WhatsAppController implements WhatsAppControllerI {
       console.error("Error sending WhatsApp notification:", error);
       return new ResponseData({
         message: "Failed to send WhatsApp notification",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+      });
+    }
+  }
+
+  async sendMessageFromMention(
+    mentionedUserIds: string[],
+    cardId: string,
+    message: string
+  ): Promise<ResponseData<any>> {
+    try {
+      // Validate input
+      if (!mentionedUserIds?.length || !cardId || !message) {
+        return new ResponseData({
+          message: "Mentioned user IDs, card ID, and message are required",
+          status_code: StatusCodes.BAD_REQUEST,
+        });
+      }
+
+      // Get card details
+      const cardResult = await this.getCardDetails(cardId);
+      if (!cardResult.success) return cardResult.error!;
+
+      // Clean the message by removing HTML tags and mention spans
+      const cleanMessage = this.cleanMentionMessage(message);
+
+      // Send notifications to all mentioned users
+      const notificationPromises = mentionedUserIds.map(async (userId) => {
+        try {
+          // Get user phone number
+          const phoneResult = await this.getUserPhoneNumber(userId);
+          if (!phoneResult.success) {
+            console.warn(`Failed to get phone number for user ${userId}`);
+            return { success: false, userId, error: phoneResult.error };
+          }
+
+          // Build mention notification message
+          const formattedMessage = `Nama anda disebut di PO: "${
+            cardResult.data!.name
+          }"\n\n${cleanMessage}`;
+
+          // Send WhatsApp message
+          await this.whatsappService.sendMessage({
+            message: formattedMessage,
+            target: phoneResult.data!,
+          });
+
+          return { success: true, userId };
+        } catch (error) {
+          console.error(
+            `Error sending mention notification to user ${userId}:`,
+            error
+          );
+          return { success: false, userId, error };
+        }
+      });
+
+      // Wait for all notifications to complete
+      const results = await Promise.allSettled(notificationPromises);
+
+      // Count successful and failed notifications
+      const successful = results.filter(
+        (result) => result.status === "fulfilled" && result.value.success
+      ).length;
+
+      const failed = results.length - successful;
+
+      return new ResponseData({
+        message: `WhatsApp mention notifications sent. Success: ${successful}, Failed: ${failed}`,
+        status_code: StatusCodes.OK,
+        data: {
+          total: mentionedUserIds.length,
+          successful,
+          failed,
+        },
+      });
+    } catch (error) {
+      console.error("Error sending WhatsApp message from mention:", error);
+      return new ResponseData({
+        message: "Failed to send WhatsApp message from mention",
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
@@ -194,7 +302,7 @@ export class WhatsAppController implements WhatsAppControllerI {
     customFields?: any[],
     data?: NotificationData
   ): boolean {
-    return !!(customFields?.length && data?.card?.id && data.workspace_id);
+    return !!(customFields?.length && data?.card?.id);
   }
 
   private async buildCustomFieldsText(
@@ -205,6 +313,7 @@ export class WhatsAppController implements WhatsAppControllerI {
     if (!customFields?.length) return "";
 
     let customFieldsText = "\n\nInformasi Tambahan:\n\n";
+    console.log("building cusotfield");
     const processedFields = await Promise.all(
       customFields.map((fieldId) =>
         this.processCustomField(fieldId, workspaceId, cardId)
@@ -351,5 +460,34 @@ export class WhatsAppController implements WhatsAppControllerI {
     }
 
     return digitsOnly;
+  }
+
+  private cleanMentionMessage(message: string): string {
+    // Remove HTML tags but preserve the text content
+    let cleanMessage = message.replace(/<[^>]*>/g, "");
+
+    // Remove any extra whitespace and special characters
+    cleanMessage = cleanMessage.replace(/[\u200B-\u200D\uFEFF]/g, ""); // Remove zero-width characters
+    cleanMessage = cleanMessage.replace(/\s+/g, " ").trim(); // Normalize whitespace
+
+    return cleanMessage;
+  }
+
+  static extractMentionedUserIds(htmlContent: string): string[] {
+    const mentionedUserIds: string[] = [];
+
+    // Regex to match mention spans with data-id attribute
+    const mentionRegex =
+      /<span[^>]*class="mention"[^>]*data-id="([^"]*)"[^>]*>/g;
+
+    let match;
+    while ((match = mentionRegex.exec(htmlContent)) !== null) {
+      const userId = match[1];
+      if (userId && !mentionedUserIds.includes(userId)) {
+        mentionedUserIds.push(userId);
+      }
+    }
+
+    return mentionedUserIds;
   }
 }

@@ -28,7 +28,7 @@ export interface CardControllerI {
   CreateCard(
     user_id: string,
     data: CardCreateData,
-    triggerdBy: EnumTriggeredBy 
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CreateCardResponse>>;
   GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>>;
   GetListCard(
@@ -39,14 +39,25 @@ export interface CardControllerI {
     filter: CardSearch,
     paginate: Paginate
   ): Promise<ResponseListData<Array<CardResponse>>>;
-  DeleteCard(filter: CardFilter, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>;
+  DeleteCard(
+    filter: CardFilter,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>>;
   MoveCard(
     user_id: string,
     filter: CardMoveData,
-    triggerdBy: EnumTriggeredBy 
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardResponse>>;
-  ArchiveCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>;
-  UnArchiveCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy ): Promise<ResponseData<null>>;
+  ArchiveCard(
+    user_id: string,
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>>;
+  UnArchiveCard(
+    user_id: string,
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>>;
   AddCustomField(
     card_id: string,
     custom_field_id: string,
@@ -62,7 +73,7 @@ export interface CardControllerI {
     card_id: string,
     custom_field_id: string,
     value: string | number,
-    triggerdBy: EnumTriggeredBy 
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
   GetListCustomField(
     card_id: string,
@@ -72,11 +83,11 @@ export interface CardControllerI {
     user_id: string,
     filter: CardFilter,
     data: UpdateCardData,
-    triggerdBy: EnumTriggeredBy 
+    triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
   GetCardActivity(
     card_id: string,
-    paginate: Paginate,
+    paginate: Paginate
   ): Promise<ResponseListData<Array<CardResponse>>>;
   GetCardTimeInList(
     card_id: string
@@ -86,9 +97,21 @@ export interface CardControllerI {
     board_id: string
   ): Promise<ResponseData<CardBoardTimeDetail>>;
   GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>;
-  CompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
-  IncompleteCard(user_id: string, card_id: string, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>>; // Added
-  CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>>;
+  CompleteCard(
+    user_id: string,
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>>; // Added
+  IncompleteCard(
+    user_id: string,
+    card_id: string,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>>; // Added
+  CopyCard(
+    user_id: string,
+    copyCardData: CopyCardData,
+    triggeredBy: EnumTriggeredBy
+  ): Promise<ResponseData<CreateCardResponse>>;
   MakeMirrorCard(
     user_id: string,
     card_id: string,

@@ -50,8 +50,16 @@ import {
   AutomationRuleControllerI,
   AutomationRuleFilter,
 } from "../automation_rule/automation_rule_interface";
+import {
+  WhatsAppControllerI,
+  WhatsAppController,
+} from "@/controller/whatsapp/whatsapp_controller";
 import { EventPublisher } from "@/event_publisher";
-import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import {
+  EnumTriggeredBy,
+  EnumUserActionEvent,
+  UserActionEvent,
+} from "@/types/event";
 import { UUID } from "sequelize";
 import { EnumOptionPosition } from "@/types/options";
 
@@ -65,6 +73,7 @@ export class CardController implements CardControllerI {
   private card_list_time_repo: CardListTimeRepositoryI;
   private card_board_time_repo: CardBoardTimeRepositoryI;
   private automation_rule_controller: AutomationRuleControllerI | undefined;
+  private whatsapp_controller: WhatsAppControllerI;
 
   constructor(
     card_repo: CardRepositoryI,
@@ -73,7 +82,8 @@ export class CardController implements CardControllerI {
     trigger_controller: TriggerControllerI,
     card_attachmment_repo: CardAttachmentRepositoryI,
     card_list_time_repo: CardListTimeRepositoryI,
-    card_board_time_repo: CardBoardTimeRepositoryI
+    card_board_time_repo: CardBoardTimeRepositoryI,
+    whatsapp_controller: WhatsAppControllerI
   ) {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
@@ -82,6 +92,7 @@ export class CardController implements CardControllerI {
     this.card_attachmment_repo = card_attachmment_repo;
     this.card_list_time_repo = card_list_time_repo;
     this.card_board_time_repo = card_board_time_repo;
+    this.whatsapp_controller = whatsapp_controller;
     this.ArchiveCard = this.ArchiveCard.bind(this);
     this.UnArchiveCard = this.UnArchiveCard.bind(this);
     this.GetCard = this.GetCard.bind(this);
@@ -141,7 +152,11 @@ export class CardController implements CardControllerI {
     });
 
     // publish event
-    if (this.event_publisher && triggerdBy === EnumTriggeredBy.User && checkCard?.data) {
+    if (
+      this.event_publisher &&
+      triggerdBy === EnumTriggeredBy.User &&
+      checkCard?.data
+    ) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
         type: EnumUserActionEvent.CardArchived,
@@ -151,10 +166,10 @@ export class CardController implements CardControllerI {
         data: {
           card: {
             id: checkCard.data.id,
-            list_id: checkCard.data.list_id
-          }
-        }
-      }
+            list_id: checkCard.data.list_id,
+          },
+        },
+      };
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
     }
@@ -218,10 +233,10 @@ export class CardController implements CardControllerI {
         data: {
           card: {
             id: checkCard.data.id,
-            list_id: checkCard.data.list_id
-          }
-        }
-      }
+            list_id: checkCard.data.list_id,
+          },
+        },
+      };
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
     }
@@ -626,7 +641,6 @@ export class CardController implements CardControllerI {
       listId: data.list_id,
       createdBy: user_id,
     });
-
     if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
       const event: UserActionEvent = {
         eventId: uuidv4(),
@@ -637,13 +651,18 @@ export class CardController implements CardControllerI {
         data: {
           card: {
             id: cardResponse.id,
-            list_id: cardResponse.listId
+            list_id: cardResponse.listId,
           },
           list: {
-            id: cardResponse.listId
-          }
+            id: cardResponse.listId,
+          },
         },
-      }
+      };
+      console.log("Trying to publish event: %s", event.eventId);
+      this.event_publisher.publishUserAction(event);
+
+      event.eventId = uuidv4();
+      event.type = EnumUserActionEvent.CreatedIn;
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
 
@@ -667,7 +686,11 @@ export class CardController implements CardControllerI {
     });
   }
 
-  async CopyCard(user_id: string, copyCardData: CopyCardData, triggeredBy: EnumTriggeredBy): Promise<ResponseData<CreateCardResponse>> {
+  async CopyCard(
+    user_id: string,
+    copyCardData: CopyCardData,
+    triggeredBy: EnumTriggeredBy
+  ): Promise<ResponseData<CreateCardResponse>> {
     console.log("in controller copying card: %o", copyCardData);
     if (!copyCardData?.card_id) {
       return new ResponseData({
@@ -684,10 +707,17 @@ export class CardController implements CardControllerI {
     }
 
     // find source card
-    let checkedData = await this.card_repo.getListCard({id: copyCardData?.card_id}, new Paginate(0, 0));
+    let checkedData = await this.card_repo.getListCard(
+      { id: copyCardData?.card_id },
+      new Paginate(0, 0)
+    );
     console.log("in controller copying card: checkedData: %o", checkedData);
 
-    if (checkedData.status_code != StatusCodes.OK || !checkedData.data || checkedData.data?.length < 1) {
+    if (
+      checkedData.status_code != StatusCodes.OK ||
+      !checkedData.data ||
+      checkedData.data?.length < 1
+    ) {
       return new ResponseData({
         message: "no source card found",
         status_code: checkedData.status_code,
@@ -696,7 +726,8 @@ export class CardController implements CardControllerI {
     let cardToCopied = checkedData?.data[0];
 
     // re-adjust copied card before
-    if (copyCardData.target_list_id) cardToCopied.list_id = copyCardData?.target_list_id;
+    if (copyCardData.target_list_id)
+      cardToCopied.list_id = copyCardData?.target_list_id;
     if (copyCardData.name) cardToCopied.name = copyCardData?.name;
     if (!cardToCopied.type) cardToCopied.type = CardType.Regular;
 
@@ -709,7 +740,6 @@ export class CardController implements CardControllerI {
       });
     }
 
-    
     /**
      * do the asyb procedures below
      * 1. broadcast to websocket
@@ -718,7 +748,7 @@ export class CardController implements CardControllerI {
      * 5. insert time in list and time in board
      * 6. insert other card attributes if applicable
      */
-    
+
     // Broadcast to WebSocket clients
     broadcastToWebSocket(EnumUserActionEvent.CardCreated, {
       card: createCardResult.data,
@@ -740,10 +770,10 @@ export class CardController implements CardControllerI {
             list_id: copyCardData.target_list_id,
           },
           list: {
-            id: copyCardData.target_list_id
-          }
+            id: copyCardData.target_list_id,
+          },
         },
-      }
+      };
 
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
@@ -754,24 +784,28 @@ export class CardController implements CardControllerI {
       // this.event_publisher.publishUserAction(event); //added to
     }
 
-
     if (copyCardData?.position) {
       // re-adjust copycard data position
-      let moveCardParams: filterMoveCard = {  
+      let moveCardParams: filterMoveCard = {
         id: createCardResult?.data?.id,
         previous_list_id: copyCardData.target_list_id,
         target_list_id: copyCardData.target_list_id,
       };
-      
-      if ([EnumOptionPosition.BottomOfList, EnumOptionPosition.TopOfList].includes(copyCardData?.position as EnumOptionPosition)) {
-        moveCardParams.target_position_top_or_bottom = copyCardData?.position as string;
+
+      if (
+        [
+          EnumOptionPosition.BottomOfList,
+          EnumOptionPosition.TopOfList,
+        ].includes(copyCardData?.position as EnumOptionPosition)
+      ) {
+        moveCardParams.target_position_top_or_bottom =
+          copyCardData?.position as string;
       } else {
         moveCardParams.target_position = copyCardData?.position as number;
       }
 
       this.card_repo.moveCard(moveCardParams);
     }
-    
 
     // insert time tracking record for inserted card in related list
     this.card_list_time_repo.createCardTimeInList(
@@ -782,52 +816,59 @@ export class CardController implements CardControllerI {
       })
     );
 
-    this.list_repo.getList({ id: copyCardData?.target_list_id }).then(result => {
-      if (result.status_code == StatusCodes.OK) {
-        // insert time tracking record for inserted card in related board
-        this.card_board_time_repo.createCardTimeInBoard(
-          new CardBoardTimeDetail({
-            card_id: createCardResult.data?.id!,
-            board_id: result?.data?.board_id!,
-            entered_at: createCardResult?.data?.created_at || new Date(),
-          })
-        );
-      }
-    })
+    this.list_repo
+      .getList({ id: copyCardData?.target_list_id })
+      .then((result) => {
+        if (result.status_code == StatusCodes.OK) {
+          // insert time tracking record for inserted card in related board
+          this.card_board_time_repo.createCardTimeInBoard(
+            new CardBoardTimeDetail({
+              card_id: createCardResult.data?.id!,
+              board_id: result?.data?.board_id!,
+              entered_at: createCardResult?.data?.created_at || new Date(),
+            })
+          );
+        }
+      });
 
     // insert attachment
     if (copyCardData.is_with_attachments) {
-      this.card_attachmment_repo.getCardAttachmentList({card_id: copyCardData?.card_id}, new Paginate(0, 0)).then(result => {
-        if (result.status_code === StatusCodes.OK && result.data) {
-          const attachments = result?.data?.map(item => ({
-            ...item,
-            card_id: createCardResult?.data?.id as string,
-          }));
+      this.card_attachmment_repo
+        .getCardAttachmentList(
+          { card_id: copyCardData?.card_id },
+          new Paginate(0, 0)
+        )
+        .then((result) => {
+          if (result.status_code === StatusCodes.OK && result.data) {
+            const attachments = result?.data?.map((item) => ({
+              ...item,
+              card_id: createCardResult?.data?.id as string,
+            }));
 
-          // insert in bulk
-          this.card_attachmment_repo.createCardAttachmentInBulk(attachments).then(result => console.log("insert attachment in bulk: %o", result));
-        }
-      });
+            // insert in bulk
+            this.card_attachmment_repo
+              .createCardAttachmentInBulk(attachments)
+              .then((result) =>
+                console.log("insert attachment in bulk: %o", result)
+              );
+          }
+        });
     }
 
     // insert checklist
     if (copyCardData.is_with_checklist) {
-
     }
 
     // insert comments
     if (copyCardData.is_with_comments) {
-
     }
 
     // insert labels
     if (copyCardData.is_with_labels) {
-
     }
 
     // insert members
     if (copyCardData.is_with_members) {
-
     }
 
     return new ResponseData({
@@ -837,9 +878,7 @@ export class CardController implements CardControllerI {
         id: createCardResult.data?.id,
       }),
     });
-
   }
-
 
   async GetCard(filter: CardFilter): Promise<ResponseData<CardResponse>> {
     if (filter.isEmpty()) {
@@ -1001,14 +1040,14 @@ export class CardController implements CardControllerI {
               is_mirror: cardResponse.is_mirror!,
             },
             list: {
-              id: targetListId
+              id: targetListId,
             },
             previous_data: {
               list_id: card.data?.list_id,
-              order: card.data?.order
-            }
-          }
-        }
+              order: card.data?.order,
+            },
+          },
+        };
 
         console.log("Trying to publish event: %s", event.eventId);
         this.event_publisher.publishUserAction(event); //general move
@@ -1027,7 +1066,6 @@ export class CardController implements CardControllerI {
         event.type = EnumUserActionEvent.CardMovedOutOf;
         console.log("Trying to publish event: %s", event.eventId);
         this.event_publisher.publishUserAction(event); //moved out of
-
       }
 
       // 7. Return the moved card data
@@ -1263,7 +1301,10 @@ export class CardController implements CardControllerI {
     );
   }
 
-  async DeleteCard(filter: CardFilter, triggerdBy: EnumTriggeredBy): Promise<ResponseData<null>> {
+  async DeleteCard(
+    filter: CardFilter,
+    triggerdBy: EnumTriggeredBy
+  ): Promise<ResponseData<null>> {
     if (filter.isEmpty()) {
       return new ResponseData({
         message: "you need filter to delete",
@@ -1403,6 +1444,43 @@ export class CardController implements CardControllerI {
       filter.toFilterCardDetail(),
       data.toCardDetailUpdate()
     );
+
+    // Check for mentions in description and send WhatsApp notifications
+    if (data.description && updateResponse === StatusCodes.NO_CONTENT) {
+      try {
+        // Extract mentioned user IDs from HTML content
+        const mentionedUserIds = WhatsAppController.extractMentionedUserIds(
+          data.description
+        );
+
+        if (mentionedUserIds.length > 0) {
+          console.log(`Found mentions in card ${filter.id}:`, mentionedUserIds);
+
+          // Send WhatsApp notifications to mentioned users
+          const notificationResult =
+            await this.whatsapp_controller.sendMessageFromMention(
+              mentionedUserIds,
+              filter.id!,
+              data.description
+            );
+
+          if (notificationResult.status_code !== StatusCodes.OK) {
+            console.warn(
+              "Failed to send mention notifications:",
+              notificationResult.message
+            );
+          } else {
+            console.log(
+              "Mention notifications sent successfully:",
+              notificationResult.data
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error processing mention notifications:", error);
+        // Don't fail the card update if mention notifications fail
+      }
+    }
 
     broadcastToWebSocket(EnumUserActionEvent.CardUpdated, {
       card: data,

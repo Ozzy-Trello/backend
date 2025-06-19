@@ -244,7 +244,7 @@ export default class CardRestView implements CardRestViewI {
         is_with_checklist: req.body?.is_with_checklist,
         target_board_id: req.body?.target_board_id,
         target_list_id: req.body?.target_list_id,
-        position: req.body?.position
+        position: req.body?.position,
       }),
       EnumTriggeredBy.User
     );
@@ -569,7 +569,11 @@ export default class CardRestView implements CardRestViewI {
   async CompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.CompleteCard(user_id, card_id, EnumTriggeredBy.User);
+    const result = await this.card_controller.CompleteCard(
+      user_id,
+      card_id,
+      EnumTriggeredBy.User
+    );
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;
@@ -580,7 +584,11 @@ export default class CardRestView implements CardRestViewI {
   async IncompleteCard(req: Request, res: Response): Promise<void> {
     const user_id = req.auth!.user_id;
     const card_id = req.params.id?.toString();
-    const result = await this.card_controller.IncompleteCard(user_id, card_id, EnumTriggeredBy.User);
+    const result = await this.card_controller.IncompleteCard(
+      user_id,
+      card_id,
+      EnumTriggeredBy.User
+    );
     if (result.status_code !== StatusCodes.OK) {
       res.status(result.status_code).json({ message: result.message });
       return;

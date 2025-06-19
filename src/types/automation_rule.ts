@@ -62,6 +62,9 @@ export enum TriggerType {
   // "when-custom-fields-<fields>-is-set-to-<field_value>-<optional_by>"
   WhenCustomFieldsIsSetToFieldValue = `when-custom-fields-<${EnumSelectionType.Fields}>-is-set-to-<${EnumSelectionType.FieldValue}>-<${EnumSelectionType.OptionalBySubject}>`,
 
+  // "when-custom-fields-<fields>-is-<action>-<optional_by>"
+  WhenCustomFieldsIsSet = `when-custom-fields-<${EnumSelectionType.Fields}>-is-<${EnumSelectionType.Action}>-<${EnumSelectionType.OptionalBySubject}>`,
+
   // add more..
 }
 
