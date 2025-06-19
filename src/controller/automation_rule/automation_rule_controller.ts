@@ -197,122 +197,122 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               }
             }
 
-            // if (rule.condition?.[EnumSelectionType.OptionalBySubject]) {
-            //   console.log(
-            //     `rule has optional ${EnumSelectionType.OptionalBySubject} dependency`
-            //   );
+            if (rule.condition?.[EnumSelectionType.OptionalBySubject]) {
+              console.log(
+                `rule has optional ${EnumSelectionType.OptionalBySubject} dependency`
+              );
 
-            //   // by me
-            //   if (
-            //     rule.condition?.[EnumSelectionType.OptionalBySubject]
-            //       ?.operator == EnumOptionsSubject.ByMe
-            //   ) {
-            //     if (rule.created_by !== recentUserAction?.user_id) {
-            //       isPermsissable = false;
-            //     }
-            //   }
+              // by me
+              if (
+                rule.condition?.[EnumSelectionType.OptionalBySubject]
+                  ?.operator == EnumOptionsSubject.ByMe
+              ) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
 
-            //   // by anyone, except me
-            //   if (
-            //     rule.condition?.[EnumSelectionType.OptionalBySubject]
-            //       ?.operator == EnumOptionsSubject.ByAnyoneExceptMe
-            //   ) {
-            //     if (rule.created_by === recentUserAction?.user_id) {
-            //       isPermsissable = false;
-            //     }
-            //   }
+              // by anyone, except me
+              if (
+                rule.condition?.[EnumSelectionType.OptionalBySubject]
+                  ?.operator == EnumOptionsSubject.ByAnyoneExceptMe
+              ) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
 
-            //   if (
-            //     typeof rule.condition?.[EnumSelectionType.OptionalBySubject] ==
-            //     "object"
-            //   ) {
-            //     // by specific user - baru bisa single user
-            //     if (
-            //       rule.condition?.[EnumSelectionType.OptionalBySubject]
-            //         ?.operator == EnumOptionsSubject.BySpecificUser
-            //     ) {
-            //       if (
-            //         !rule.condition?.[
-            //           EnumSelectionType.OptionalBySubject
-            //         ]?.data.includes(recentUserAction?.user_id)
-            //       ) {
-            //         isPermsissable = false;
-            //       }
-            //     }
+              if (
+                typeof rule.condition?.[EnumSelectionType.OptionalBySubject] ==
+                "object"
+              ) {
+                // by specific user - baru bisa single user
+                if (
+                  rule.condition?.[EnumSelectionType.OptionalBySubject]
+                    ?.operator == EnumOptionsSubject.BySpecificUser
+                ) {
+                  if (
+                    !rule.condition?.[
+                      EnumSelectionType.OptionalBySubject
+                    ]?.data.includes(recentUserAction?.user_id)
+                  ) {
+                    isPermsissable = false;
+                  }
+                }
 
-            //     // anyone, except specific user
-            //     if (
-            //       rule.condition?.[EnumSelectionType.OptionalBySubject]
-            //         ?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser
-            //     ) {
-            //       if (
-            //         rule.condition?.[
-            //           EnumSelectionType.OptionalBySubject
-            //         ]?.data.includes(recentUserAction?.user_id)
-            //       ) {
-            //         isPermsissable = false;
-            //       }
-            //     }
-            //   }
-            // }
+                // anyone, except specific user
+                if (
+                  rule.condition?.[EnumSelectionType.OptionalBySubject]
+                    ?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser
+                ) {
+                  if (
+                    rule.condition?.[
+                      EnumSelectionType.OptionalBySubject
+                    ]?.data.includes(recentUserAction?.user_id)
+                  ) {
+                    isPermsissable = false;
+                  }
+                }
+              }
+            }
 
-            // if (rule.condition?.[EnumSelectionType.BySubject]) {
-            //   console.log(
-            //     `rule has optional ${EnumSelectionType.BySubject} dependency`
-            //   );
+            if (rule.condition?.[EnumSelectionType.BySubject]) {
+              console.log(
+                `rule has optional ${EnumSelectionType.BySubject} dependency`
+              );
 
-            //   // by me
-            //   if (
-            //     rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-            //     EnumOptionsSubject.ByMe
-            //   ) {
-            //     if (rule.created_by !== recentUserAction?.user_id) {
-            //       isPermsissable = false;
-            //     }
-            //   }
+              // by me
+              if (
+                rule.condition?.[EnumSelectionType.BySubject]?.operator ==
+                EnumOptionsSubject.ByMe
+              ) {
+                if (rule.created_by !== recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
 
-            //   // by anyone, except me
-            //   if (
-            //     rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-            //     EnumOptionsSubject.ByAnyoneExceptMe
-            //   ) {
-            //     if (rule.created_by === recentUserAction?.user_id) {
-            //       isPermsissable = false;
-            //     }
-            //   }
+              // by anyone, except me
+              if (
+                rule.condition?.[EnumSelectionType.BySubject]?.operator ==
+                EnumOptionsSubject.ByAnyoneExceptMe
+              ) {
+                if (rule.created_by === recentUserAction?.user_id) {
+                  isPermsissable = false;
+                }
+              }
 
-            //   if (
-            //     typeof rule.condition?.[EnumSelectionType.BySubject] == "object"
-            //   ) {
-            //     // by specific user
-            //     if (
-            //       rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-            //       EnumOptionsSubject.BySpecificUser
-            //     ) {
-            //       if (
-            //         !rule.condition?.[
-            //           EnumSelectionType.BySubject
-            //         ]?.data.includes(recentUserAction?.user_id)
-            //       ) {
-            //         isPermsissable = false;
-            //       }
-            //     }
+              if (
+                typeof rule.condition?.[EnumSelectionType.BySubject] == "object"
+              ) {
+                // by specific user
+                if (
+                  rule.condition?.[EnumSelectionType.BySubject]?.operator ==
+                  EnumOptionsSubject.BySpecificUser
+                ) {
+                  if (
+                    !rule.condition?.[
+                      EnumSelectionType.BySubject
+                    ]?.data.includes(recentUserAction?.user_id)
+                  ) {
+                    isPermsissable = false;
+                  }
+                }
 
-            //     // anyone, except specific user
-            //     if (
-            //       rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-            //       EnumOptionsSubject.ByAnyoneExceptSpecificUser
-            //     ) {
-            //       if (
-            //         rule.condition?.[
-            //           EnumSelectionType.BySubject
-            //         ]?.data.includes(recentUserAction?.user_id)
-            //       ) {
-            //         isPermsissable = false;
-            //       }
-            //     }
-            //   }
-            // }
+                // anyone, except specific user
+                if (
+                  rule.condition?.[EnumSelectionType.BySubject]?.operator ==
+                  EnumOptionsSubject.ByAnyoneExceptSpecificUser
+                ) {
+                  if (
+                    rule.condition?.[
+                      EnumSelectionType.BySubject
+                    ]?.data.includes(recentUserAction?.user_id)
+                  ) {
+                    isPermsissable = false;
+                  }
+                }
+              }
+            }
 
             if (isPermsissable) {
               console.log("passed permissable actually");
