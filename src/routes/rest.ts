@@ -193,7 +193,6 @@ export default async function (): Promise<Router> {
   list_controller.SetEventPublisher(eventPublisher);
   list_controller.SetAutomationRuleController(automation_rule_controller);
 
-
   // Views
   const trigger_rest_view = new TriggerRestView(trigger_controller);
   const account_rest_view = new AccountRestView(account_controller);
@@ -320,7 +319,7 @@ export default async function (): Promise<Router> {
       card_rest_view.GetCardTimeInBoard
     );
     router_card.get(
-      "/:id/dashcard/count",
+      "/:id/dashcard/count/:workspace_id",
       restJwt,
       card_rest_view.GetDashcardCount
     );
@@ -349,6 +348,11 @@ export default async function (): Promise<Router> {
       label_rest_view.RemoveLabelFromCard
     );
     router_card.post("/:id/label", restJwt, label_rest_view.AddLabelToCard);
+    router_card.get(
+      "/:id/list-dashcard/:workspace_id",
+      restJwt,
+      card_rest_view.GetListDashcard
+    );
   }
 
   const router_list = Router();

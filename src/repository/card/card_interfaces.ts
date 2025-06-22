@@ -45,11 +45,18 @@ export interface CardRepositoryI {
   newTopOrderCard(list_id: string): Promise<ResponseData<number>>;
   newBottomOrderCard(list_id: string): Promise<ResponseData<number>>;
   countAllCards(): Promise<number>;
-  countCardsWithFilters(filters: FilterConfig[]): Promise<number>;
+  countCardsWithFilters(
+    filters: FilterConfig[],
+    workspaceId: string
+  ): Promise<number>;
   copyCardWithMirror(
     card_id: string,
     target_list_id: string
   ): Promise<ResponseData<CardDetail>>;
+  getListDashcard(
+    id: string,
+    workspace_id: string
+  ): Promise<{ items: IItemDashcard[]; dashConfig: DashCardConfig }>;
 }
 
 export class CardActivity {
