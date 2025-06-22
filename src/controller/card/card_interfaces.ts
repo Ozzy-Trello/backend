@@ -96,7 +96,10 @@ export interface CardControllerI {
     card_id: string,
     board_id: string
   ): Promise<ResponseData<CardBoardTimeDetail>>;
-  GetDashcardCount(dashcardId: string): Promise<ResponseData<number>>;
+  GetDashcardCount(
+    dashcardId: string,
+    workspaceId: string
+  ): Promise<ResponseData<number>>;
   CompleteCard(
     user_id: string,
     card_id: string,
@@ -118,6 +121,10 @@ export interface CardControllerI {
     target_list_id: string,
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardDetail>>;
+  GetListDashcard(
+    id: string,
+    workspace_id: string
+  ): Promise<ResponseData<ListDashcardDataResponse>>;
 }
 
 export class CreateCardResponse {
@@ -231,6 +238,7 @@ export class UpdateCardData {
   start_date?: Date;
   due_date?: Date;
   due_date_reminder?: string;
+  dash_config?: JSON;
 
   constructor(payload: Partial<UpdateCardData>) {
     Object.assign(this, payload);
@@ -247,7 +255,8 @@ export class UpdateCardData {
       this.location == undefined &&
       this.start_date == undefined &&
       this.due_date == undefined &&
-      this.due_date_reminder == undefined
+      this.due_date_reminder == undefined &&
+      this.dash_config == undefined
     );
   }
 
@@ -260,6 +269,7 @@ export class UpdateCardData {
       start_date: this.start_date,
       due_date: this.due_date,
       due_date_reminder: this.due_date_reminder,
+      dash_config: this.dash_config,
     });
   }
   getErrorfield(): string | null {
@@ -598,6 +608,15 @@ export class CopyCardData {
   position?: string | number | EnumOptionPosition;
 
   constructor(payload: Partial<CopyCardData>) {
+    Object.assign(this, payload);
+  }
+}
+
+export class ListDashcardDataResponse {
+  dash_config!: DashCardConfig;
+  items!: IItemDashcard[];
+
+  constructor(payload: Partial<ListDashcardDataResponse>) {
     Object.assign(this, payload);
   }
 }

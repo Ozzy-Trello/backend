@@ -39,6 +39,7 @@ export default class CardRestView implements CardRestViewI {
     this.CompleteCard = this.CompleteCard.bind(this);
     this.IncompleteCard = this.IncompleteCard.bind(this);
     this.MakeMirrorCard = this.MakeMirrorCard.bind(this);
+    this.GetListDashcard = this.GetListDashcard.bind(this);
   }
 
   async ArchiveCard(req: Request, res: Response): Promise<void> {
@@ -440,6 +441,7 @@ export default class CardRestView implements CardRestViewI {
         start_date: req.body.start_date,
         due_date: req.body.due_date,
         due_date_reminder: req.body.due_date_reminder,
+        dash_config: req.body.dash_config,
       }),
       EnumTriggeredBy.User
     );
@@ -539,13 +541,17 @@ export default class CardRestView implements CardRestViewI {
 
   async GetDashcardCount(req: Request, res: Response): Promise<void> {
     const cardId = req.params.id?.toString();
+    const workspaceId = req.params.workspace_id?.toString();
     if (!cardId) {
       res.status(StatusCodes.BAD_REQUEST).json({
         message: "id header is required",
       });
       return;
     }
-    let accResponse = await this.card_controller.GetDashcardCount(cardId);
+    let accResponse = await this.card_controller.GetDashcardCount(
+      cardId,
+      workspaceId
+    );
 
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -652,5 +658,46 @@ export default class CardRestView implements CardRestViewI {
       paginate: accResponse.paginate,
     });
     return;
+  }
+
+  async GetListDashcard(req: Request, res: Response): Promise<void> {
+    const id = req.params.id;
+    const workspace_id = req.params.workspace_id;
+
+    if (!workspace_id || workspace_id === "null") {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "workspace_id is required",
+      });
+      return;
+    }
+
+    if (!id || id === "null") {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "id is required",
+      });
+      return;
+    }
+
+    let accResponse = await this.card_controller.GetListDashcard(
+      id,
+      workspace_id
+    );
+
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          message: "internal server error",
+        });
+        return;
+      }
+      res.status(accResponse.status_code).json({
+        message: accResponse.message,
+      });
+      return;
+    }
+    res.status(accResponse.status_code).json({
+      data: accResponse.data,
+      message: "List dashcard retrieved successfully",
+    });
   }
 }

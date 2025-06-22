@@ -313,6 +313,7 @@ export class CardRepository implements CardRepositoryI {
           message: "get detail card without filter is not allowed",
         };
       }
+
       const card = await Card.findOne({ where: filterData });
       if (!card) {
         return {
@@ -333,9 +334,10 @@ export class CardRepository implements CardRepositoryI {
         dash_config: card?.dash_config,
         due_date: card?.due_date,
         due_date_reminder: card?.due_date_reminder,
+        type: card?.type,
       });
 
-      if (card?.dash_config) {
+      if (card.type === CardType.Dashcard) {
         const dashConfig =
           typeof card.dash_config === "string"
             ? JSON.parse(card.dash_config)
@@ -343,7 +345,7 @@ export class CardRepository implements CardRepositoryI {
 
         const filters = (dashConfig?.filters || []) as FilterConfig[];
 
-        result.item_dashcard = await this.getItemsDashcard(filters);
+        // result.item_dashcard = await this.getItemsDashcard(filters);
       }
 
       return new ResponseData({
@@ -912,9 +914,12 @@ export class CardRepository implements CardRepositoryI {
     }
   }
 
-  async countCardsWithFilters(filters: FilterConfig[]): Promise<number> {
+  async countCardsWithFilters(
+    filters: FilterConfig[],
+    workspaceId: string
+  ): Promise<number> {
     try {
-      const result = await this.getItemsDashcard(filters);
+      const result = await this.getItemsDashcard(filters, workspaceId);
 
       return result?.length || 0;
     } catch (e) {
@@ -1027,7 +1032,7 @@ export class CardRepository implements CardRepositoryI {
     return mentionedUserIds;
   }
 
-  async getItemsDashcard(filters: FilterConfig[]) {
+  async getItemsDashcard(filters: FilterConfig[], workspace_id: string) {
     try {
       const cardListDashCard: IItemDashcard[] = [];
 
@@ -1047,6 +1052,7 @@ export class CardRepository implements CardRepositoryI {
                   const queryBoardStartsWith = await db
                     .selectFrom("board")
                     .select(["id"])
+                    .where("workspace_id", "=", workspace_id)
                     .where((eb) => eb("name", "like", eb.val(`${value}%`)))
                     .execute();
 
@@ -1058,6 +1064,7 @@ export class CardRepository implements CardRepositoryI {
                   const queryBoard = await db
                     .selectFrom("board")
                     .select(["id"])
+                    .where("workspace_id", "=", workspace_id)
                     .where("name", "=", value)
                     .execute();
 
@@ -1095,8 +1102,10 @@ export class CardRepository implements CardRepositoryI {
                 case "starts_with":
                   const queryListStartsWith = await db
                     .selectFrom("list")
-                    .select(["id"])
-                    .where((eb) => eb("name", "like", eb.val(`${value}%`)))
+                    .innerJoin("board", "board.id", "list.board_id")
+                    .select(["list.id"])
+                    .where("board.workspace_id", "=", workspace_id)
+                    .where((eb) => eb("list.name", "like", eb.val(`${value}%`)))
                     .execute();
 
                   listIds.push(...queryListStartsWith.map((l) => l.id));
@@ -1106,7 +1115,9 @@ export class CardRepository implements CardRepositoryI {
                 default:
                   const queryList = await db
                     .selectFrom("list")
-                    .select(["id"])
+                    .innerJoin("board", "board.id", "list.board_id")
+                    .select(["list.id"])
+                    .where("board.workspace_id", "=", workspace_id)
                     .where("name", "=", value)
                     .execute();
 
@@ -1133,22 +1144,28 @@ export class CardRepository implements CardRepositoryI {
             if (value) {
               switch (operator) {
                 case "includes_any_of":
-                  console.log(value, "queryAssignInclude");
                   const queryAssignInclude = await db
                     .selectFrom("card_member")
-                    .select(["card_id"])
-                    .where("user_id", "in", [value])
+                    .innerJoin("card", "card.id", "card_member.card_id")
+                    .innerJoin("list", "list.id", "card.list_id")
+                    .innerJoin("board", "board.id", "list.board_id")
+                    .select(["card_member.card_id"])
+                    .where("board.workspace_id", "=", workspace_id)
+                    .where("card_member.user_id", "in", [value])
                     .execute();
 
-                  console.log({ queryAssignInclude }, "queryAssignInclude");
                   cardIds.push(...queryAssignInclude.map((a) => a.card_id));
                   break;
 
                 case "does_not_include":
                   const queryAssignNotInclude = await db
                     .selectFrom("card_member")
-                    .select(["card_id"])
-                    .where("user_id", "not in", [value])
+                    .innerJoin("card", "card.id", "card_member.card_id")
+                    .innerJoin("list", "list.id", "card.list_id")
+                    .innerJoin("board", "board.id", "list.board_id")
+                    .select(["card_member.card_id"])
+                    .where("board.workspace_id", "=", workspace_id)
+                    .where("card_member.user_id", "not in", [value])
                     .execute();
                   cardIds.push(...queryAssignNotInclude.map((a) => a.card_id));
                   break;
@@ -1174,13 +1191,15 @@ export class CardRepository implements CardRepositoryI {
             let query = db
               .selectFrom("card")
               .leftJoin("list", "card.list_id", "list.id")
+              .leftJoin("board", "list.board_id", "board.id")
               .leftJoin("card_member", "card.id", "card_member.card_id")
               .leftJoin(
                 "card_custom_field",
                 "card.id",
                 "card_custom_field.card_id"
               )
-              .where("card.type", "!=", "dashcard");
+              .where("card.type", "!=", "dashcard")
+              .where("board.workspace_id", "=", workspace_id);
 
             switch (operator) {
               case "equals":
@@ -1267,6 +1286,16 @@ export class CardRepository implements CardRepositoryI {
             cardListDashCard.push(...generateColumnItemDashcard);
           }
         }
+      }
+
+      if (filters.length === 0) {
+        const resultCards = await this.getCardListDashcard({});
+
+        const generateColumnItemDashcard = await this.getColumnItemDashcard(
+          resultCards
+        );
+
+        cardListDashCard.push(...generateColumnItemDashcard);
       }
 
       return cardListDashCard.filter((item, index, self) => {
@@ -1379,6 +1408,51 @@ export class CardRepository implements CardRepositoryI {
     } catch (error) {
       console.error("Error getting column item dashcard:", error);
       return [];
+    }
+  }
+
+  async getListDashcard(id: string, workspace_id: string) {
+    try {
+      const card = await this.getCard({ id });
+
+      if (!workspace_id) {
+        throw new InternalServerError(
+          StatusCodes.BAD_REQUEST,
+          "workspace_id is required"
+        );
+      }
+
+      if (card.status_code !== StatusCodes.OK || !card || !card.data) {
+        throw new InternalServerError(card.status_code, card.message);
+      }
+
+      const cardDetail = card.data;
+
+      if (cardDetail?.type !== CardType.Dashcard) {
+        throw new InternalServerError(
+          StatusCodes.BAD_REQUEST,
+          "card is not dashcard"
+        );
+      }
+
+      const dashConfig =
+        typeof cardDetail.dash_config === "string"
+          ? JSON.parse(cardDetail.dash_config)
+          : cardDetail.dash_config;
+
+      const filters = (dashConfig?.filters || []) as FilterConfig[];
+
+      const items = await this.getItemsDashcard(filters, workspace_id);
+
+      return {
+        items,
+        dashConfig,
+      };
+    } catch (error) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        error as string
+      );
     }
   }
 }

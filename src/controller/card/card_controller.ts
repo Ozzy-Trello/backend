@@ -25,6 +25,9 @@ import {
   CardMoveData,
   CardSearch,
   CopyCardData,
+  FilterConfig,
+  ListDashcardDataResponse,
+  DashCardConfig,
 } from "@/controller/card/card_interfaces";
 import { ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
@@ -1695,7 +1698,10 @@ export class CardController implements CardControllerI {
     });
   }
 
-  async GetDashcardCount(dashcardId: string): Promise<ResponseData<number>> {
+  async GetDashcardCount(
+    dashcardId: string,
+    workspaceId: string
+  ): Promise<ResponseData<number>> {
     try {
       // Get the dashcard
       const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
@@ -1713,24 +1719,9 @@ export class CardController implements CardControllerI {
 
       const dashConfig = dashcardResponse.data.getDashConfig();
 
-      if (
-        !dashConfig ||
-        !dashConfig.filters ||
-        dashConfig.filters.length === 0
-      ) {
-        // No filters - count all non-dashcard cards
-        const count = await this.card_repo.countAllCards();
-
-        return new ResponseData({
-          status_code: StatusCodes.OK,
-          message: "Dashcard count retrieved successfully",
-          data: count,
-        });
-      }
-
-      // Count cards with filters
       const count = await this.card_repo.countCardsWithFilters(
-        dashConfig.filters
+        dashConfig?.filters ?? [],
+        workspaceId
       );
 
       return new ResponseData({
@@ -1772,5 +1763,35 @@ export class CardController implements CardControllerI {
       target_list_id
     );
     return result;
+  }
+
+  async GetListDashcard(
+    id: string,
+    workspace_id: string
+  ): Promise<ResponseData<ListDashcardDataResponse>> {
+    try {
+      const result = await this.card_repo.getListDashcard(id, workspace_id);
+      return new ResponseData({
+        message: "Dashcard list retrieved successfully",
+        status_code: StatusCodes.OK,
+        data: {
+          dash_config: result.dashConfig,
+          items: result.items,
+        },
+      });
+    } catch (error) {
+      console.error("Error in GetListDashcard:", error);
+      return new ResponseData({
+        message: "Internal server error",
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        data: {
+          dash_config: new DashCardConfig({
+            background_color: "",
+            filters: [],
+          }),
+          items: [],
+        },
+      });
+    }
   }
 }
