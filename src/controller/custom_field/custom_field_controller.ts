@@ -3,7 +3,11 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { broadcastToWebSocket } from "@/server";
-import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
+import {
+  EnumTriggeredBy,
+  EnumUserActionEvent,
+  UserActionEvent,
+} from "@/types/event";
 import { EventPublisher } from "@/event_publisher";
 import {
   CardCustomFieldResponse,
@@ -61,6 +65,68 @@ export class CustomFieldController implements CustomFieldControllerI {
     this.UpdateCustomField = this.UpdateCustomField.bind(this);
     this.CreateCustomField = this.CreateCustomField.bind(this);
     this.SetEventPublisher = this.SetEventPublisher.bind(this);
+  }
+
+  async ReorderCustomFields(
+    user_id: string,
+    workspaceId: string,
+    customFieldId: string,
+    targetPosition: number,
+    targetPositionTopOrBottom?: "top" | "bottom"
+  ): Promise<ResponseData<null>> {
+    try {
+      // Validate workspace access
+      const workspace = await this.workspace_repo.getWorkspace(
+        new filterWorkspaceDetail({ id: workspaceId })
+      );
+
+      if (workspace.status_code !== StatusCodes.OK) {
+        return new ResponseData({
+          status_code: StatusCodes.NOT_FOUND,
+          message: "Workspace not found",
+        });
+      }
+
+      // Check if user has permission to manage custom fields in this workspace
+      // Add your permission check logic here if needed
+
+      // Perform the reorder operation
+      const result = await this.custom_field_repo.reorderCustomFields(
+        workspaceId,
+        customFieldId,
+        targetPosition,
+        targetPositionTopOrBottom
+      );
+
+      // Publish event if needed
+      if (this.event_publisher) {
+        const event: UserActionEvent = {
+          eventId: uuidv4(),
+          type: EnumUserActionEvent.CardUpdated, // Using CardUpdated as a fallback since we don't have a specific event for custom field reorder
+          workspace_id: workspaceId,
+          user_id: user_id,
+          timestamp: new Date(),
+          data: {
+            card: {
+              id: customFieldId,
+              action: "custom_field_reordered",
+              custom_field_id: customFieldId,
+              target_position: targetPosition,
+              position_type: targetPositionTopOrBottom || "position",
+            },
+          },
+        };
+        await this.event_publisher.publishUserAction(event);
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error reordering custom fields:", error);
+      return new ResponseData({
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: "Failed to reorder custom fields",
+      });
+    }
   }
 
   async CreateCustomField(
@@ -391,7 +457,6 @@ export class CustomFieldController implements CustomFieldControllerI {
     card_id: string,
     user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>> {
-
     if (!isValidUUID(card_id)) {
       return new ResponseData({
         message: "'card_id' is not valid uuid",
@@ -446,7 +511,7 @@ export class CustomFieldController implements CustomFieldControllerI {
           });
 
           // Publish user action event for automation
-          if (this.event_publisher &&  triggerdBy === EnumTriggeredBy.User) {
+          if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
             const eventData: any = {
               card: { id: card_id },
               previous_data: findData.data,
@@ -465,7 +530,7 @@ export class CustomFieldController implements CustomFieldControllerI {
               user_id: "system",
               timestamp: new Date(),
               data: eventData,
-            }
+            };
             console.log("Trying to publish event: %s", event.eventId);
             this.event_publisher.publishUserAction(event);
           }
@@ -525,7 +590,7 @@ export class CustomFieldController implements CustomFieldControllerI {
                 user_id: "system",
                 timestamp: new Date(),
                 data: eventData,
-              }
+              };
               console.Console;
               this.event_publisher.publishUserAction(event);
             }

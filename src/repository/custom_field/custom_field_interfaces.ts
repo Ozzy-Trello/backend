@@ -94,6 +94,13 @@ export interface CustomFieldRepositoryI {
   getCustomFieldById(
     id: string
   ): Promise<ResponseData<CustomFieldDetail | undefined>>;
+  
+  reorderCustomFields(
+    workspaceId: string,
+    customFieldId: string,
+    targetPosition: number,
+    targetPositionTopOrBottom?: 'top' | 'bottom'
+  ): Promise<ResponseData<null>>;
 }
 
 export interface filterCustomFieldDetail {

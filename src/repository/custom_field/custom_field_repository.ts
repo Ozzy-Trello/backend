@@ -518,8 +518,8 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
           "trigger.action as action",
         ])
         .orderBy("custom_field.order asc")
-        .offset(paginate.getOffset())
-        .limit(paginate.limit)
+        .offset(0)
+        .limit(1000)
         .execute();
 
       return new ResponseListData(
@@ -986,6 +986,80 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
         e instanceof Error ? e.message : String(e)
       );
     }
+  }
+
+  async reorderCustomFields(
+    workspaceId: string,
+    customFieldId: string,
+    targetPosition: number,
+    targetPositionTopOrBottom?: 'top' | 'bottom'
+  ): Promise<ResponseData<null>> {
+    return await db.transaction().execute(async (trx) => {
+      try {
+        // Get all custom fields in the workspace ordered by their current order
+        const customFields = await trx
+          .selectFrom('custom_field')
+          .where('workspace_id', '=', workspaceId)
+          .orderBy('order', 'asc')
+          .select(['id', 'order'])
+          .execute();
+
+        // Find the index of the custom field being moved
+        const sourceIndex = customFields.findIndex(cf => cf.id === customFieldId);
+        if (sourceIndex === -1) {
+          return new ResponseData({
+            status_code: StatusCodes.NOT_FOUND,
+            message: 'Custom field not found',
+          });
+        }
+
+        // Remove the custom field from its current position
+        const [movedField] = customFields.splice(sourceIndex, 1);
+
+        // Determine the target position
+        let newPosition: number;
+
+        if (targetPositionTopOrBottom === 'top') {
+          newPosition = 0;
+        } else if (targetPositionTopOrBottom === 'bottom') {
+          newPosition = customFields.length;
+        } else {
+          // Ensure target position is within bounds
+          newPosition = Math.max(0, Math.min(targetPosition, customFields.length));
+        }
+
+        // Insert the custom field at the target position
+        customFields.splice(newPosition, 0, movedField);
+
+        // Update the order values
+        let order = 10000; // Start with a large number to leave room for reordering
+        const updates = [];
+
+        for (const field of customFields) {
+          updates.push(
+            trx
+              .updateTable('custom_field')
+              .set({ order })
+              .where('id', '=', field.id)
+              .execute()
+          );
+          order += 10000; // Increment by a large number to leave room for future inserts
+        }
+
+        await Promise.all(updates);
+
+        return new ResponseData({
+          status_code: StatusCodes.OK,
+          message: 'Custom fields reordered successfully',
+        });
+      } catch (error) {
+        console.error('Error reordering custom fields:', error);
+        return new ResponseData({
+          status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+          message: 'Failed to reorder custom fields',
+        });
+      }
+    });
   }
 
   async getCustomFieldById(
