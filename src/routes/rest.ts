@@ -421,6 +421,13 @@ export default async function (): Promise<Router> {
       restJwt,
       custom_field_rest_view.DeleteCustomField
     );
+    
+    // Add reorder endpoint
+    router_custom_field.post(
+      "/:customFieldId/reorder",
+      restJwt,
+      custom_field_rest_view.ReorderCustomFields
+    );
   }
 
   const router_trigger = Router();
