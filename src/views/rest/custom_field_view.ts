@@ -27,6 +27,7 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
     this.DeleteCustomField = this.DeleteCustomField.bind(this);
     this.GetListCardCustomField = this.GetListCardCustomField.bind(this);
     this.SetCardCustomFieldValue = this.SetCardCustomFieldValue.bind(this);
+    this.ReorderCustomFields = this.ReorderCustomFields.bind(this);
   }
 
   async CreateCustomField(req: Request, res: Response): Promise<void> {
@@ -105,7 +106,6 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
       user_id
     );
 
-    console.log(accResponse, "<< ini acc");
     if (accResponse.status_code !== StatusCodes.OK) {
       if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
         res.status(accResponse.status_code).json({
@@ -213,6 +213,51 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
       message: accResponse.message,
     });
     return;
+  }
+
+  async ReorderCustomFields(req: Request, res: Response): Promise<void> {
+    const { customFieldId } = req.params;
+    const { target_position: targetPosition, positionType } = req.body;
+    const workspaceId = req.header("workspace-id")?.toString();
+
+    if (!workspaceId) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "workspace-id header is required",
+      });
+      return;
+    }
+
+    if (targetPosition === undefined || targetPosition === null) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        message: "targetPosition is required",
+      });
+      return;
+    }
+
+    const accResponse = await this.custom_field_controller.ReorderCustomFields(
+      req.auth!.user_id,
+      workspaceId,
+      customFieldId,
+      parseInt(targetPosition, 10),
+      positionType
+    );
+
+    if (accResponse.status_code !== StatusCodes.OK) {
+      if (accResponse.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+        res.status(accResponse.status_code).json({
+          message: "Internal server error",
+        });
+        return;
+      }
+      res.status(accResponse.status_code).json({
+        message: accResponse.message,
+      });
+      return;
+    }
+
+    res.status(accResponse.status_code).json({
+      message: accResponse.message,
+    });
   }
 
   async SetCardCustomFieldValue(req: Request, res: Response): Promise<void> {
