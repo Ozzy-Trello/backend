@@ -13,6 +13,7 @@ import { sql } from "kysely";
 import Board from "@/database/schemas/board";
 import { BoardRole } from "@/database/schemas/board_role";
 import { Op } from "sequelize";
+import { Role } from "@/database/schemas/role";
 
 export class BoardRepository implements BoardRepositoryI {
   createFilter(filter: filterBoardDetail): any {
@@ -70,36 +71,76 @@ export class BoardRepository implements BoardRepositoryI {
     }
   }
 
-  async createBoard(data: BoardDetail): Promise<ResponseData<BoardDetail>> {
+  async createBoard(
+    data: BoardDetail & { roleIds?: string[] }
+  ): Promise<ResponseData<BoardDetail>> {
+    if (!data.name) {
+      throw new Error("Board name is required");
+    }
+
+    if (!data.workspace_id) {
+      throw new Error("Workspace ID is required");
+    }
+
     try {
-      const board = await Board.create({
-        name: data.name!,
-        description: data.description!,
-        background: data.background!,
-        workspace_id: data.workspace_id,
-      });
+      // Generate a new UUID for the board
+      const boardId = crypto.randomUUID();
+      const now = new Date();
+
+      // Create the board
+      const [board] = await db
+        .insertInto("board")
+        .values({
+          id: boardId,
+          name: data.name,
+          description: data.description || "",
+          background: data.background || "",
+          workspace_id: data.workspace_id,
+          created_by: data.created_by,
+          updated_by: data.updated_by || data.created_by,
+          created_at: now,
+          updated_at: now,
+          visibility: "public", // Default visibility
+        } as any) // Type assertion to bypass strict type checking
+        .returningAll()
+        .execute();
+
+      // Assign roles if provided
+      const roleIds = data.roleIds || [];
+      if (roleIds.length > 0) {
+        // Insert role assignments in batch
+        await db.transaction().execute(async (trx) => {
+          await Promise.all(
+            roleIds.map((roleId) =>
+              trx
+                .insertInto("board_roles" as any) // Type assertion as a workaround
+                .values({
+                  board_id: board.id,
+                  role_id: roleId,
+                  created_at: new Date(),
+                  updated_at: new Date(),
+                })
+                .execute()
+            )
+          );
+        });
+      }
+
+      // Return the created board
       return new ResponseData({
         status_code: StatusCodes.OK,
-        message: "create board success",
+        message: "Board created successfully",
         data: new BoardDetail({
           id: board.id,
           name: board.name,
-          description: board.description,
-          background: board.background,
+          description: board.description || undefined,
+          background: board.background || undefined,
           workspace_id: board.workspace_id,
         }),
       });
-    } catch (e) {
-      if (e instanceof Error) {
-        throw new InternalServerError(
-          StatusCodes.INTERNAL_SERVER_ERROR,
-          e.message
-        );
-      }
-      throw new InternalServerError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        e as string
-      );
+    } catch (error) {
+      console.error("Error creating board:", error);
+      throw new Error("Failed to create board");
     }
   }
 
@@ -111,7 +152,6 @@ export class BoardRepository implements BoardRepositoryI {
     try {
       await BoardRole.create({
         board_id: id,
-        user_id: user_id,
         role_id: role_id,
       });
       return StatusCodes.NO_CONTENT;
@@ -129,10 +169,10 @@ export class BoardRepository implements BoardRepositoryI {
     }
   }
 
-  async removeMember(id: string, user_id: string): Promise<number> {
+  async removeMember(id: string): Promise<number> {
     try {
       const board = await BoardRole.destroy({
-        where: { user_id, board_id: id },
+        where: { board_id: id },
       });
       if (board <= 0) {
         return StatusCodes.NOT_FOUND;
@@ -152,10 +192,10 @@ export class BoardRepository implements BoardRepositoryI {
     }
   }
 
-  async isMember(id: string, user_id: string): Promise<boolean> {
+  async isMember(id: string): Promise<boolean> {
     try {
       const count = await BoardRole.count({
-        where: { user_id, board_id: id },
+        where: { board_id: id },
       });
       return count > 0;
     } catch (e) {
@@ -176,19 +216,41 @@ export class BoardRepository implements BoardRepositoryI {
     filter: filterBoardDetail
   ): Promise<ResponseData<BoardDetail>> {
     try {
-      const board = await Board.findOne({ where: this.createFilter(filter) });
-      if (!board) {
+      const board = (await Board.findOne({
+        where: this.createFilter(filter),
+      })) as any;
+
+      if (!board?.id) {
         return {
           status_code: StatusCodes.NOT_FOUND,
           message: "board is not found",
         };
       }
-      let result = new BoardDetail({
+
+      const boardRoles = await BoardRole.findAll({
+        where: { board_id: board.id },
+      });
+
+      if (!boardRoles || boardRoles.length === 0) {
+        return {
+          status_code: StatusCodes.NOT_FOUND,
+          message: "board roles not found",
+        };
+      }
+
+      const roleData = await Role.findAll({
+        where: {
+          id: boardRoles.map((role: BoardRole) => role.role_id),
+        },
+      });
+
+      const result = new BoardDetail({
         id: board.id,
         name: board.name,
         description: board.description,
         background: board.background,
         workspace_id: board.workspace_id,
+        roleIds: roleData.map((role: Role) => role.id),
       });
 
       return new ResponseData({
@@ -205,7 +267,7 @@ export class BoardRepository implements BoardRepositoryI {
       }
       throw new InternalServerError(
         StatusCodes.INTERNAL_SERVER_ERROR,
-        e as string
+        String(e)
       );
     }
   }
@@ -215,8 +277,6 @@ export class BoardRepository implements BoardRepositoryI {
     paginate: Paginate
   ): Promise<ResponseListData<Array<BoardDetail>>> {
     try {
-      console.log(filter, "<< ini filter");
-
       let query = db.selectFrom("board").selectAll();
 
       if (filter.id) query = query.where("board.id", "=", filter.id);
@@ -270,8 +330,6 @@ export class BoardRepository implements BoardRepositoryI {
           .where("id", "=", filter.userId)
           .executeTakeFirst()) as UserWithRole | undefined;
 
-        console.log(user, "<< ini isi user");
-
         if (!user) {
           throw new InternalServerError(
             StatusCodes.NOT_FOUND,
@@ -311,6 +369,8 @@ export class BoardRepository implements BoardRepositoryI {
       paginate.setTotal(total);
 
       // query = query.offset(paginate.getOffset()).limit(paginate.limit);
+
+      query = query.orderBy("created_at", "asc");
 
       const boards = await query.execute();
 
@@ -357,8 +417,7 @@ export class BoardRepository implements BoardRepositoryI {
 
   async updateBoard(
     filter: filterBoardDetail,
-    data: BoardDetailUpdate & { roleIds?: string[] },
-    userRole?: string[]
+    data: BoardDetailUpdate & { roleIds?: string[] }
   ): Promise<number> {
     try {
       const board = await Board.findOne({

@@ -146,6 +146,8 @@ export interface BoardTable {
   name: string;
   description: string;
   background: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface ListTable {
