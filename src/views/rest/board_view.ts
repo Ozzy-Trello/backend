@@ -29,6 +29,9 @@ export default class BoardRestView implements BoardRestViewI {
         description: req.body.description?.toString(),
         background: req.body.background?.toString(),
         workspace_id: req.body.workspace_id?.toString(),
+        created_by: req.auth!.user_id,
+        updated_by: req.auth!.user_id,
+        roleIds: req.body.roleIds, // Pass roleIds from the request
       })
     );
     if (accResponse.status_code !== StatusCodes.CREATED) {
@@ -127,6 +130,7 @@ export default class BoardRestView implements BoardRestViewI {
         name: req.body.name?.toString(),
         description: req.body.description?.toString(),
         background: req.body.background?.toString(),
+        roleIds: req.body.roleIds || req.body.role_ids,
       })
     );
     if (updateResponse.status_code !== StatusCodes.OK) {

@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import { v4 as uuidv4 } from "uuid";
 import sequelize from "@/database/connections";
+import { BoardRole } from "./board_role";
 
 export type BoardVisibility = "public" | "role_based";
 
@@ -13,10 +14,17 @@ interface BoardAttributes {
   visibility: BoardVisibility;
   created_at?: Date;
   updated_at?: Date;
+  // Add association type
+  boardRoles?: Array<{ role_id: string }>;
 }
 
 interface BoardCreationAttributes
   extends Optional<BoardAttributes, "id" | "visibility"> {}
+
+// Add interface for the model with associations
+interface BoardInstance extends Model<BoardAttributes, BoardCreationAttributes>, BoardAttributes {
+  // Add association methods here if needed
+}
 
 class Board
   extends Model<BoardAttributes, BoardCreationAttributes>
@@ -28,6 +36,7 @@ class Board
   public description!: string;
   public background!: string;
   public visibility!: BoardVisibility;
+  public boardRoles?: Array<{ role_id: string }>;
 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
