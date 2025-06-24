@@ -78,6 +78,7 @@ export class UpdateBoardData {
   name?: string;
   description?: string;
   background?: string;
+  roleIds?: string[];
 
   constructor(payload: Partial<UpdateBoardData>) {
     Object.assign(this, payload);
@@ -98,6 +99,7 @@ export class UpdateBoardData {
       name: this.name,
       description: this.description,
       background: this.background,
+      roleIds: this.roleIds,
     });
   }
 }

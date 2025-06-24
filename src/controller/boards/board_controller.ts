@@ -385,6 +385,8 @@ export class BoardController implements BoardControllerI {
       }
     }
 
+    console.log(data, "<< in idata");
+
     const updateResponse = await this.board_repo.updateBoard(
       filter.toFilterBoardDetail(),
       data.toBoardDetailUpdate()

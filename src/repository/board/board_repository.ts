@@ -107,6 +107,7 @@ export class BoardRepository implements BoardRepositoryI {
 
       // Assign roles if provided
       const roleIds = data.roleIds || [];
+
       if (roleIds.length > 0) {
         // Insert role assignments in batch
         await db.transaction().execute(async (trx) => {
@@ -231,18 +232,14 @@ export class BoardRepository implements BoardRepositoryI {
         where: { board_id: board.id },
       });
 
-      if (!boardRoles || boardRoles.length === 0) {
-        return {
-          status_code: StatusCodes.NOT_FOUND,
-          message: "board roles not found",
-        };
-      }
-
-      const roleData = await Role.findAll({
-        where: {
-          id: boardRoles.map((role: BoardRole) => role.role_id),
-        },
-      });
+      const roleData =
+        boardRoles && boardRoles.length > 0
+          ? await Role.findAll({
+              where: {
+                id: boardRoles.map((role: BoardRole) => role.role_id),
+              },
+            })
+          : [];
 
       const result = new BoardDetail({
         id: board.id,
@@ -337,19 +334,22 @@ export class BoardRepository implements BoardRepositoryI {
           );
         }
 
-        query = query.where(({ or }) => {
-          const publicBoardsCondition = sql<boolean>`board.visibility = 'public'`;
+        // check super admin
+        if (user.role_id !== "f97c942c-5d0c-49c3-b74d-5b149c08634f") {
+          query = query.where(({ or }) => {
+            const publicBoardsCondition = sql<boolean>`board.visibility = 'public'`;
 
-          const roleMembershipCondition = user?.role_id
-            ? sql<boolean>`EXISTS (
-                SELECT 1 FROM board_roles 
-                WHERE board_roles.board_id = board.id 
-                AND board_roles.role_id = ${user.role_id}
-              )`
-            : sql<boolean>`FALSE`;
+            const roleMembershipCondition = user?.role_id
+              ? sql<boolean>`EXISTS (
+                  SELECT 1 FROM board_roles 
+                  WHERE board_roles.board_id = board.id 
+                  AND board_roles.role_id = ${user.role_id}
+                )`
+              : sql<boolean>`false`;
 
-          return or([publicBoardsCondition, roleMembershipCondition]);
-        });
+            return or([publicBoardsCondition, roleMembershipCondition]);
+          });
+        }
       }
 
       let countQuery = db
@@ -407,7 +407,6 @@ export class BoardRepository implements BoardRepositoryI {
         paginate
       );
     } catch (error) {
-      console.log(error);
       throw new InternalServerError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         error instanceof Error ? error.message : "Unknown error"
@@ -417,9 +416,14 @@ export class BoardRepository implements BoardRepositoryI {
 
   async updateBoard(
     filter: filterBoardDetail,
-    data: BoardDetailUpdate & { roleIds?: string[] }
+    data: BoardDetailUpdate & { roleIds?: string[]; role_ids?: string[] },
+    userRoles?: string[]
   ): Promise<number> {
     try {
+      // console.log(roleIds, "<<< role ids");
+      // Normalize role IDs from either camelCase or snake_case
+      const roleIds = data.roleIds || data.role_ids || [];
+
       const board = await Board.findOne({
         where: this.createFilter(filter),
       });
@@ -428,9 +432,35 @@ export class BoardRepository implements BoardRepositoryI {
         return StatusCodes.NOT_FOUND;
       }
 
-      const [affectedCount] = await Board.update(data, {
-        where: this.createFilter(filter),
+      // First delete all existing board roles
+      await BoardRole.destroy({
+        where: { board_id: board.id },
       });
+
+      // Then insert new roles if provided
+      if (roleIds.length > 0) {
+        await BoardRole.bulkCreate(
+          roleIds.map((roleId) => ({
+            board_id: board.id,
+            role_id: roleId,
+          }))
+        );
+      }
+
+      // Update board visibility based on roleIds
+      const visibility = roleIds.length > 0 ? "role_based" : "public";
+
+      const [affectedCount] = await Board.update(
+        {
+          name: data.name || board.name,
+          description: data.description || board.description,
+          background: data.background || board.background,
+          visibility: visibility as any,
+        },
+        {
+          where: { id: board.id },
+        }
+      );
 
       return affectedCount > 0 ? StatusCodes.NO_CONTENT : StatusCodes.NOT_FOUND;
     } catch (e) {

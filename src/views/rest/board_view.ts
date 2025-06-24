@@ -130,6 +130,7 @@ export default class BoardRestView implements BoardRestViewI {
         name: req.body.name?.toString(),
         description: req.body.description?.toString(),
         background: req.body.background?.toString(),
+        roleIds: req.body.roleIds || req.body.role_ids,
       })
     );
     if (updateResponse.status_code !== StatusCodes.OK) {
