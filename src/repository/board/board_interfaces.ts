@@ -48,6 +48,8 @@ export interface IBoardDetail {
   id?: string;
   name: string;
   description: string;
+  created_by?: string;
+  updated_by?: string;
   background: string;
   workspace_id: string;
   visibility?: BoardVisibility;
@@ -123,7 +125,13 @@ export class BoardDetail {
   public description?: string;
   public background?: string;
   public workspace_id!: string;
-
+  public created_by?: string;
+  public updated_by?: string;
+  public created_at?: Date;
+  public updated_at?: Date;
+  public roleIds?: string[];
+  public roles?: Array<{ id: string; name: string }>;
+  
   constructor(payload: Partial<BoardDetail>) {
     Object.assign(this, payload);
   }

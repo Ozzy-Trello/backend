@@ -3,7 +3,6 @@ import sequelize from "@/database/connections";
 
 interface BoardRoleAttributes {
   board_id: string;
-  user_id: string;
   role_id: string;
   created_at: Date;
   updated_at: Date;
@@ -17,7 +16,6 @@ class BoardRole
   implements BoardRoleAttributes
 {
   public board_id!: string;
-  public user_id!: string;
   public role_id!: string;
 
   public created_at!: Date;
@@ -46,16 +44,6 @@ class BoardRole
           primaryKey: true,
           references: {
             model: "boards",
-            key: "id",
-          },
-          onDelete: "CASCADE",
-        },
-        user_id: {
-          type: DataTypes.UUID,
-          allowNull: false,
-          primaryKey: true,
-          references: {
-            model: "users",
             key: "id",
           },
           onDelete: "CASCADE",

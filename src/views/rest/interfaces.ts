@@ -117,4 +117,3 @@ export interface AutomationRuleRestViewI {
   CreateAutomationRule(req: Request, res: Response): Promise<void>;
   GetListAutomationRule(req: Request, res: Response): Promise<void>;
 }
-

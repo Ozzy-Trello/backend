@@ -6,7 +6,10 @@ export interface RoleRepositoryI {
   createRole(data: RoleDetail): Promise<ResponseData<RoleDetail>>;
   deleteRole(filter: filterRoleDetail): Promise<number>;
   updateRole(filter: filterRoleDetail, data: RoleDetailUpdate): Promise<number>;
-  getRoleList(filter: filterRoleDetail, paginate: Paginate): Promise<ResponseListData<Array<RoleDetail>>>;
+  getRoleList(
+    filter: filterRoleDetail,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<RoleDetail>>>;
 }
 
 export interface filterRoleDetail {
@@ -42,7 +45,7 @@ export class RoleDetailUpdate {
     if (this.name) data.name = this.name;
     if (this.description) data.description = this.description;
     if (this.background) data.background = this.background;
-    return data
+    return data;
   }
 }
 

@@ -98,13 +98,21 @@ export class BoardController implements BoardControllerI {
     //   });
     // }
 
-    let createResponse = await this.board_repo.createBoard(
-      data.toBoardDetail()
-    );
-    if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
+    // If no roles are provided, the board will be public
+    const roleIds = data.roleIds || [];
+
+    // If roles are provided, we'll use them, otherwise the board will be public
+
+    // Create the board with role assignments
+    const boardDetail = data.toBoardDetail();
+    (boardDetail as any).roleIds = roleIds;
+
+    const createResponse = await this.board_repo.createBoard(boardDetail);
+    if (createResponse.status_code !== StatusCodes.OK) {
       return new ResponseData({
-        message: "internal server error",
-        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: createResponse.message || "Failed to create board",
+        status_code:
+          createResponse.status_code || StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
 
@@ -164,19 +172,27 @@ export class BoardController implements BoardControllerI {
       filter.workspace_id = workspace.data?.id!;
     }
 
-    let checkBoard = await this.board_repo.getBoard(
-      filter.toFilterBoardDetail()
-    );
-    if (checkBoard.status_code == StatusCodes.NOT_FOUND) {
+    let board = await this.board_repo.getBoard(filter);
+    if (board.status_code != StatusCodes.OK) {
       return new ResponseData({
-        message: checkBoard.message,
-        status_code: checkBoard.status_code,
+        message: board.message,
+        status_code: board.status_code,
       });
     }
+
+    // Get the board with roles
+    const boardWithRoles = board.data;
+    const boardResponse = fromBoardDetailToBoardResponse(boardWithRoles!);
+
+    // Add roles to the response
+    if (boardWithRoles?.roleIds) {
+      (boardResponse as any).roleIds = boardWithRoles.roleIds;
+    }
+
     return new ResponseData({
-      message: checkBoard.message,
-      status_code: checkBoard.status_code,
-      data: fromBoardDetailToBoardResponse(checkBoard.data!),
+      message: "board detail",
+      status_code: StatusCodes.OK,
+      data: boardResponse,
     });
   }
 
@@ -367,18 +383,9 @@ export class BoardController implements BoardControllerI {
           status_code: StatusCodes.NOT_FOUND,
         });
       }
-
-      let checkBoard = await this.board_repo.getBoard({
-        __notId: filter.id,
-        __orName: data.name,
-      });
-      if (checkBoard.status_code == StatusCodes.OK) {
-        return new ResponseData({
-          message: "this board name already taken by others",
-          status_code: StatusCodes.NOT_FOUND,
-        });
-      }
     }
+
+    console.log(data, "<< in idata");
 
     const updateResponse = await this.board_repo.updateBoard(
       filter.toFilterBoardDetail(),
@@ -392,7 +399,7 @@ export class BoardController implements BoardControllerI {
     }
     return new ResponseData({
       message: "Board is updated successful",
-      status_code: StatusCodes.NO_CONTENT,
+      status_code: StatusCodes.OK,
     });
   }
 }
