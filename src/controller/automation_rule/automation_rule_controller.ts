@@ -553,6 +553,63 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               );
             }
 
+            // specific field value equality check
+            if (
+              rule.type === TriggerType.WhenCustomFieldsIsSetToFieldValue &&
+              rule.condition?.[EnumSelectionType.FieldValue] !== undefined
+            ) {
+              console.log("rule has specific field-value dependency");
+
+              const ruleFieldId = rule.condition?.[EnumSelectionType.Fields];
+              const desiredValue =
+                rule.condition?.[EnumSelectionType.FieldValue];
+
+              const eventFieldId = (recentUserAction as any)?.data?.id;
+              const raw = (recentUserAction as any)?.data;
+
+              // determine actual value from event data (first non-null among possible value_* fields)
+              let actualValue: any = null;
+              const valueKeys = [
+                "value_string",
+                "value_number",
+                "value_option",
+                "value_user_id",
+                "value_checkbox",
+                "value_date",
+              ];
+              for (const k of valueKeys) {
+                if (raw?.[k] !== undefined && raw?.[k] !== null) {
+                  actualValue = raw[k];
+                  break;
+                }
+              }
+
+              console.log("field value trigger debug", {
+                ruleFieldId,
+                desiredValue,
+                eventFieldId,
+                actualValue,
+              });
+
+              if (ruleFieldId && eventFieldId && ruleFieldId !== eventFieldId) {
+                isPermsissable = false;
+              }
+
+              if (actualValue == null) {
+                isPermsissable = false;
+              } else {
+                // loosely compare as strings for simplicity
+                if (String(actualValue) !== String(desiredValue)) {
+                  isPermsissable = false;
+                }
+              }
+
+              console.log(
+                "isPermsissable after field-value check: %o",
+                isPermsissable
+              );
+            }
+
             if (isPermsissable) {
               console.log("passed permissable actually");
               return this.ProcessAutomationAction(
