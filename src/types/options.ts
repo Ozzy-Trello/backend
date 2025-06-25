@@ -1,12 +1,14 @@
 export enum EnumOptionPosition {
   BottomOfList = "bottom-of-list",
-  TopOfList = "top-of-list"
+  TopOfList = "top-of-list",
 }
 
 export enum EnumOptionsNumberComparisonOperators {
   Exactly = "exactly",
   FewerThan = "fewer-than",
   MoreThan = "more-than",
+  MoreOrEqual = "greater-or-equal-to",
+  FewerOrEqual = "lower-or-equal-to",
 }
 
 export enum EnumOptionsSubject {
@@ -14,5 +16,9 @@ export enum EnumOptionsSubject {
   ByMe = "by-me",
   BySpecificUser = "by-specific-user",
   ByAnyoneExceptMe = "by-anyone-except-me",
-  ByAnyoneExceptSpecificUser = "by-anyone-except-specific-user"
+  ByAnyoneExceptSpecificUser = "by-anyone-except-specific-user",
+}
+
+export enum EnumOptionsSet {
+  Cleared = "cleared",
 }
