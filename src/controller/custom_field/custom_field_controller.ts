@@ -474,6 +474,7 @@ export class CustomFieldController implements CustomFieldControllerI {
   }
 
   async SetCardCustomFieldValue(
+    user_id: string,
     workspace_id: string,
     card_id: string,
     custom_field_id: string,
@@ -527,7 +528,7 @@ export class CustomFieldController implements CustomFieldControllerI {
               eventId: uuidv4(),
               type: EnumUserActionEvent.CardCustomFieldChange,
               workspace_id: "",
-              user_id: "system",
+              user_id: user_id,
               timestamp: new Date(),
               data: eventData,
             };
@@ -587,7 +588,7 @@ export class CustomFieldController implements CustomFieldControllerI {
                 eventId: uuidv4(),
                 type: EnumUserActionEvent.CardCustomFieldChange,
                 workspace_id: "",
-                user_id: "system",
+                user_id: user_id,
                 timestamp: new Date(),
                 data: eventData,
               };

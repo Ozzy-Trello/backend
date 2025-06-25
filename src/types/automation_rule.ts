@@ -3,6 +3,7 @@ import {
   EnumOptionPosition,
   EnumOptionsNumberComparisonOperators,
   EnumOptionsSubject,
+  EnumOptionsSet,
 } from "./options";
 
 export interface Trigger {
@@ -35,8 +36,10 @@ export enum EnumSelectionType {
   User = "user",
   Fields = "fields",
   FieldValue = "field_value",
+  State = "state",
   MultiFields = "multi_fields",
   Set = "set",
+  DateExpression = "date_expression",
 }
 
 export enum EnumInputType {
@@ -64,6 +67,15 @@ export enum TriggerType {
 
   // "when-custom-fields-<fields>-is-<action>-<optional_by>"
   WhenCustomFieldsIsSet = `when-custom-fields-<${EnumSelectionType.Fields}>-is-<${EnumSelectionType.Action}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when-custom-field-<fields>-is-<state>-<optional_by>"
+  WhenCustomFieldIsChecked = `when-custom-field-<${EnumSelectionType.Fields}>-is-<${EnumSelectionType.State}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when-custom-field-<fields>-is-set-to-a-number-<number_comparison>-[number]-<optional_by>"
+  WhenCustomFieldNumberComparison = `when-custom-field-<${EnumSelectionType.Fields}>-is-set-to-a-number-<${EnumSelectionType.NumberComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when-custom-field-<fields>-is-set-to-a-date-<date_expression>-<optional_by>"
+  WhenCustomFieldDateCondition = `when-custom-field-<${EnumSelectionType.Fields}>-is-set-to-a-date-<${EnumSelectionType.DateExpression}>-<${EnumSelectionType.OptionalBySubject}>`,
 
   // add more..
 }
@@ -192,6 +204,52 @@ export const TriggersMap: Map<string, Trigger> = new Map([
         EnumSelectionType.Fields,
         EnumSelectionType.FieldValue,
         EnumSelectionType.OptionalBySubject,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenCustomFieldNumberComparison,
+    {
+      trigger_type: TriggerType.WhenCustomFieldNumberComparison,
+      expected_condition_key: [
+        EnumSelectionType.Fields,
+        EnumSelectionType.NumberComparison,
+        EnumInputType.Number,
+        // Optional by subject but not mandatory
+      ],
+      [EnumSelectionType.NumberComparison]: [
+        EnumOptionsNumberComparisonOperators.MoreThan,
+        EnumOptionsNumberComparisonOperators.MoreOrEqual,
+        EnumOptionsNumberComparisonOperators.FewerThan,
+        EnumOptionsNumberComparisonOperators.FewerOrEqual,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenCustomFieldDateCondition,
+    {
+      trigger_type: TriggerType.WhenCustomFieldDateCondition,
+      expected_condition_key: [
+        EnumSelectionType.Fields,
+        EnumSelectionType.DateExpression,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenCustomFieldsIsSet,
+    {
+      trigger_type: TriggerType.WhenCustomFieldsIsSet,
+      expected_condition_key: [
+        EnumSelectionType.Fields,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalBySubject,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.CardCustomFieldChange,
+        EnumOptionsSet.Cleared,
       ],
     },
   ],

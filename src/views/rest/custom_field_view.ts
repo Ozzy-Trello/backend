@@ -275,6 +275,7 @@ export default class CustomFieldRestView implements CustomFieldRestViewI {
 
     let accResponse =
       await this.custom_field_controller.SetCardCustomFieldValue(
+        req.auth!.user_id,
         workspace_id || "",
         card_id,
         custom_field_id,
