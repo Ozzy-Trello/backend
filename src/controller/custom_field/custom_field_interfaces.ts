@@ -41,19 +41,20 @@ export interface CustomFieldControllerI {
     user_id?: string
   ): Promise<ResponseData<Array<CardCustomFieldResponse>>>;
   SetCardCustomFieldValue(
+    user_id: string,
     workspace_id: string,
     card_id: string,
     custom_field_id: string,
     data: CardCustomFieldValueUpdate,
     triggeredBy: EnumTriggeredBy
   ): Promise<ResponseData<CardCustomFieldResponse>>;
-  
+
   ReorderCustomFields(
     user_id: string,
     workspaceId: string,
     customFieldId: string,
     targetPosition: number,
-    targetPositionTopOrBottom?: 'top' | 'bottom'
+    targetPositionTopOrBottom?: "top" | "bottom"
   ): Promise<ResponseData<null>>;
 }
 

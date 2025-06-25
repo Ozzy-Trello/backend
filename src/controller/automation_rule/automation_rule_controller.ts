@@ -26,6 +26,7 @@ import {
   ActionType,
   EnumInputType,
   EnumSelectionType,
+  TriggerType,
 } from "@/types/automation_rule";
 import {
   EnumOptionPosition,
@@ -326,6 +327,40 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               }
             } // end of by subject
 
+            // checkbox custom-field state check
+            if (rule.condition?.[EnumSelectionType.State]) {
+              console.log("rule has checkbox state dependency");
+              const ruleFieldId = rule.condition?.[EnumSelectionType.Fields];
+              const desiredState = rule.condition?.[EnumSelectionType.State];
+
+              console.log("checkbox trigger debug: ", {
+                ruleFieldId,
+                desiredState,
+                eventFieldId: (recentUserAction as any)?.data?.id,
+                actualChecked:
+                  (recentUserAction as any)?.data?.value_checkbox === true,
+              });
+
+              // verify same custom field
+              if (
+                ruleFieldId &&
+                (recentUserAction as any)?.data?.id &&
+                ruleFieldId !== (recentUserAction as any).data.id
+              ) {
+                isPermsissable = false;
+              }
+
+              const actualChecked =
+                (recentUserAction as any)?.data?.value_checkbox === true;
+              if (
+                (desiredState === "checked" && !actualChecked) ||
+                (desiredState === "unchecked" && actualChecked)
+              ) {
+                isPermsissable = false;
+              }
+              console.log("isPermsissable: %o", isPermsissable);
+            }
+
             // number of cards in list
             if (rule.condition?.[EnumSelectionType.NumberComparison]) {
               console.log(
@@ -369,9 +404,154 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                   ]
                 ) {
                   if (cardCount <= numberToCompare) isPermsissable = false;
+                } else if (
+                  rule?.condition?.[EnumSelectionType.NumberComparison] ==
+                  rule.condition?.[
+                    EnumOptionsNumberComparisonOperators.MoreOrEqual
+                  ]
+                ) {
+                  if (cardCount < numberToCompare) isPermsissable = false;
+                } else if (
+                  rule?.condition?.[EnumSelectionType.NumberComparison] ==
+                  rule.condition?.[
+                    EnumOptionsNumberComparisonOperators.FewerOrEqual
+                  ]
+                ) {
+                  if (cardCount > numberToCompare) isPermsissable = false;
                 }
               }
             } // end of number of cards in list
+
+            // numeric custom-field comparison check
+            if (
+              rule.type === TriggerType.WhenCustomFieldNumberComparison &&
+              rule.condition?.[EnumSelectionType.NumberComparison] &&
+              rule.condition?.[EnumSelectionType.Fields]
+            ) {
+              console.log(
+                "rule has numeric custom-field comparison dependency"
+              );
+
+              const ruleFieldId = rule.condition?.[EnumSelectionType.Fields];
+              const operator =
+                rule.condition?.[EnumSelectionType.NumberComparison];
+              const compareValueRaw = rule.condition?.[EnumInputType.Number];
+              const compareValue = Number(compareValueRaw);
+              const additionalComparison = (rule.condition as any)
+                ?.additionalComparison;
+
+              const eventFieldId = (recentUserAction as any)?.data?.id;
+              const actualNumber = Number(
+                (recentUserAction as any)?.data?.value_number
+              );
+
+              console.log("numeric trigger debug: ", {
+                ruleFieldId,
+                operator,
+                compareValue,
+                additionalComparison,
+                eventFieldId,
+                actualNumber,
+              });
+
+              // verify same custom field
+              if (ruleFieldId && eventFieldId && ruleFieldId !== eventFieldId) {
+                isPermsissable = false;
+              }
+
+              const evaluate = (
+                num: number,
+                op: EnumOptionsNumberComparisonOperators,
+                target: number
+              ): boolean => {
+                switch (op) {
+                  case EnumOptionsNumberComparisonOperators.MoreThan:
+                    return num > target;
+                  case EnumOptionsNumberComparisonOperators.MoreOrEqual:
+                    return num >= target;
+                  case EnumOptionsNumberComparisonOperators.FewerThan:
+                    return num < target;
+                  case EnumOptionsNumberComparisonOperators.FewerOrEqual:
+                    return num <= target;
+                  case EnumOptionsNumberComparisonOperators.Exactly:
+                  default:
+                    return num === target;
+                }
+              };
+
+              // main comparison
+              if (!evaluate(actualNumber, operator, compareValue)) {
+                isPermsissable = false;
+              }
+
+              // additional comparison if provided
+              if (
+                additionalComparison &&
+                additionalComparison.operator &&
+                additionalComparison.value !== undefined &&
+                additionalComparison.value !== ""
+              ) {
+                const addValue = Number(additionalComparison.value);
+                const addOperator =
+                  additionalComparison.operator as EnumOptionsNumberComparisonOperators;
+                if (!evaluate(actualNumber, addOperator, addValue)) {
+                  isPermsissable = false;
+                }
+              }
+
+              console.log(
+                "isPermsissable after numeric check: %o",
+                isPermsissable
+              );
+            }
+
+            // date custom-field condition check
+            if (
+              rule.type === TriggerType.WhenCustomFieldDateCondition &&
+              rule.condition?.[EnumSelectionType.DateExpression]
+            ) {
+              console.log("rule has date custom-field condition dependency");
+
+              const ruleFieldId = rule.condition?.[EnumSelectionType.Fields];
+              const expressions =
+                rule.condition?.[EnumSelectionType.DateExpression] || [];
+
+              const eventFieldId = (recentUserAction as any)?.data?.id;
+              const actualDateRaw = (recentUserAction as any)?.data?.value_date;
+              const actualDate = actualDateRaw ? new Date(actualDateRaw) : null;
+
+              console.log("date trigger debug: ", {
+                ruleFieldId,
+                expressions,
+                eventFieldId,
+                actualDateRaw,
+                actualDate,
+              });
+              if (!actualDate) {
+                isPermsissable = false;
+              }
+
+              // verify same custom field
+              if (ruleFieldId && eventFieldId && ruleFieldId !== eventFieldId) {
+                isPermsissable = false;
+              }
+
+              if (isPermsissable && actualDate) {
+                let matched = false;
+                for (const expr of expressions) {
+                  if (this.evaluateDateExpression(actualDate, expr.meta)) {
+                    matched = true;
+                    break;
+                  }
+                }
+                if (!matched) isPermsissable = false;
+              }
+
+              console.log(
+                "isPermsissable after date expression check: %o",
+                isPermsissable
+              );
+            }
 
             if (isPermsissable) {
               console.log("passed permissable actually");
@@ -590,5 +770,106 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }),
       EnumTriggeredBy.OzzyAutomation
     );
+  }
+
+  private evaluateDateExpression(actual: Date, meta: any): boolean {
+    try {
+      const now = new Date();
+
+      // helper: start of ISO week (Monday)
+      const startOfWeek = (d: Date): Date => {
+        const result = new Date(d);
+        const day = result.getDay();
+        const diff = (day === 0 ? -6 : 1) - day; // move to Monday
+        result.setDate(result.getDate() + diff);
+        result.setHours(0, 0, 0, 0);
+        return result;
+      };
+
+      // helper: add weeks
+      const addWeeks = (d: Date, w: number): Date => {
+        const res = new Date(d);
+        res.setDate(res.getDate() + w * 7);
+        return res;
+      };
+
+      if (!meta) return true; // if metadata unavailable we assume match to avoid false-negatives
+
+      const unit =
+        typeof meta.unit === "string" ? meta.unit.trim().toLowerCase() : "";
+      const op = (meta.operator || "in").trim().toLowerCase();
+
+      // Relative period (this week / next week)
+      if (unit && ["this week", "next week"].includes(unit)) {
+        const actualWeekStart = startOfWeek(actual);
+        const thisWeekStart = startOfWeek(now);
+        const nextWeekStart = startOfWeek(addWeeks(now, 1));
+
+        const isInUnit =
+          unit === "this week"
+            ? actualWeekStart.getTime() === thisWeekStart.getTime()
+            : actualWeekStart.getTime() === nextWeekStart.getTime();
+
+        return op === "in" ? isInUnit : !isInUnit;
+      }
+
+      // Numeric helpers
+      const diffHours = Math.abs(now.getTime() - actual.getTime()) / 36e5;
+      const diffDays = Math.abs(now.getTime() - actual.getTime()) / 864e5;
+
+      const businessDaysDiff = (d1: Date, d2: Date): number => {
+        let count = 0;
+        const start = new Date(Math.min(d1.getTime(), d2.getTime()));
+        const end = new Date(Math.max(d1.getTime(), d2.getTime()));
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const day = d.getDay();
+          if (day !== 0 && day !== 6) count++;
+        }
+        return count;
+      };
+
+      // Numeric mode
+      const num = Number(meta?.numberVal);
+      if (isNaN(num)) return false;
+
+      let diff = 0;
+      if (meta?.unit === "hours") diff = diffHours;
+      else if (meta?.unit === "days") diff = diffDays;
+      else if (meta?.unit === "working days")
+        diff = businessDaysDiff(now, actual);
+      else if (meta?.unit === "this month") {
+        const sameMonth =
+          actual.getFullYear() === now.getFullYear() &&
+          actual.getMonth() === now.getMonth();
+        return meta.operator === "less than" ? sameMonth : !sameMonth;
+      }
+
+      // Direction guard
+      if (meta?.direction === "from now" && actual < now) return false;
+      if (meta?.direction === "ago" && actual > now) return false;
+
+      switch (meta?.operator) {
+        case "less than":
+          return diff < num;
+        case "more than":
+          return diff > num;
+        case "between": {
+          if (
+            typeof meta.numberVal === "string" &&
+            meta.numberVal.includes("-")
+          ) {
+            const [a, b] = meta.numberVal
+              .split("-")
+              .map((v: string) => Number(v.trim()));
+            return diff >= a && diff <= b;
+          }
+          return false;
+        }
+        default:
+          return false;
+      }
+    } catch (_) {
+      return false;
+    }
   }
 }
