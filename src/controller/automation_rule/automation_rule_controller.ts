@@ -32,6 +32,7 @@ import {
   EnumOptionPosition,
   EnumOptionsNumberComparisonOperators,
   EnumOptionsSubject,
+  EnumOptionsSet,
 } from "@/types/options";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
@@ -606,6 +607,59 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
               console.log(
                 "isPermsissable after field-value check: %o",
+                isPermsissable
+              );
+            }
+
+            // custom field set/cleared check
+            if (
+              rule.type === TriggerType.WhenCustomFieldsIsSet &&
+              rule.condition?.[EnumSelectionType.Action]
+            ) {
+              console.log("rule has set/cleared custom-field dependency");
+
+              const ruleFieldId = rule.condition?.[EnumSelectionType.Fields];
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+
+              const eventFieldId = (recentUserAction as any)?.data?.id;
+              const raw = (recentUserAction as any)?.data;
+
+              // verify same custom field
+              if (ruleFieldId && eventFieldId && ruleFieldId !== eventFieldId) {
+                isPermsissable = false;
+              }
+
+              if (isPermsissable) {
+                // evaluate cleared vs set
+                const valueKeys = [
+                  "value_string",
+                  "value_number",
+                  "value_option",
+                  "value_user_id",
+                  "value_checkbox",
+                  "value_date",
+                ];
+
+                const anyValuePresent = valueKeys.some(
+                  (k) => raw?.[k] !== undefined && raw?.[k] !== null
+                );
+
+                if (desiredAction === EnumOptionsSet.Cleared) {
+                  // expect NO value present
+                  if (anyValuePresent) {
+                    isPermsissable = false;
+                  }
+                } else {
+                  // desiredAction is regular change (set)
+                  // we don't need to check value content; but ensure some value present
+                  if (!anyValuePresent) {
+                    isPermsissable = false;
+                  }
+                }
+              }
+
+              console.log(
+                "isPermsissable after set/cleared check: %o",
                 isPermsissable
               );
             }

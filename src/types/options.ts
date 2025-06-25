@@ -18,3 +18,7 @@ export enum EnumOptionsSubject {
   ByAnyoneExceptMe = "by-anyone-except-me",
   ByAnyoneExceptSpecificUser = "by-anyone-except-specific-user",
 }
+
+export enum EnumOptionsSet {
+  Cleared = "cleared",
+}

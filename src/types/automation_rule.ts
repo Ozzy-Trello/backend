@@ -3,6 +3,7 @@ import {
   EnumOptionPosition,
   EnumOptionsNumberComparisonOperators,
   EnumOptionsSubject,
+  EnumOptionsSet,
 } from "./options";
 
 export interface Trigger {
@@ -233,6 +234,22 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       expected_condition_key: [
         EnumSelectionType.Fields,
         EnumSelectionType.DateExpression,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenCustomFieldsIsSet,
+    {
+      trigger_type: TriggerType.WhenCustomFieldsIsSet,
+      expected_condition_key: [
+        EnumSelectionType.Fields,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalBySubject,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.CardCustomFieldChange,
+        EnumOptionsSet.Cleared,
       ],
     },
   ],
