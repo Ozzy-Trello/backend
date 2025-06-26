@@ -21,7 +21,12 @@ import {
   CardMoveData,
   CopyCardData,
 } from "../card/card_interfaces";
-import { EnumActions, EnumTriggeredBy, UserActionEvent } from "@/types/event";
+import {
+  EnumActions,
+  EnumTriggeredBy,
+  UserActionEvent,
+  EnumUserActionEvent,
+} from "@/types/event";
 import {
   ActionType,
   EnumInputType,
@@ -664,6 +669,268 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               );
             }
 
+            // checklist added check
+            if (
+              rule.type === TriggerType.WhenChecklistIsAction &&
+              rule.condition?.[EnumInputType.Text]
+            ) {
+              console.log("rule has checklist added dependency");
+
+              const ruleChecklistName = rule.condition?.[EnumInputType.Text];
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+
+              if (desiredAction !== recentUserAction.type) {
+                isPermsissable = false;
+              }
+
+              const eventChecklist = (recentUserAction as any)?.data?.checklist;
+              const actualName = eventChecklist?.title || eventChecklist?.name;
+
+              console.log("eventChecklist tirgger debug: ", {
+                ruleChecklistName,
+                actualName,
+                eventChecklist,
+                desiredAction,
+              });
+
+              if (
+                !actualName ||
+                actualName.toLowerCase() !== ruleChecklistName.toLowerCase()
+              ) {
+                isPermsissable = false;
+              }
+
+              console.log(
+                "isPermsissable after checklist check: %o",
+                isPermsissable
+              );
+            }
+
+            // checklist completion changes
+            if (
+              rule.type === TriggerType.WhenChecklistCompletionChanges &&
+              rule.condition?.[EnumSelectionType.ChecklistScope]
+            ) {
+              const scope = rule.condition?.[EnumSelectionType.ChecklistScope];
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+
+              if (desiredAction !== recentUserAction.type) {
+                isPermsissable = false;
+              }
+
+              const eventChecklist = (recentUserAction as any)?.data?.checklist;
+              const checklistNameRule = rule.condition?.[EnumInputType.Text];
+
+              if (scope === "checklist") {
+                if (!checklistNameRule || !eventChecklist?.title) {
+                  isPermsissable = false;
+                } else if (
+                  eventChecklist.title.toLowerCase().trim() !==
+                  checklistNameRule.toLowerCase().trim()
+                ) {
+                  isPermsissable = false;
+                }
+              } else if (scope === "all-checklists") {
+                const allCompletedFlag = (recentUserAction as any)?.data
+                  ?.all_completed;
+                if (
+                  desiredAction === EnumUserActionEvent.ChecklistCompleted &&
+                  !allCompletedFlag
+                ) {
+                  isPermsissable = false;
+                }
+                if (
+                  desiredAction === EnumUserActionEvent.ChecklistIncompleted &&
+                  allCompletedFlag
+                ) {
+                  isPermsissable = false;
+                }
+              }
+
+              console.log(
+                "isPermsissable after checklist completion check: %o",
+                isPermsissable
+              );
+            }
+
+            // checklist item state changes
+            if (
+              rule.type === TriggerType.WhenChecklistItemStateChanges &&
+              rule.condition?.[EnumSelectionType.ItemScope]
+            ) {
+              const scope = rule.condition?.[EnumSelectionType.ItemScope];
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+
+              // Check action matches event type
+              if (desiredAction !== recentUserAction.type) {
+                isPermsissable = false;
+              }
+
+              const eventItem = (recentUserAction as any)?.data?.item;
+              const itemNameRule = rule.condition?.[EnumInputType.Text];
+              const eventChecklist = (recentUserAction as any)?.data?.checklist;
+              const checklistNameFilter = (rule.condition as any)
+                ?.checklist_name;
+
+              if (scope === "the") {
+                // Must match specific item name
+                if (!itemNameRule || !eventItem?.label) {
+                  isPermsissable = false;
+                } else if (
+                  eventItem.label.toLowerCase().trim() !==
+                  itemNameRule.toLowerCase().trim()
+                ) {
+                  isPermsissable = false;
+                }
+              }
+              // scope === "an" means any item passes (no additional checks needed)
+              console.log("debug: ", {
+                scope,
+                desiredAction,
+                eventItem,
+                itemNameRule,
+                eventChecklist,
+                checklistNameFilter,
+              });
+
+              // Check checklist name filter if specified
+              if (checklistNameFilter && eventChecklist?.title) {
+                if (
+                  eventChecklist.title.toLowerCase().trim() !==
+                  checklistNameFilter.toLowerCase().trim()
+                ) {
+                  isPermsissable = false;
+                }
+              }
+
+              console.log(
+                "isPermsissable after checklist item check: %o",
+                isPermsissable
+              );
+            }
+
+            // checklist item due date changes
+            if (
+              rule.type?.includes("due-date") &&
+              rule.condition?.[EnumSelectionType.DateExpression]
+            ) {
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+              if (desiredAction !== recentUserAction.type) {
+                isPermsissable = false;
+              }
+
+              const expressions =
+                rule.condition?.[EnumSelectionType.DateExpression] || [];
+              const eventItem = (recentUserAction as any)?.data?.item;
+              const eventDue = eventItem?.due_date
+                ? new Date(eventItem.due_date)
+                : null;
+
+              let anyPassFlag = false;
+              if (!eventDue) {
+                isPermsissable = false;
+              } else {
+                anyPassFlag = expressions.some((expr: any) =>
+                  this.evaluateDateExpression(eventDue, expr?.meta)
+                );
+                if (!anyPassFlag) isPermsissable = false;
+              }
+
+              console.log("DueDate debug: ", {
+                desiredAction,
+                recentEventType: recentUserAction.type,
+                expressions,
+                eventDue,
+                anyPassFlag,
+              });
+              console.log(
+                "isPermsissable after checklist item due date check: %o",
+                isPermsissable
+              );
+            }
+
+            // checklist item added/removed check
+            if (
+              rule.type === TriggerType.WhenChecklistItemIsAddedTo &&
+              rule.condition?.[EnumSelectionType.Action]
+            ) {
+              const desiredAction = rule.condition?.[EnumSelectionType.Action];
+              if (desiredAction !== recentUserAction.type) {
+                isPermsissable = false;
+              }
+
+              const scopeVal =
+                rule.condition?.[EnumSelectionType.ChecklistScope];
+
+              const checklistNameRule = rule.condition?.[EnumInputType.Text];
+
+              const eventChecklist = (recentUserAction as any)?.data?.checklist;
+              if (
+                scopeVal &&
+                typeof scopeVal === "object" &&
+                "value" in scopeVal
+              ) {
+                // unwrap
+              }
+              const scope =
+                typeof scopeVal === "object" && "value" in scopeVal
+                  ? (scopeVal as any).value
+                  : scopeVal;
+
+              // checklist name check if scope=="checklist"
+              if (scope === "checklist") {
+                if (!checklistNameRule || !eventChecklist?.title) {
+                  isPermsissable = false;
+                } else if (
+                  eventChecklist.title.toLowerCase().trim() !==
+                  (checklistNameRule as string).toLowerCase().trim()
+                ) {
+                  isPermsissable = false;
+                }
+              }
+
+              // Text comparison on item label
+              const textExprs =
+                rule.condition?.[EnumSelectionType.TextComparison] || [];
+              const itemLabel =
+                (recentUserAction as any)?.data?.item?.label || "";
+
+              if (textExprs.length) {
+                const pass = (textExprs as any[]).some((expr) => {
+                  const op = expr.operator;
+                  const compareText = (expr.text || "").toString();
+                  const lowerLabel = itemLabel.toLowerCase();
+                  const lowerCompare = compareText.toLowerCase();
+                  switch (op) {
+                    case "starting-with":
+                      return lowerLabel.startsWith(lowerCompare);
+                    case "ending-with":
+                      return lowerLabel.endsWith(lowerCompare);
+                    case "containing":
+                      return lowerLabel.includes(lowerCompare);
+                    case "not-starting-with":
+                      return !lowerLabel.startsWith(lowerCompare);
+                    case "not-ending-with":
+                      return !lowerLabel.endsWith(lowerCompare);
+                    case "not-containing":
+                      return !lowerLabel.includes(lowerCompare);
+                    default:
+                      return false;
+                  }
+                });
+                if (!pass) isPermsissable = false;
+              }
+
+              console.log("Checklist item added/removed debug", {
+                desiredAction,
+                recentType: recentUserAction.type,
+                scope,
+                checklistNameRule,
+                itemLabel,
+                isPermsissable,
+              });
+            }
+
             if (isPermsissable) {
               console.log("passed permissable actually");
               return this.ProcessAutomationAction(
@@ -904,7 +1171,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         return res;
       };
 
-      if (!meta) return true; // if metadata unavailable we assume match to avoid false-negatives
+      if (!meta) return false; // require meta for evaluation
 
       const unit =
         typeof meta.unit === "string" ? meta.unit.trim().toLowerCase() : "";

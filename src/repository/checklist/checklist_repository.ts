@@ -1,19 +1,22 @@
-import { 
-  IChecklistRepository, 
-  ChecklistDTO, 
-  CreateChecklistDTO, 
+import {
+  IChecklistRepository,
+  ChecklistDTO,
+  CreateChecklistDTO,
   UpdateChecklistDTO,
-  ChecklistItem
+  ChecklistItem,
 } from "@/controller/checklist/checklist_interfaces";
 import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { InternalServerError } from "@/utils/errors";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import Checklist from "@/database/schemas/checklist";
-import { validate as isValidUUID } from 'uuid';
+import { validate as isValidUUID } from "uuid";
+import { broadcastToWebSocket } from "@/server";
 
 export class ChecklistRepository implements IChecklistRepository {
-  async getChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>> {
+  async getChecklistsByCardId(
+    cardId: string
+  ): Promise<ResponseData<ChecklistDTO[]>> {
     try {
       if (!cardId || !isValidUUID(cardId)) {
         return {
@@ -24,36 +27,42 @@ export class ChecklistRepository implements IChecklistRepository {
 
       const checklists = await Checklist.findAll({
         where: { card_id: cardId },
-        order: [['created_at', 'ASC']]
+        order: [["created_at", "ASC"]],
       });
 
       if (!checklists || checklists.length === 0) {
         return {
           status_code: StatusCodes.OK,
           message: "No checklists found for this card",
-          data: []
+          data: [],
         };
       }
 
-      const checklistDTOs: ChecklistDTO[] = checklists.map(checklist => ({
+      const checklistDTOs: ChecklistDTO[] = checklists.map((checklist) => ({
         id: checklist.id,
         card_id: checklist.card_id,
         title: checklist.title,
         data: checklist.data,
         created_at: checklist.created_at,
-        updated_at: checklist.updated_at
+        updated_at: checklist.updated_at,
       }));
 
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "Checklists retrieved successfully",
-        data: checklistDTOs
+        data: checklistDTOs,
       });
     } catch (e) {
       if (e instanceof Error) {
-        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
       }
-      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
     }
   }
 
@@ -84,18 +93,26 @@ export class ChecklistRepository implements IChecklistRepository {
           title: checklist.title,
           data: checklist.data,
           created_at: checklist.created_at,
-          updated_at: checklist.updated_at
-        }
+          updated_at: checklist.updated_at,
+        },
       });
     } catch (e) {
       if (e instanceof Error) {
-        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
       }
-      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
     }
   }
 
-  async createChecklist(data: CreateChecklistDTO): Promise<ResponseData<ChecklistDTO>> {
+  async createChecklist(
+    data: CreateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>> {
     try {
       if (!data.card_id || !isValidUUID(data.card_id)) {
         return {
@@ -109,30 +126,47 @@ export class ChecklistRepository implements IChecklistRepository {
         id: uuidv4(),
         card_id: data.card_id,
         title: data.title || "Checklist",
-        data: data.data || []
+        data: data.data || [],
+        ...(data.created_by ? { created_by: data.created_by } : {}),
+      });
+
+      const responsePayload = {
+        id: checklist.id,
+        card_id: checklist.card_id,
+        title: checklist.title,
+        data: checklist.data,
+        created_at: checklist.created_at,
+        updated_at: checklist.updated_at,
+      };
+
+      // broadcast websocket event
+      broadcastToWebSocket("checklist:created", {
+        checklist: responsePayload,
       });
 
       return new ResponseData({
         status_code: StatusCodes.CREATED,
         message: "Checklist created successfully",
-        data: {
-          id: checklist.id,
-          card_id: checklist.card_id,
-          title: checklist.title,
-          data: checklist.data,
-          created_at: checklist.created_at,
-          updated_at: checklist.updated_at
-        }
+        data: responsePayload,
       });
     } catch (e) {
       if (e instanceof Error) {
-        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
       }
-      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
     }
   }
 
-  async updateChecklist(id: string, data: UpdateChecklistDTO): Promise<ResponseData<ChecklistDTO>> {
+  async updateChecklist(
+    id: string,
+    data: UpdateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>> {
     try {
       if (!id || !isValidUUID(id)) {
         return {
@@ -150,29 +184,47 @@ export class ChecklistRepository implements IChecklistRepository {
         };
       }
 
-      const updateData: { title?: string; data?: ChecklistItem[] } = {};
+      const updateData: {
+        title?: string;
+        data?: ChecklistItem[];
+        updated_by?: string;
+      } = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.data !== undefined) updateData.data = data.data;
+      if (data.updated_by !== undefined)
+        updateData.updated_by = data.updated_by;
 
       await checklist.update(updateData);
+
+      const responsePayload = {
+        id: checklist.id,
+        card_id: checklist.card_id,
+        title: checklist.title,
+        data: checklist.data,
+        created_at: checklist.created_at,
+        updated_at: checklist.updated_at,
+      };
+
+      broadcastToWebSocket("checklist:updated", {
+        checklist: responsePayload,
+      });
 
       return new ResponseData({
         status_code: StatusCodes.OK,
         message: "Checklist updated successfully",
-        data: {
-          id: checklist.id,
-          card_id: checklist.card_id,
-          title: checklist.title,
-          data: checklist.data,
-          created_at: checklist.created_at,
-          updated_at: checklist.updated_at
-        }
+        data: responsePayload,
       });
     } catch (e) {
       if (e instanceof Error) {
-        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
       }
-      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
     }
   }
 
@@ -183,19 +235,32 @@ export class ChecklistRepository implements IChecklistRepository {
       }
 
       const deleted = await Checklist.destroy({
-        where: { id }
+        where: { id },
       });
 
       if (deleted === 0) {
         return StatusCodes.NOT_FOUND;
       }
 
+      // broadcast deletion event regardless of found or not? only if deleted
+      if (deleted > 0) {
+        broadcastToWebSocket("checklist:deleted", {
+          checklist_id: id,
+        });
+      }
+
       return StatusCodes.NO_CONTENT;
     } catch (e) {
       if (e instanceof Error) {
-        throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e.message);
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
       }
-      throw new InternalServerError(StatusCodes.INTERNAL_SERVER_ERROR, e as string);
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
     }
   }
 }
