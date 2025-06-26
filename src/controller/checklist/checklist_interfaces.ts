@@ -4,17 +4,29 @@ import { Paginate } from "@/utils/data_utils";
 export interface IChecklistRepository {
   getChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
   getChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
-  createChecklist(data: CreateChecklistDTO): Promise<ResponseData<ChecklistDTO>>;
-  updateChecklist(id: string, data: UpdateChecklistDTO): Promise<ResponseData<ChecklistDTO>>;
+  createChecklist(
+    data: CreateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>>;
+  updateChecklist(
+    id: string,
+    data: UpdateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>>;
   deleteChecklist(id: string): Promise<number>;
 }
 
 export interface IChecklistController {
   GetChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
   GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
-  CreateChecklist(data: CreateChecklistDTO): Promise<ResponseData<ChecklistDTO>>;
-  UpdateChecklist(id: string, data: UpdateChecklistDTO): Promise<ResponseData<ChecklistDTO>>;
-  DeleteChecklist(id: string): Promise<ResponseData<null>>;
+  CreateChecklist(
+    user_id: string,
+    data: CreateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>>;
+  UpdateChecklist(
+    user_id: string,
+    id: string,
+    data: UpdateChecklistDTO
+  ): Promise<ResponseData<ChecklistDTO>>;
+  DeleteChecklist(user_id: string, id: string): Promise<ResponseData<null>>;
 }
 
 export interface ChecklistItem {
@@ -29,11 +41,14 @@ export interface CreateChecklistDTO {
   card_id: string;
   title: string;
   data: ChecklistItem[];
+  created_by?: string;
+  updated_by?: string; // optional, usually not set on create
 }
 
 export interface UpdateChecklistDTO {
   title?: string;
   data: ChecklistItem[];
+  updated_by?: string;
 }
 
 export interface ChecklistDTO {
