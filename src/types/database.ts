@@ -28,6 +28,7 @@ export interface Database {
   accurate_auth: AccurateAuth;
   request: RequestTable;
   role: RoleTable;
+  permissions: PermissionTable;
   label: LabelTable;
   card_label: CardLabelTable;
   card_member: CardMemberTable;
@@ -217,7 +218,7 @@ export interface RoleTable {
   id: Generated<string>;
   name: string;
   description: string;
-  permissions: PermissionStructure;
+  permission_id: string;
   default: boolean;
 }
 
@@ -264,6 +265,36 @@ export interface SplitJobValueTable {
   card_id: string;
   custom_field_id: string;
   value: number;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface PermissionTable {
+  id: Generated<string>;
+  level: "MEMBER" | "OBSERVER" | "MODERATOR" | "ADMIN";
+  description: string;
+  permissions: {
+    board: {
+      create: boolean;
+      read: boolean;
+      update: boolean;
+      delete: boolean;
+    };
+    list: {
+      create: boolean;
+      read: boolean;
+      update: boolean;
+      delete: boolean;
+      move: boolean;
+    };
+    card: {
+      create: boolean;
+      read: boolean;
+      update: boolean;
+      delete: boolean;
+      move: boolean;
+    };
+  };
   created_at?: Date;
   updated_at?: Date;
 }

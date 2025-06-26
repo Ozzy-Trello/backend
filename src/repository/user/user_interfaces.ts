@@ -1,13 +1,16 @@
 import bcrypt from "bcrypt";
-import {ResponseData, ResponseListData} from "@/utils/response_utils";
-import {Paginate} from "@/utils/data_utils";
+import { ResponseData, ResponseListData } from "@/utils/response_utils";
+import { Paginate } from "@/utils/data_utils";
 
 export interface UserRepositoryI {
   getUser(filter: filterUserDetail): Promise<ResponseData<UserDetail>>;
   createUser(data: UserDetail): Promise<ResponseData<UserDetail>>;
   deleteUser(filter: filterUserDetail): Promise<number>;
   updateUser(filter: filterUserDetail, data: UserDetailUpdate): Promise<number>;
-  getUserList(filter: filterUserDetail, paginate: Paginate): Promise<ResponseListData<Array<UserDetail>>>;
+  getUserList(
+    filter: filterUserDetail,
+    paginate: Paginate
+  ): Promise<ResponseListData<Array<UserDetail>>>;
 }
 
 export interface filterUserDetail {
@@ -45,7 +48,7 @@ export class UserDetailUpdate {
     if (this.email) data.email = this.email;
     if (this.phone) data.phone = this.phone;
     if (this.password) data.password = this.password;
-    return data
+    return data;
   }
 }
 
@@ -55,18 +58,50 @@ export class UserDetail {
   public email?: string;
   public phone?: string;
   public password?: string;
+  public role?: {
+    id: string;
+    name: string;
+    description: string;
+    permission: {
+      id: string;
+      level: string;
+      description: string;
+      permissions: {
+        board: {
+          create: boolean;
+          read: boolean;
+          update: boolean;
+          delete: boolean;
+        };
+        list: {
+          create: boolean;
+          read: boolean;
+          update: boolean;
+          delete: boolean;
+          move: boolean;
+        };
+        card: {
+          create: boolean;
+          read: boolean;
+          update: boolean;
+          delete: boolean;
+          move: boolean;
+        };
+      };
+    };
+  };
 
   constructor(payload: Partial<UserDetail>) {
     Object.assign(this, payload);
-    this.verifyPassword = this.verifyPassword.bind(this)
-    this.getHashedPassword = this.getHashedPassword.bind(this)
+    this.verifyPassword = this.verifyPassword.bind(this);
+    this.getHashedPassword = this.getHashedPassword.bind(this);
   }
 
-  public verifyPassword(plainPwd: string) : boolean {
-    return bcrypt.compareSync(plainPwd, this.password!)
+  public verifyPassword(plainPwd: string): boolean {
+    return bcrypt.compareSync(plainPwd, this.password!);
   }
 
-  public getHashedPassword() : string {
+  public getHashedPassword(): string {
     const saltRounds = 10;
     return bcrypt.hashSync(this.password!, saltRounds);
   }

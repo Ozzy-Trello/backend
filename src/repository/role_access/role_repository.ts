@@ -13,6 +13,7 @@ import {
   RoleRepositoryI,
 } from "@/repository/role_access/role_interfaces";
 import { defaultPermission } from "@/utils/security_utils";
+import { PERMISSION_IDS } from "@/constants/permissions";
 import db from "@/database";
 
 export class RoleRepository implements RoleRepositoryI {
@@ -76,6 +77,7 @@ export class RoleRepository implements RoleRepositoryI {
         name: data.name,
         description: data.description,
         default: data.default,
+        permission_id: data.permission_id || PERMISSION_IDS.MEMBER, // Default to MEMBER permission
       });
       return new ResponseData({
         status_code: StatusCodes.OK,
@@ -118,7 +120,7 @@ export class RoleRepository implements RoleRepositoryI {
             id: uuidv4(),
             name: "defautl",
             description: "default role",
-            permissions: defaultPermission,
+            permission_id: PERMISSION_IDS.MEMBER, // Default to MEMBER permission
             default: true,
           })
           .returningAll()
