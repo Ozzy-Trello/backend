@@ -3,11 +3,11 @@ import User from "@/database/schemas/user";
 
 export enum EnumTriggeredBy {
   User = "user",
-  OzzyAutomation = "ozzy-automation"
+  OzzyAutomation = "ozzy-automation",
 }
 
 export enum EnumUserActionEvent {
-   CardCreated = "card.created",
+  CardCreated = "card.created",
   CardUpdated = "card.updated",
   CardRenamed = "card.renamed",
   CardMoved = "card.moved",
@@ -33,7 +33,17 @@ export enum EnumUserActionEvent {
   ListArchived = "list.archived",
   ListUnarchived = "list.unarchived",
   ListUpdated = "list.updated",
-  ListDeleted = "list.deleted"
+  ListDeleted = "list.deleted",
+  ChecklistAdded = "checklist.added",
+  ChecklistCompleted = "checklist.completed",
+  ChecklistIncompleted = "checklist.incompleted",
+  ChecklistItemChecked = "checklist.item.checked",
+  ChecklistItemUnchecked = "checklist.item.unchecked",
+  ChecklistItemDueDateSet = "checklist.item.duedate.set",
+  ChecklistItemDueDateRemoved = "checklist.item.duedate.removed",
+  ChecklistItemAdded = "checklist.item.added",
+  ChecklistItemRemoved = "checklist.item.removed",
+  ChecklistRemoved = "checklist.removed",
 }
 
 export enum EnumActions {
@@ -58,5 +68,6 @@ export interface UserActionEvent {
     member?: User;
     previous_data?: any;
     value_user_id?: string;
+    checklist?: any;
   };
 }

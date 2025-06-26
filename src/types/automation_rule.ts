@@ -40,10 +40,14 @@ export enum EnumSelectionType {
   MultiFields = "multi_fields",
   Set = "set",
   DateExpression = "date_expression",
+  ChecklistScope = "checklist_scope",
+  ItemScope = "item_scope",
+  TextComparison = "text_comparison",
 }
 
 export enum EnumInputType {
   Number = "number",
+  Text = "text",
 }
 
 export enum TriggerType {
@@ -76,6 +80,19 @@ export enum TriggerType {
 
   // "when-custom-field-<fields>-is-set-to-a-date-<date_expression>-<optional_by>"
   WhenCustomFieldDateCondition = `when-custom-field-<${EnumSelectionType.Fields}>-is-set-to-a-date-<${EnumSelectionType.DateExpression}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when checklist [text] is <action> to a card <optional_filter> <optional_by>"
+  WhenChecklistIsAction = `when-checklist-[${EnumInputType.Text}]-is-<${EnumSelectionType.Action}>-to-a-card-<${EnumSelectionType.OptionalFilter}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  WhenChecklistCompletionChanges = `when-<${EnumSelectionType.ChecklistScope}>[${EnumInputType.Text}]-is-<${EnumSelectionType.Action}>-in-a-card-<${EnumSelectionType.OptionalFilter}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  WhenChecklistItemStateChanges = `when-<${EnumSelectionType.ItemScope}>[${EnumInputType.Text}]-item-is-<${EnumSelectionType.Action}>-<${EnumSelectionType.OptionalFilter}>-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when a due date <date_expression> is <action> a checklist item <optional_by>"
+  WhenChecklistItemDueDateChanges = `when-a-due-date-<${EnumSelectionType.DateExpression}>-is-<${EnumSelectionType.Action}>-a-checklist-item-<${EnumSelectionType.OptionalBySubject}>`,
+
+  // "when an item <text_comparison> is <action> <checklist_scope> [text] <filter> <optional_by>"
+  WhenChecklistItemIsAddedTo = `when-an-item-<${EnumSelectionType.TextComparison}>-is-<${EnumSelectionType.Action}>-<${EnumSelectionType.ChecklistScope}>[${EnumInputType.Text}]-<${EnumSelectionType.OptionalFilter}>-<${EnumSelectionType.OptionalBySubject}>`,
 
   // add more..
 }
@@ -250,6 +267,94 @@ export const TriggersMap: Map<string, Trigger> = new Map([
       [EnumSelectionType.Action]: [
         EnumUserActionEvent.CardCustomFieldChange,
         EnumOptionsSet.Cleared,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenChecklistIsAction,
+    {
+      trigger_type: TriggerType.WhenChecklistIsAction,
+      expected_condition_key: [
+        EnumInputType.Text,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalBySubject,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.ChecklistAdded,
+        EnumUserActionEvent.ChecklistRemoved,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenChecklistCompletionChanges,
+    {
+      trigger_type: TriggerType.WhenChecklistCompletionChanges,
+      expected_condition_key: [
+        EnumSelectionType.ChecklistScope,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalBySubject,
+        EnumInputType.Text,
+      ],
+      [EnumSelectionType.ChecklistScope]: [
+        "checklist",
+        "a-checklist",
+        "all-checklists",
+      ],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.ChecklistCompleted,
+        EnumUserActionEvent.ChecklistIncompleted,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenChecklistItemStateChanges,
+    {
+      trigger_type: TriggerType.WhenChecklistItemStateChanges,
+      expected_condition_key: [
+        EnumSelectionType.ItemScope,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalFilter,
+        EnumSelectionType.OptionalBySubject,
+        EnumInputType.Text,
+      ],
+      [EnumSelectionType.ItemScope]: ["the", "an"],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.ChecklistItemChecked,
+        EnumUserActionEvent.ChecklistItemUnchecked,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenChecklistItemDueDateChanges,
+    {
+      trigger_type: TriggerType.WhenChecklistItemDueDateChanges,
+      expected_condition_key: [
+        EnumSelectionType.DateExpression,
+        EnumSelectionType.Action,
+        EnumSelectionType.OptionalBySubject,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumUserActionEvent.ChecklistItemDueDateSet,
+        EnumUserActionEvent.ChecklistItemDueDateRemoved,
+      ],
+    },
+  ],
+
+  [
+    TriggerType.WhenChecklistItemIsAddedTo,
+    {
+      trigger_type: TriggerType.WhenChecklistItemIsAddedTo,
+      expected_condition_key: [
+        EnumSelectionType.TextComparison,
+        EnumSelectionType.Action,
+        EnumSelectionType.ChecklistScope,
+        EnumSelectionType.OptionalFilter,
+        EnumSelectionType.OptionalBySubject,
+        EnumInputType.Text,
       ],
     },
   ],

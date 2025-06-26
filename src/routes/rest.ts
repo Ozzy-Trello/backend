@@ -192,6 +192,7 @@ export default async function (): Promise<Router> {
   custom_field_controller.SetEventPublisher(eventPublisher);
   list_controller.SetEventPublisher(eventPublisher);
   list_controller.SetAutomationRuleController(automation_rule_controller);
+  checklist_controller.SetEventPublisher(eventPublisher);
 
   // Views
   const trigger_rest_view = new TriggerRestView(trigger_controller);
