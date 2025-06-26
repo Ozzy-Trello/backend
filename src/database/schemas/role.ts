@@ -6,6 +6,7 @@ interface RoleAttributes {
   name: string;
   description: string;
   default: boolean;
+  permission_id: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -21,6 +22,7 @@ class Role
   public name!: string;
   public description!: string;
   public default!: boolean;
+  public permission_id!: string;
 
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -47,6 +49,14 @@ Role.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
+    },
+    permission_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: "permissions",
+        key: "id",
+      },
     },
 
     created_at: {
