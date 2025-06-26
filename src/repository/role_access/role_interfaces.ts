@@ -54,6 +54,7 @@ export class RoleDetail {
   public name!: string;
   public description!: string;
   public default!: boolean;
+  public permission_id?: string;
 
   constructor(payload: Partial<RoleDetail>) {
     Object.assign(this, payload);
