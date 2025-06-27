@@ -52,6 +52,14 @@ export enum EnumActions {
   Notify = "notify",
   ArchiveCard = "archive.card",
   UnarchiveCard = "unarchive.card",
+  ClearCustomField = "clear.custom.field",
+  SetCustomField = "set.custom.field",
+  CheckCustomField = "check.custom.field",
+  UncheckCustomField = "uncheck.custom.field",
+  IncreaseNumberCustomField = "increase.number.custom.field",
+  DecreaseNumberCustomField = "decrease.number.custom.field",
+  SetDateCustomField = "set.date.custom.field",
+  MoveDateCustomField = "cardfields.date.move",
 }
 
 export interface UserActionEvent {
