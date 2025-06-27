@@ -41,8 +41,12 @@ import {
 } from "@/types/options";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
-import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
+import {
+  CustomFieldRepositoryI,
+  CardCustomFieldValueUpdate,
+} from "@/repository/custom_field/custom_field_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import { broadcastToWebSocket } from "@/server";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -1038,6 +1042,68 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           console.log(`executeAutomationAction: ${EnumActions.CopyCard}`);
           await this.handleCopyCardAction(action, recentUserAction);
           break;
+        case EnumActions.ClearCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.ClearCustomField}`
+          );
+          await this.handleClearCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.SetCustomField:
+          console.log(`executeAutomationAction: ${EnumActions.SetCustomField}`);
+          await this.handleSetCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.CheckCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.CheckCustomField}`
+          );
+          await this.handleToggleCheckboxFieldAction(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.UncheckCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.UncheckCustomField}`
+          );
+          await this.handleToggleCheckboxFieldAction(
+            action,
+            recentUserAction,
+            false
+          );
+          break;
+        case EnumActions.IncreaseNumberCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.IncreaseNumberCustomField}`
+          );
+          await this.handleIncrementNumberFieldAction(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.DecreaseNumberCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.DecreaseNumberCustomField}`
+          );
+          await this.handleIncrementNumberFieldAction(
+            action,
+            recentUserAction,
+            false
+          );
+          break;
+        case EnumActions.MoveDateCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.MoveDateCustomField}`
+          );
+          await this.handleMoveDateCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.SetDateCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetDateCustomField}`
+          );
+          await this.handleSetDateCustomFieldAction(action, recentUserAction);
+          break;
         default:
           console.warn(
             `Unknown automation action: ${action?.condition?.action}`
@@ -1150,6 +1216,668 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     );
   }
 
+  private async handleClearCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    if (!cardId || !customFieldId) {
+      console.warn("Missing card ID or custom field ID for clear action");
+      return;
+    }
+
+    try {
+      console.log("Clearing custom field:", {
+        cardId,
+        customFieldId,
+      });
+
+      // Clear all custom field values by using the clearAllFields method
+      const clearData = new CardCustomFieldValueUpdate({});
+      clearData.clearAllFields();
+
+      const updateResult = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        clearData
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "", // workspace_id will be filled from the field data
+          cardId,
+          customFieldId
+        );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field clear
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId: cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field cleared successfully");
+      } else {
+        console.warn("Failed to clear custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error clearing custom field:", error);
+    }
+  }
+
+  private async handleSetCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    const fieldValueRaw = action.condition?.["field_value"];
+
+    // Unwrap if object
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const fieldValue = (() => {
+      if (
+        fieldValueRaw &&
+        typeof fieldValueRaw === "object" &&
+        "value" in fieldValueRaw
+      ) {
+        return fieldValueRaw;
+      }
+      return fieldValueRaw;
+    })();
+
+    if (!cardId || !customFieldId || fieldValue === undefined) {
+      console.warn(
+        "Missing card ID, custom field ID, or field value for set action"
+      );
+      return;
+    }
+
+    try {
+      console.log("Setting custom field:", {
+        cardId,
+        customFieldId,
+        fieldValue,
+      });
+
+      // Create update data with the specific field value
+      const updateData = new CardCustomFieldValueUpdate({});
+
+      // Set the appropriate field based on the value type
+      if (typeof fieldValue === "string") {
+        updateData.value_string = fieldValue;
+      } else if (typeof fieldValue === "number") {
+        updateData.value_number = fieldValue;
+      } else if (typeof fieldValue === "boolean") {
+        updateData.value_checkbox = fieldValue;
+      } else if (fieldValue instanceof Date) {
+        updateData.value_date = fieldValue;
+      } else {
+        // For option values or user IDs, treat as string
+        if (fieldValue && typeof fieldValue === "object" && fieldValue.value) {
+          // Handle dropdown option objects
+          updateData.value_option = fieldValue.value;
+        } else {
+          // Handle user IDs or other string values
+          updateData.value_user_id = fieldValue;
+        }
+      }
+
+      const updateResult = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        updateData
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "", // workspace_id will be filled from the field data
+          cardId,
+          customFieldId
+        );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field update
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field set successfully");
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        // No existing record – create it
+        const createRes = await this.custom_field_repo.createCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField = await this.custom_field_repo.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+          if (newField.status_code === 200 && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        } else {
+          console.warn("Failed to create card custom field", createRes.message);
+        }
+      } else {
+        console.warn("Failed to set custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error setting custom field:", error);
+    }
+  }
+
+  private async handleToggleCheckboxFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    checked: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    if (!cardId || !customFieldId) {
+      console.warn("Missing card ID or custom field ID for toggle action");
+      return;
+    }
+
+    try {
+      console.log("Toggling custom field:", {
+        cardId,
+        customFieldId,
+        checked,
+      });
+
+      // Create update data with the specific field value
+      const updateData = new CardCustomFieldValueUpdate({});
+
+      // Always set checkbox value
+      updateData.value_checkbox = checked;
+
+      const updateResult = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        updateData
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "", // workspace_id will be filled from the field data
+          cardId,
+          customFieldId
+        );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field update
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field toggled successfully");
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        const createRes = await this.custom_field_repo.createCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField = await this.custom_field_repo.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+          if (newField.status_code === 200 && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      } else {
+        console.warn("Failed to toggle custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error toggling custom field:", error);
+    }
+  }
+
+  private async handleIncrementNumberFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    isIncrease: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const deltaRaw = action.condition?.[EnumInputType.Number] ?? "1";
+    const delta = Number(deltaRaw);
+
+    if (!cardId || !customFieldId || isNaN(delta)) {
+      console.warn(
+        "Missing card, field, or invalid delta for increment action"
+      );
+      return;
+    }
+
+    const signedDelta = isIncrease ? delta : -delta;
+
+    try {
+      // Fetch current value
+      const currentResp = await this.custom_field_repo.getCardCustomField(
+        "",
+        cardId,
+        customFieldId
+      );
+      let currentNumber = 0;
+      if (
+        currentResp.status_code === StatusCodes.OK &&
+        currentResp.data &&
+        currentResp.data.value_number !== null &&
+        currentResp.data.value_number !== undefined
+      ) {
+        currentNumber = Number(currentResp.data.value_number) || 0;
+      }
+
+      const newValue = currentNumber + signedDelta;
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_number: newValue,
+      });
+
+      const updateResult = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        updateData
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "",
+          cardId,
+          customFieldId
+        );
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        // create record
+        const createRes = await this.custom_field_repo.createCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField = await this.custom_field_repo.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+          if (newField.status_code === StatusCodes.OK && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      } else {
+        console.warn("Failed to update number field", updateResult.message);
+      }
+    } catch (e) {
+      console.error("Error incrementing number field", e);
+    }
+  }
+
+  private async handleMoveDateCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const rawDateVal: any = action.condition?.["date_value"];
+    let expr: any = null;
+    if (
+      rawDateVal &&
+      typeof rawDateVal === "object" &&
+      Array.isArray(rawDateVal.expressions)
+    ) {
+      expr = rawDateVal.expressions[0] || null;
+    } else if (rawDateVal) {
+      expr = { value: rawDateVal, text: String(rawDateVal) };
+    }
+
+    if (!cardId || !customFieldId || !expr) {
+      console.warn("Missing data for move date action");
+      return;
+    }
+
+    try {
+      const baseDate = new Date();
+      const newDate = this.computeMovedDate(baseDate, expr.value);
+      if (!newDate) {
+        console.warn("Unable to compute new date for expression", expr);
+        return;
+      }
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_date: newDate,
+      });
+      const updateRes = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        updateData
+      );
+      console.log("MoveDateCustomField update result:", updateRes.status_code);
+
+      if (updateRes.status_code === StatusCodes.NO_CONTENT) {
+        console.log(
+          "Update successful, fetching updated field for WebSocket broadcast..."
+        );
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "",
+          cardId,
+          customFieldId
+        );
+        console.log(
+          "Updated field fetch result:",
+          updatedField.status_code,
+          updatedField.data ? "has data" : "no data"
+        );
+
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          console.log("Broadcasting WebSocket event for date field update");
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        } else {
+          console.warn("Failed to fetch updated field for WebSocket broadcast");
+        }
+      } else {
+        // Update failed (likely no existing record), try creating new record
+        console.log("Update failed, attempting to create new record...");
+        const createRes = await this.custom_field_repo.createCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+        console.log("Create result:", createRes.status_code);
+
+        if (createRes.status_code === StatusCodes.CREATED) {
+          console.log("Create successful, now updating with date value...");
+
+          // After creating the record, update it with the actual date value
+          const updateAfterCreate =
+            await this.custom_field_repo.updateCardCustomField(
+              customFieldId,
+              cardId,
+              updateData
+            );
+          console.log(
+            "Update after create result:",
+            updateAfterCreate.status_code
+          );
+
+          if (updateAfterCreate.status_code === StatusCodes.NO_CONTENT) {
+            console.log("Fetching updated field for WebSocket broadcast...");
+            const newField = await this.custom_field_repo.getCardCustomField(
+              "",
+              cardId,
+              customFieldId
+            );
+            if (newField.status_code === StatusCodes.OK && newField.data) {
+              console.log("Broadcasting WebSocket event for new date field");
+              broadcastToWebSocket("custom_field:updated", {
+                customField: newField.data,
+                cardId,
+                workspaceId: newField.data.workspace_id,
+              });
+            } else {
+              console.warn(
+                "Failed to fetch updated field for WebSocket broadcast"
+              );
+            }
+          } else {
+            console.warn(
+              "Failed to update newly created field with date value"
+            );
+          }
+        } else {
+          console.warn(
+            "Failed to create date field:",
+            createRes.status_code,
+            createRes.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error moving date field", err);
+    }
+  }
+
+  private computeMovedDate(base: Date, meta: any): Date | null {
+    const result = new Date(base);
+    const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+
+    const addDays = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setDate(copy.getDate() + n);
+      return copy;
+    };
+
+    const addWeeks = (d: Date, n: number) => addDays(d, n * 7);
+    const addMonths = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setMonth(copy.getMonth() + n);
+      return copy;
+    };
+    const addYears = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setFullYear(copy.getFullYear() + n);
+      return copy;
+    };
+
+    // Simple string presets
+    if (typeof meta === "string") {
+      switch (meta) {
+        case "today":
+          return new Date();
+        case "tomorrow":
+          return addDays(new Date(), 1);
+        case "yesterday":
+          return addDays(new Date(), -1);
+        case "the_previous_working_day": {
+          let d = addDays(base, -1);
+          while (isWeekend(d)) d = addDays(d, -1);
+          return d;
+        }
+        case "the_same_day_next_week":
+          return addWeeks(base, 1);
+        case "the_same_day_next_month":
+          return addMonths(base, 1);
+        case "the_same_day_next_year":
+          return addYears(base, 1);
+        default:
+          return null;
+      }
+    }
+
+    // Offset object { by, unit }
+    if (meta && typeof meta === "object" && "by" in meta && "unit" in meta) {
+      const num = Number(meta.by);
+      if (isNaN(num)) return null;
+      if (meta.unit === "days") return addDays(base, num);
+      if (meta.unit === "weeks") return addWeeks(base, num);
+    }
+
+    // Next weekday { weekday }
+    if (meta && typeof meta === "object" && "weekday" in meta) {
+      const target = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ].indexOf((meta.weekday as string).toLowerCase());
+      if (target < 0) return null;
+      const current = base.getDay();
+      const diff = (target + 7 - current) % 7 || 7; // at least 1 day ahead
+      return addDays(base, diff);
+    }
+
+    // Day of month { day, of }
+    if (meta && typeof meta === "object" && "day" in meta && "of" in meta) {
+      let ref = new Date(base);
+      if (meta.of === "next_month") {
+        ref.setMonth(ref.getMonth() + 1);
+      }
+      ref.setHours(
+        base.getHours(),
+        base.getMinutes(),
+        base.getSeconds(),
+        base.getMilliseconds()
+      );
+
+      const setOrdinalDay = (dayStr: string): Date | null => {
+        if (dayStr.startsWith("the_") && dayStr.endsWith("st")) {
+          const num = parseInt(dayStr.slice(4));
+          if (!isNaN(num)) {
+            ref.setDate(Math.min(num, 31));
+            return ref;
+          }
+        }
+        if (dayStr === "the_last_day" || dayStr === "the_last") {
+          ref.setMonth(ref.getMonth() + 1, 0); // move to last day of previous month
+          return ref;
+        }
+        if (dayStr === "the_last_working_day") {
+          ref.setMonth(ref.getMonth() + 1, 0);
+          while (isWeekend(ref)) ref.setDate(ref.getDate() - 1);
+          return ref;
+        }
+        return null;
+      };
+      return setOrdinalDay(meta.day as string);
+    }
+
+    // Nth weekday of month { nth, weekday, of }
+    if (
+      meta &&
+      typeof meta === "object" &&
+      "nth" in meta &&
+      "weekday" in meta &&
+      "of" in meta
+    ) {
+      const targetWeekday = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ].indexOf((meta.weekday as string).toLowerCase());
+      if (targetWeekday < 0) return null;
+      const nthStr: string = meta.nth;
+      let nth = 1;
+      if (nthStr.includes("_")) {
+        const numPart = nthStr.split("_")[1];
+        nth = parseInt(numPart) || 1;
+      }
+      let ref = new Date(base);
+      if (meta.of === "next_month") {
+        ref.setMonth(ref.getMonth() + 1, 1);
+      } else {
+        ref.setDate(1);
+      }
+      let count = 0;
+      while (true) {
+        if (ref.getDay() === targetWeekday) {
+          count += 1;
+          if (nthStr === "the_last") {
+            // go to last matching weekday
+            const temp = new Date(ref);
+            while (temp.getMonth() === ref.getMonth()) {
+              ref = new Date(temp);
+              temp.setDate(temp.getDate() + 7);
+            }
+            break;
+          }
+          if (count === nth) {
+            break;
+          }
+        }
+        ref.setDate(ref.getDate() + 1);
+      }
+      return ref;
+    }
+
+    return null;
+  }
+
   private evaluateDateExpression(actual: Date, meta: any): boolean {
     try {
       const now = new Date();
@@ -1248,6 +1976,106 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     } catch (_) {
       return false;
+    }
+  }
+
+  /**
+   * Handle SetDateCustomField – sets the date in a custom field to a target date expression.
+   *   Logic is similar to MoveDateCustomField but the base date for computation is NOW, not the current field value.
+   */
+  private async handleSetDateCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const rawDateVal: any = action.condition?.["date_value"];
+    let expr: any = null;
+    if (
+      rawDateVal &&
+      typeof rawDateVal === "object" &&
+      Array.isArray(rawDateVal.expressions)
+    ) {
+      expr = rawDateVal.expressions[0] || null;
+    } else if (rawDateVal) {
+      expr = { value: rawDateVal, text: String(rawDateVal) };
+    }
+
+    if (!cardId || !customFieldId || !expr) {
+      console.warn("Missing data for set date action");
+      return;
+    }
+
+    try {
+      const baseDate = new Date();
+      const newDate = this.computeMovedDate(baseDate, expr.value);
+      if (!newDate) {
+        console.warn("Unable to compute target date for expression", expr);
+        return;
+      }
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_date: newDate,
+      });
+
+      // Reuse move handler logic for update/create + broadcast
+      const updateRes = await this.custom_field_repo.updateCardCustomField(
+        customFieldId,
+        cardId,
+        updateData
+      );
+
+      if (updateRes.status_code === StatusCodes.NO_CONTENT) {
+        const updatedField = await this.custom_field_repo.getCardCustomField(
+          "",
+          cardId,
+          customFieldId
+        );
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+      } else {
+        // create then update (same pattern)
+        const createRes = await this.custom_field_repo.createCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          // if creation succeeded but value not set, update it
+          await this.custom_field_repo.updateCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+          const newField = await this.custom_field_repo.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+          if (newField.status_code === StatusCodes.OK && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error setting date field", err);
     }
   }
 }

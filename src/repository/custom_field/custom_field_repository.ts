@@ -953,16 +953,20 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
     data: CardCustomFieldValueUpdate
   ): Promise<ResponseData<number>> {
     try {
+      const updateData = data.toObject();
+
+      // Ensure we have something to update
+      if (Object.keys(updateData).length === 0) {
+        return new ResponseData({
+          status_code: StatusCodes.BAD_REQUEST,
+          message: "No data provided for update",
+          data: 0,
+        });
+      }
+
       const result = await db
         .updateTable("card_custom_field")
-        .set({
-          value_checkbox: data?.value_checkbox,
-          value_user_id: data?.value_user_id,
-          value_number: data?.value_number,
-          value_date: data?.value_date,
-          value_string: data?.value_string,
-          value_option: data?.value_option,
-        })
+        .set(updateData)
         .where("custom_field_id", "=", custom_field_id)
         .where("card_id", "=", card_id)
         .executeTakeFirst();
@@ -992,24 +996,26 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
     workspaceId: string,
     customFieldId: string,
     targetPosition: number,
-    targetPositionTopOrBottom?: 'top' | 'bottom'
+    targetPositionTopOrBottom?: "top" | "bottom"
   ): Promise<ResponseData<null>> {
     return await db.transaction().execute(async (trx) => {
       try {
         // Get all custom fields in the workspace ordered by their current order
         const customFields = await trx
-          .selectFrom('custom_field')
-          .where('workspace_id', '=', workspaceId)
-          .orderBy('order', 'asc')
-          .select(['id', 'order'])
+          .selectFrom("custom_field")
+          .where("workspace_id", "=", workspaceId)
+          .orderBy("order", "asc")
+          .select(["id", "order"])
           .execute();
 
         // Find the index of the custom field being moved
-        const sourceIndex = customFields.findIndex(cf => cf.id === customFieldId);
+        const sourceIndex = customFields.findIndex(
+          (cf) => cf.id === customFieldId
+        );
         if (sourceIndex === -1) {
           return new ResponseData({
             status_code: StatusCodes.NOT_FOUND,
-            message: 'Custom field not found',
+            message: "Custom field not found",
           });
         }
 
@@ -1019,13 +1025,16 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
         // Determine the target position
         let newPosition: number;
 
-        if (targetPositionTopOrBottom === 'top') {
+        if (targetPositionTopOrBottom === "top") {
           newPosition = 0;
-        } else if (targetPositionTopOrBottom === 'bottom') {
+        } else if (targetPositionTopOrBottom === "bottom") {
           newPosition = customFields.length;
         } else {
           // Ensure target position is within bounds
-          newPosition = Math.max(0, Math.min(targetPosition, customFields.length));
+          newPosition = Math.max(
+            0,
+            Math.min(targetPosition, customFields.length)
+          );
         }
 
         // Insert the custom field at the target position
@@ -1038,9 +1047,9 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
         for (const field of customFields) {
           updates.push(
             trx
-              .updateTable('custom_field')
+              .updateTable("custom_field")
               .set({ order })
-              .where('id', '=', field.id)
+              .where("id", "=", field.id)
               .execute()
           );
           order += 10000; // Increment by a large number to leave room for future inserts
@@ -1050,13 +1059,13 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
 
         return new ResponseData({
           status_code: StatusCodes.OK,
-          message: 'Custom fields reordered successfully',
+          message: "Custom fields reordered successfully",
         });
       } catch (error) {
-        console.error('Error reordering custom fields:', error);
+        console.error("Error reordering custom fields:", error);
         return new ResponseData({
           status_code: StatusCodes.INTERNAL_SERVER_ERROR,
-          message: 'Failed to reorder custom fields',
+          message: "Failed to reorder custom fields",
         });
       }
     });
