@@ -1,23 +1,23 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  db:
-    image: postgres:latest
-    container_name: ozzy_postgres
-    environment:
-      POSTGRES_USER: yourusername
-      POSTGRES_PASSWORD: yourpassword
-      POSTGRES_DB: yourdatabase
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      
+  # db:
+  #   image: postgres:latest
+  #   container_name: ozzy_postgres
+  #   environment:
+  #     POSTGRES_USER: yourusername
+  #     POSTGRES_PASSWORD: yourpassword
+  #     POSTGRES_DB: yourdatabase
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
   nats:
     image: nats:latest
     container_name: ozzy_nats
     ports:
       - "4222:4222"
-      - "8222:8222"   # Monitoring endpoint
+      - "8222:8222" # Monitoring endpoint
 volumes:
   postgres_data:
