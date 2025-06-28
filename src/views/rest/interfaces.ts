@@ -6,6 +6,7 @@ export interface AccountRestViewI {
   UpdateAccount(req: Request, res: Response): Promise<void>;
   UpdateMyAccount(req: Request, res: Response): Promise<void>;
   DeleteAccount(req: Request, res: Response): Promise<void>;
+  GetAccount(req: Request, res: Response): Promise<void>;
 }
 
 export interface AuthRestViewI {
