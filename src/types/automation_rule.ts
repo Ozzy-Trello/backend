@@ -43,11 +43,13 @@ export enum EnumSelectionType {
   ChecklistScope = "checklist_scope",
   ItemScope = "item_scope",
   TextComparison = "text_comparison",
+  ChecklistName = "checklist_name",
 }
 
 export enum EnumInputType {
   Number = "number",
   Text = "text",
+  DateValue = "date_value",
 }
 
 export enum TriggerType {
@@ -101,6 +103,11 @@ export enum ActionType {
   ActionTheCardToPositionInSpecificList = `<${EnumSelectionType.Action}>_the_card_to_<${EnumSelectionType.Position}>_<${EnumSelectionType.List}>`,
   ActionTheCardToPosition = `<action>_the_card_to_<${EnumSelectionType.Position}>`,
   ArchivalActionTheCard = `<${EnumSelectionType.Action}>_the_card`,
+  AddChecklistToCard = `<${EnumSelectionType.Action}>_an_empty_checklist_named_<${EnumSelectionType.TextInput}>_to_the_card`,
+  ManageChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_to_checklist_<${EnumSelectionType.ChecklistName}>`,
+  SetChecklistItemDueDate = `set_the_item_due_<${EnumInputType.DateValue}>`,
+  MoveChecklistItemDueDate = `move_the_item_due_date_to_<${EnumInputType.DateValue}>`,
+  ToggleChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_in_checklist_<${EnumSelectionType.ChecklistName}>`,
   //add more..
 }
 
@@ -400,6 +407,69 @@ export const ActionsMap: Map<string, Action> = new Map([
       [EnumSelectionType.Action]: [
         EnumActions.ArchiveCard,
         EnumActions.UnarchiveCard,
+      ],
+    },
+  ],
+  [
+    ActionType.AddChecklistToCard,
+    {
+      action_type: ActionType.AddChecklistToCard,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.AddChecklist],
+    },
+  ],
+  [
+    ActionType.ManageChecklistItem,
+    {
+      action_type: ActionType.ManageChecklistItem,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+        EnumSelectionType.ChecklistName,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumActions.AddChecklistItem,
+        EnumActions.RemoveChecklistItem,
+      ],
+    },
+  ],
+  [
+    ActionType.SetChecklistItemDueDate,
+    {
+      action_type: ActionType.SetChecklistItemDueDate,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumInputType.DateValue,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.SetChecklistItemDueDate],
+    },
+  ],
+  [
+    ActionType.MoveChecklistItemDueDate,
+    {
+      action_type: ActionType.MoveChecklistItemDueDate,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumInputType.DateValue,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.MoveChecklistItemDueDate],
+    },
+  ],
+  [
+    ActionType.ToggleChecklistItem,
+    {
+      action_type: ActionType.ToggleChecklistItem,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+        EnumSelectionType.ChecklistName,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumActions.CheckChecklistItem,
+        EnumActions.UncheckChecklistItem,
       ],
     },
   ],

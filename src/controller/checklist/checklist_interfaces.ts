@@ -19,7 +19,8 @@ export interface IChecklistController {
   GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
   CreateChecklist(
     user_id: string,
-    data: CreateChecklistDTO
+    data: CreateChecklistDTO,
+    isAutomatedAction?: boolean
   ): Promise<ResponseData<ChecklistDTO>>;
   UpdateChecklist(
     user_id: string,
