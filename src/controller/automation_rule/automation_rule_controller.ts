@@ -143,7 +143,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             {
               rule_ids: rule_ids,
             },
-            paginate
+            new Paginate(1, paginate.limit) // fresh paginate so it doesn't overwrite
           );
 
         if (resultAction && resultAction.data) {
