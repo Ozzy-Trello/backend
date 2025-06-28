@@ -611,4 +611,18 @@ export class CustomFieldController implements CustomFieldControllerI {
       );
     }
   }
+
+  async GetCustomFieldOptions(
+    customFieldId: string
+  ): Promise<ResponseData<any[]>> {
+    try {
+      return await this.custom_field_repo.getCustomFieldOptions(customFieldId);
+    } catch (error) {
+      return new ResponseData({
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: error instanceof Error ? error.message : String(error),
+        data: [],
+      });
+    }
+  }
 }
