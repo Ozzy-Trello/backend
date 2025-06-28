@@ -78,6 +78,9 @@ export class CardController implements CardControllerI {
   private automation_rule_controller: AutomationRuleControllerI | undefined;
   private whatsapp_controller: WhatsAppControllerI;
 
+  // Deduplication cache for mention processing
+  private mentionProcessingCache: Set<string> = new Set();
+
   constructor(
     card_repo: CardRepositoryI,
     list_repo: ListRepositoryI,
@@ -1449,6 +1452,7 @@ export class CardController implements CardControllerI {
     );
 
     // Check for mentions in description and send WhatsApp notifications
+    // Process mentions for both user and automation triggers, but log the source
     if (data.description && updateResponse === StatusCodes.NO_CONTENT) {
       try {
         // Extract mentioned user IDs from HTML content
@@ -1457,26 +1461,54 @@ export class CardController implements CardControllerI {
         );
 
         if (mentionedUserIds.length > 0) {
-          console.log(`Found mentions in card ${filter.id}:`, mentionedUserIds);
+          const triggerSource =
+            triggerdBy === EnumTriggeredBy.User ? "user" : "automation";
+          const timestamp = new Date().toISOString();
 
-          // Send WhatsApp notifications to mentioned users
-          const notificationResult =
-            await this.whatsapp_controller.sendMessageFromMention(
-              mentionedUserIds,
-              filter.id!,
-              data.description
-            );
+          // Create a unique key for deduplication based on card ID, description hash, and mentioned users
+          const descriptionHash = Buffer.from(data.description)
+            .toString("base64")
+            .slice(0, 20);
+          const dedupeKey = `${filter.id}-${descriptionHash}-${mentionedUserIds
+            .sort()
+            .join(",")}`;
 
-          if (notificationResult.status_code !== StatusCodes.OK) {
-            console.warn(
-              "Failed to send mention notifications:",
-              notificationResult.message
+          if (this.mentionProcessingCache.has(dedupeKey)) {
+            console.log(
+              `[${timestamp}] SKIPPING duplicate mention processing for card ${filter.id} (triggered by ${triggerSource})`
             );
           } else {
+            // Add to cache and set a timeout to clear it (5 seconds should be enough)
+            this.mentionProcessingCache.add(dedupeKey);
+            setTimeout(() => {
+              this.mentionProcessingCache.delete(dedupeKey);
+            }, 5000);
+
             console.log(
-              "Mention notifications sent successfully:",
-              notificationResult.data
+              `[${timestamp}] Found mentions in card ${filter.id} (triggered by ${triggerSource}):`,
+              mentionedUserIds
             );
+            console.log(`[${timestamp}] Deduplication key: ${dedupeKey}`);
+
+            // Send WhatsApp notifications to mentioned users
+            const notificationResult =
+              await this.whatsapp_controller.sendMessageFromMention(
+                mentionedUserIds,
+                filter.id!,
+                data.description
+              );
+
+            if (notificationResult.status_code !== StatusCodes.OK) {
+              console.warn(
+                `Failed to send mention notifications (${triggerSource}):`,
+                notificationResult.message
+              );
+            } else {
+              console.log(
+                `Mention notifications sent successfully (${triggerSource}):`,
+                notificationResult.data
+              );
+            }
           }
         }
       } catch (error) {
@@ -1485,11 +1517,50 @@ export class CardController implements CardControllerI {
       }
     }
 
-    broadcastToWebSocket(EnumUserActionEvent.CardUpdated, {
-      card: data,
-      listId: filter?.list_id || data?.list_id,
-      udpatedBy: user_id,
-    });
+    // Check if card name was changed and broadcast appropriate event
+    if (data.name && data.name !== selectedCard.data?.name) {
+      // Card was renamed - broadcast specific rename event
+      broadcastToWebSocket(EnumUserActionEvent.CardRenamed, {
+        card: {
+          id: selectedCard.data?.id,
+          name: data.name,
+          list_id: selectedCard.data?.list_id,
+        },
+        listId: selectedCard.data?.list_id,
+        renamedBy: user_id,
+        previousName: selectedCard.data?.name,
+      });
+
+      // Publish event for automation chain if triggered by user
+      if (this.event_publisher && triggerdBy === EnumTriggeredBy.User) {
+        const event: UserActionEvent = {
+          eventId: uuidv4(),
+          type: EnumUserActionEvent.CardRenamed,
+          workspace_id: "", // Will be filled by automation processor
+          user_id: user_id,
+          timestamp: new Date(),
+          data: {
+            card: {
+              id: selectedCard.data?.id,
+              name: data.name,
+              list_id: selectedCard.data?.list_id,
+            },
+            previous_data: {
+              name: selectedCard.data?.name,
+            },
+          },
+        };
+        console.log("Publishing card renamed event: %s", event.eventId);
+        this.event_publisher.publishUserAction(event);
+      }
+    } else {
+      // General card update
+      broadcastToWebSocket(EnumUserActionEvent.CardUpdated, {
+        card: data,
+        listId: filter?.list_id || data?.list_id,
+        udpatedBy: user_id,
+      });
+    }
 
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
