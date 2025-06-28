@@ -47,6 +47,10 @@ import {
   CardCustomFieldValueUpdate,
 } from "@/repository/custom_field/custom_field_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import {
+  IChecklistController,
+  CreateChecklistDTO,
+} from "../checklist/checklist_interfaces";
 import { broadcastToWebSocket } from "@/server";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
@@ -56,6 +60,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   private whatsapp_controller: WhatsAppController;
   private custom_field_repo: CustomFieldRepositoryI;
   private user_repo: UserRepositoryI;
+  private checklist_controller: IChecklistController;
 
   constructor(
     automation_rule_repo: AutomationRuleRepositoryI,
@@ -63,7 +68,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     card_controller: CardControllerI,
     whatsapp_controller: WhatsAppController,
     custom_field_repo: CustomFieldRepositoryI,
-    user_repo: UserRepositoryI
+    user_repo: UserRepositoryI,
+    checklist_controller: IChecklistController
   ) {
     this.automation_rule_repo = automation_rule_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
@@ -71,6 +77,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     this.whatsapp_controller = whatsapp_controller;
     this.custom_field_repo = custom_field_repo;
     this.user_repo = user_repo;
+    this.checklist_controller = checklist_controller;
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
@@ -190,6 +197,11 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
       console.log("filter are: %o", filter);
       console.log("rules are: %o", rules);
+      console.log(
+        `[AUTOMATION DEBUG] Found ${
+          rules.data?.length || 0
+        } potential matching rules`
+      );
 
       if (rules?.data) {
         // Process rules in parallel for better performance
@@ -937,7 +949,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             }
 
             if (isPermsissable) {
-              console.log("passed permissable actually");
+              console.log(
+                `[AUTOMATION DEBUG] Rule ${rule.id} passed permissible check and will execute actions`
+              );
               return this.ProcessAutomationAction(
                 recentUserAction,
                 new AutomationRuleFilter({
@@ -1114,6 +1128,60 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             `executeAutomationAction: ${EnumActions.SetCardDescription}`
           );
           await this.handleSetCardDescriptionAction(action, recentUserAction);
+          break;
+        case EnumActions.AddChecklist:
+          console.log(`executeAutomationAction: ${EnumActions.AddChecklist}`);
+          await this.handleAddChecklistAction(action, recentUserAction);
+          break;
+        case EnumActions.AddChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.AddChecklistItem}`
+          );
+          await this.handleAddChecklistItemAction(action, recentUserAction);
+          break;
+        case EnumActions.RemoveChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.RemoveChecklistItem}`
+          );
+          await this.handleRemoveChecklistItemAction(action, recentUserAction);
+          break;
+        case EnumActions.MoveChecklistItemDueDate:
+          console.log(
+            `executeAutomationAction: ${EnumActions.MoveChecklistItemDueDate}`
+          );
+          await this.handleMoveChecklistItemDueDateAction(
+            action,
+            recentUserAction
+          );
+          break;
+        case EnumActions.SetChecklistItemDueDate:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetChecklistItemDueDate}`
+          );
+          await this.handleSetChecklistItemDueDateAction(
+            action,
+            recentUserAction
+          );
+          break;
+        case EnumActions.CheckChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.CheckChecklistItem}`
+          );
+          await this.handleToggleChecklistItemChecked(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.UncheckChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.UncheckChecklistItem}`
+          );
+          await this.handleToggleChecklistItemChecked(
+            action,
+            recentUserAction,
+            false
+          );
           break;
         default:
           console.warn(
@@ -2137,32 +2205,431 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       console.warn("Missing card ID or description for set description action");
       return;
     }
+  }
+
+  private async handleAddChecklistAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const checklistName = action.condition?.text_input;
+
+    if (!cardId || !checklistName) {
+      console.warn(
+        "Missing card ID or checklist name for add checklist action"
+      );
+      return;
+    }
 
     try {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] AUTOMATION: Setting card description:`, {
+      const checklistData: CreateChecklistDTO = {
+        card_id: cardId,
+        title: `${checklistName}`,
+        data: [],
+      };
+      const createResult = await this.checklist_controller.CreateChecklist(
+        recentUserAction.user_id || "system",
+        checklistData,
+        true
+      );
+
+      if (createResult.status_code === StatusCodes.CREATED) {
+        console.log("Checklist added successfully:", createResult.data?.id);
+      } else {
+        console.warn("Failed to add checklist:", createResult.message);
+      }
+    } catch (error) {
+      console.error("Error adding checklist to card:", error);
+    }
+  }
+
+  private async handleAddChecklistItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+
+    // Extract item name and checklist name from the action condition
+    // The action format is: add item <item_name> to checklist <checklist_name>
+    // We expect two text_input values in the condition
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.checklist_name || action.condition?.text_input_2;
+
+    if (!cardId || !itemName || !checklistName) {
+      console.warn(
+        "Missing card ID, item name, or checklist name for add checklist item action",
+        { cardId, itemName, checklistName }
+      );
+      return;
+    }
+
+    try {
+      const timestampStr = new Date().toISOString();
+      console.log(`[${timestampStr}] AUTOMATION: Adding item to checklist:`, {
         cardId,
-        descriptionLength: newDescription.length,
+        itemName,
+        checklistName,
         actionId: action.id,
         ruleId: action.rule_id,
         eventId: recentUserAction.eventId,
       });
 
-      // Use the card controller to update the card description
-      const updateResult = await this.card_controller.UpdateCard(
-        recentUserAction.user_id || "",
-        new CardFilter({ id: cardId }),
-        new UpdateCardData({ description: newDescription }),
-        EnumTriggeredBy.OzzyAutomation
+      // First, get all checklists for the card
+      const checklistsResult =
+        await this.checklist_controller.GetChecklistsByCardId(cardId);
+
+      if (
+        checklistsResult.status_code !== StatusCodes.OK ||
+        !checklistsResult.data
+      ) {
+        console.warn(
+          "Failed to get checklists for card:",
+          checklistsResult.message
+        );
+        return;
+      }
+
+      // Find the checklist with the matching name
+      const targetChecklist = checklistsResult.data.find(
+        (checklist) => checklist.title === checklistName
       );
 
-      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
-        console.log("Card description set successfully");
+      if (!targetChecklist) {
+        console.log(
+          `[AUTOMATION] Checklist "${checklistName}" not found for card ${cardId}, skipping item addition`
+        );
+        return;
+      }
+
+      // Check if the item already exists in the checklist
+      const existingItems = targetChecklist.data || [];
+      const itemExists = existingItems.some((item) => item.label === itemName);
+
+      if (itemExists) {
+        console.log(
+          `[AUTOMATION] Item "${itemName}" already exists in checklist "${checklistName}", skipping`
+        );
+        return;
+      }
+
+      // Add the new item to the checklist
+      const updatedItems = [
+        ...existingItems,
+        {
+          label: itemName,
+          checked: false,
+        },
+      ];
+
+      // Update the checklist
+      const updateResult = await this.checklist_controller.UpdateChecklist(
+        recentUserAction.user_id || "system",
+        targetChecklist.id,
+        {
+          data: updatedItems,
+        }
+      );
+
+      if (updateResult.status_code === StatusCodes.OK) {
+        console.log(
+          `Item "${itemName}" added successfully to checklist "${checklistName}"`
+        );
       } else {
-        console.warn("Failed to set card description:", updateResult.message);
+        console.warn("Failed to add item to checklist:", updateResult.message);
       }
     } catch (error) {
-      console.error("Error setting card description:", error);
+      console.error("Error adding item to checklist:", error);
+    }
+  }
+
+  private async handleRemoveChecklistItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+
+    // Extract item name and checklist name from the action condition
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.checklist_name || action.condition?.text_input_2;
+
+    if (!cardId || !itemName || !checklistName) {
+      console.warn(
+        "Missing card ID, item name, or checklist name for remove checklist item action",
+        { cardId, itemName, checklistName }
+      );
+      return;
+    }
+
+    try {
+      const timestampStr = new Date().toISOString();
+      console.log(
+        `[${timestampStr}] AUTOMATION: Removing item from checklist:`,
+        {
+          cardId,
+          itemName,
+          checklistName,
+          actionId: action.id,
+          ruleId: action.rule_id,
+          eventId: recentUserAction.eventId,
+        }
+      );
+
+      // First, get all checklists for the card
+      const checklistsResult =
+        await this.checklist_controller.GetChecklistsByCardId(cardId);
+
+      if (
+        checklistsResult.status_code !== StatusCodes.OK ||
+        !checklistsResult.data
+      ) {
+        console.warn(
+          "Failed to get checklists for card:",
+          checklistsResult.message
+        );
+        return;
+      }
+
+      // Find the checklist with the matching name
+      const targetChecklist = checklistsResult.data.find(
+        (checklist) => checklist.title === checklistName
+      );
+
+      if (!targetChecklist) {
+        console.log(
+          `[AUTOMATION] Checklist "${checklistName}" not found for card ${cardId}, skipping item removal`
+        );
+        return;
+      }
+
+      // Check if the item exists in the checklist
+      const existingItems = targetChecklist.data || [];
+      const itemExists = existingItems.some((item) => item.label === itemName);
+
+      if (!itemExists) {
+        console.log(
+          `[AUTOMATION] Item "${itemName}" not found in checklist "${checklistName}", skipping`
+        );
+        return;
+      }
+
+      // Remove the item from the checklist
+      const updatedItems = existingItems.filter(
+        (item) => item.label !== itemName
+      );
+
+      // Update the checklist
+      const updateResult = await this.checklist_controller.UpdateChecklist(
+        recentUserAction.user_id || "system",
+        targetChecklist.id,
+        {
+          data: updatedItems,
+        }
+      );
+
+      if (updateResult.status_code === StatusCodes.OK) {
+        console.log(
+          `Item "${itemName}" removed successfully from checklist "${checklistName}"`
+        );
+      } else {
+        console.warn(
+          "Failed to remove item from checklist:",
+          updateResult.message
+        );
+      }
+    } catch (error) {
+      console.error("Error removing item from checklist:", error);
+    }
+  }
+
+  private async handleSetChecklistItemDueDateAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+    const dateExpr =
+      action.condition?.[EnumInputType.DateValue] ||
+      (action.condition as any)?.date_value;
+
+    if (!cardId || !itemName || !dateExpr) {
+      console.warn("Missing data for set checklist item due date", {
+        cardId,
+        itemName,
+        dateExpr,
+      });
+      return;
+    }
+
+    try {
+      // compute target date relative to now using helper
+      const targetDate = this.computeMovedDate(
+        new Date(),
+        dateExpr?.value ?? dateExpr
+      );
+      if (!targetDate) {
+        console.warn("Unable to compute target date", dateExpr);
+        return;
+      }
+
+      await this.updateChecklistItemDueDate(
+        cardId,
+        itemName,
+        checklistName,
+        targetDate
+      );
+    } catch (err) {
+      console.error("Error setting checklist item due date", err);
+    }
+  }
+
+  private async handleMoveChecklistItemDueDateAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+    const dateExpr =
+      action.condition?.[EnumInputType.DateValue] ||
+      (action.condition as any)?.date_value;
+
+    if (!cardId || !itemName || !dateExpr) {
+      console.warn("Missing data for move checklist item due date", {
+        cardId,
+        itemName,
+        dateExpr,
+      });
+      return;
+    }
+
+    try {
+      // fetch checklists to get current due date
+      const clRes = await this.checklist_controller.GetChecklistsByCardId(
+        cardId
+      );
+      if (clRes.status_code !== 200 || !clRes.data) return;
+      let currentDue: Date | null = null;
+      let targetChecklist: any = null;
+      let itemIndex = -1;
+      for (const cl of clRes.data) {
+        if (checklistName && cl.title !== checklistName) continue;
+        const idx = (cl.data || []).findIndex(
+          (it: any) => it.label === itemName
+        );
+        if (idx >= 0) {
+          currentDue = cl.data[idx].due_date
+            ? new Date(cl.data[idx].due_date)
+            : new Date();
+          targetChecklist = cl;
+          itemIndex = idx;
+          break;
+        }
+      }
+      if (!targetChecklist) {
+        console.warn("Checklist/item not found for move due date");
+        return;
+      }
+
+      const newDate = this.computeMovedDate(
+        currentDue!,
+        dateExpr?.value ?? dateExpr
+      );
+      if (!newDate) {
+        console.warn("Failed computing moved date", dateExpr);
+        return;
+      }
+
+      await this.updateChecklistItemDueDate(
+        cardId,
+        itemName,
+        checklistName,
+        newDate
+      );
+    } catch (err) {
+      console.error("Error moving checklist item due date", err);
+    }
+  }
+
+  private async updateChecklistItemDueDate(
+    cardId: string,
+    itemName: string,
+    checklistName: string | undefined,
+    newDate: Date
+  ): Promise<void> {
+    // fetch checklists
+    const clRes = await this.checklist_controller.GetChecklistsByCardId(cardId);
+    if (clRes.status_code !== 200 || !clRes.data) return;
+    for (const cl of clRes.data) {
+      if (checklistName && cl.title !== checklistName) continue;
+      const items = cl.data || [];
+      const idx = items.findIndex((it: any) => it.label === itemName);
+      if (idx < 0) continue;
+      // update due_date
+      items[idx] = { ...items[idx], due_date: newDate.toISOString() };
+      await this.checklist_controller.UpdateChecklist("system", cl.id, {
+        data: items,
+      });
+      break;
+    }
+  }
+
+  private async handleToggleChecklistItemChecked(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    checked: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+
+    if (!cardId || !itemName) {
+      console.warn("Missing data for toggle checklist item", {
+        cardId,
+        itemName,
+      });
+      return;
+    }
+
+    try {
+      await this.updateChecklistItemChecked(
+        cardId,
+        itemName,
+        checklistName,
+        checked
+      );
+    } catch (err) {
+      console.error("Error toggling checklist item", err);
+    }
+  }
+
+  private async updateChecklistItemChecked(
+    cardId: string,
+    itemName: string,
+    checklistName: string | undefined,
+    checked: boolean
+  ): Promise<void> {
+    const clRes = await this.checklist_controller.GetChecklistsByCardId(cardId);
+    if (clRes.status_code !== 200 || !clRes.data) return;
+    for (const cl of clRes.data) {
+      if (checklistName && cl.title !== checklistName) continue;
+      const items = cl.data || [];
+      const idx = items.findIndex((it: any) => it.label === itemName);
+      if (idx < 0) continue;
+      if (items[idx].checked === checked) return; // already desired state
+      items[idx] = { ...items[idx], checked };
+      await this.checklist_controller.UpdateChecklist("system", cl.id, {
+        data: items,
+      });
+      break;
     }
   }
 }

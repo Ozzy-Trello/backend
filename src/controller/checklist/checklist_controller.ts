@@ -55,19 +55,51 @@ export class ChecklistController implements IChecklistController {
 
   async CreateChecklist(
     user_id: string,
-    data: CreateChecklistDTO
+    data: CreateChecklistDTO,
+    isAutomatedAction: boolean = false
   ): Promise<ResponseData<ChecklistDTO>> {
     try {
+      // For automated actions, check if a checklist with the same name already exists
+      // to prevent duplicates from automation race conditions
+      if (isAutomatedAction && data.title) {
+        const existingChecklists =
+          await this.checklistRepo.getChecklistsByCardId(data.card_id);
+        if (
+          existingChecklists.status_code === StatusCodes.OK &&
+          existingChecklists.data
+        ) {
+          const duplicateExists = existingChecklists.data.some(
+            (checklist) => checklist.title === data.title
+          );
+
+          if (duplicateExists) {
+            console.log(
+              `[AUTOMATION DEDUP] Checklist "${data.title}" already exists for card ${data.card_id}, skipping creation`
+            );
+            // Return the existing checklist instead of creating a duplicate
+            const existingChecklist = existingChecklists.data.find(
+              (checklist) => checklist.title === data.title
+            );
+            return {
+              status_code: StatusCodes.OK,
+              message: "Checklist already exists",
+              data: existingChecklist!,
+            };
+          }
+        }
+      }
+
       const result = await this.checklistRepo.createChecklist({
         ...data,
         created_by: user_id,
       });
 
-      // Publish event for automation
+      // Publish event for automation (but not for automated actions to prevent infinite loops)
       if (
         result.status_code === StatusCodes.CREATED &&
         result.data &&
-        this.event_publisher
+        this.event_publisher &&
+        !isAutomatedAction // Don't publish events for automated actions
       ) {
         const event: UserActionEvent = {
           eventId: uuidv4(),
