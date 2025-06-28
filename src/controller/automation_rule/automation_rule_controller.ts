@@ -52,6 +52,7 @@ import {
   CreateChecklistDTO,
 } from "../checklist/checklist_interfaces";
 import { broadcastToWebSocket } from "@/server";
+import { CardMemberControllerI } from "../card/card_member_interfaces";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -61,6 +62,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   private custom_field_repo: CustomFieldRepositoryI;
   private user_repo: UserRepositoryI;
   private checklist_controller: IChecklistController;
+  private card_member_controller: CardMemberControllerI;
 
   constructor(
     automation_rule_repo: AutomationRuleRepositoryI,
@@ -69,7 +71,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     whatsapp_controller: WhatsAppController,
     custom_field_repo: CustomFieldRepositoryI,
     user_repo: UserRepositoryI,
-    checklist_controller: IChecklistController
+    checklist_controller: IChecklistController,
+    card_member_controller: CardMemberControllerI
   ) {
     this.automation_rule_repo = automation_rule_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
@@ -78,6 +81,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     this.custom_field_repo = custom_field_repo;
     this.user_repo = user_repo;
     this.checklist_controller = checklist_controller;
+    this.card_member_controller = card_member_controller;
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
@@ -1182,6 +1186,16 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             recentUserAction,
             false
           );
+          break;
+        case EnumActions.AddCardMember:
+          console.log(`executeAutomationAction: ${EnumActions.AddCardMember}`);
+          await this.handleAddCardMemberAction(action, recentUserAction);
+          break;
+        case EnumActions.RemoveCardMember:
+          console.log(
+            `executeAutomationAction: ${EnumActions.RemoveCardMember}`
+          );
+          await this.handleRemoveCardMemberAction(action, recentUserAction);
           break;
         default:
           console.warn(
@@ -2630,6 +2644,92 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         data: items,
       });
       break;
+    }
+  }
+
+  private async handleAddCardMemberAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = action.condition?.user;
+    if (!cardId || !userId) {
+      console.warn("AddCardMember missing card or user", { cardId, userId });
+      return;
+    }
+    try {
+      const addRes = await this.card_member_controller.addMembers(cardId, [
+        userId,
+      ]);
+      if (addRes.status_code === 200) {
+        const mems = await this.card_member_controller.getMembers(cardId);
+        if (mems.status_code === 200) {
+          broadcastToWebSocket("card_member:updated", {
+            cardId,
+            members: (mems as any).data || [],
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error adding member", e);
+    }
+  }
+
+  private async handleRemoveCardMemberAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = action.condition?.user;
+    if (!cardId) {
+      console.warn("RemoveCardMember missing card", { cardId });
+      return;
+    }
+    try {
+      if (userId) {
+        // remove specific user
+        const remRes = await this.card_member_controller.removeMember(
+          cardId,
+          userId
+        );
+        if (remRes.status_code === 200) {
+          const memsAfter = await this.card_member_controller.getMembers(
+            cardId
+          );
+          if (memsAfter.status_code === 200) {
+            broadcastToWebSocket("card_member:updated", {
+              cardId,
+              members: (memsAfter as any).data || [],
+            });
+          }
+        }
+      } else {
+        // remove all members
+        const membersRes = await this.card_member_controller.getMembers(cardId);
+        const memList: any[] =
+          (membersRes as any).data || (membersRes as any).members || [];
+        if (membersRes.status_code === 200 && memList.length) {
+          for (const m of memList) {
+            const remRes = await this.card_member_controller.removeMember(
+              cardId,
+              m.id || m.user_id
+            );
+            if (remRes.status_code === 200) {
+              const memsAfter = await this.card_member_controller.getMembers(
+                cardId
+              );
+              if (memsAfter.status_code === 200) {
+                broadcastToWebSocket("card_member:updated", {
+                  cardId,
+                  members: (memsAfter as any).data || [],
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error removing member", e);
     }
   }
 }

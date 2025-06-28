@@ -65,6 +65,8 @@ export enum EnumActions {
   AddChecklist = "add.checklist",
   AddChecklistItem = "add.checklist.item",
   RemoveChecklistItem = "remove.checklist.item",
+  AddCardMember = "add.card.member",
+  RemoveCardMember = "remove.card.member",
   CheckChecklistItem = "check.item",
   UncheckChecklistItem = "uncheck.item",
   SetChecklistItemDueDate = "set.item.due.date",
