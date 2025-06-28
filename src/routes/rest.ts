@@ -172,7 +172,8 @@ export default async function (): Promise<Router> {
     whatsapp_controller,
     custom_field_repo,
     user_repo,
-    checklist_controller
+    checklist_controller,
+    card_member_controller
   );
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
