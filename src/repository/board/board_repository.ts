@@ -294,10 +294,12 @@ export class BoardRepository implements BoardRepositoryI {
           if (filter.__orId)
             orConditions.push(eb("board.id", "=", filter.__orId));
           if (filter.__orName)
-            orConditions.push(eb("board.name", "=", filter.__orName));
+            orConditions.push(
+              eb("board.name", "ilike", `%${filter.__orName}%`)
+            );
           if (filter.__orDescription)
             orConditions.push(
-              eb("board.description", "=", filter.__orDescription)
+              eb("board.description", "ilike", `%${filter.__orDescription}%`)
             );
           if (filter.__orWorkspaceId)
             orConditions.push(
