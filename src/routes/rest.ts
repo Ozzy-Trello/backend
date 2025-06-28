@@ -65,6 +65,8 @@ import { AutomationServiceFactory } from "@/controller/automation/automation_fac
 import { AutomationProcessor } from "@/controller/automation/automation_processor";
 import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
+import { SearchController } from "@/controller/search/search_controller";
+import SearchRestView from "@/views/rest/search_view";
 
 export default async function (): Promise<Router> {
   const root_router = Router();
@@ -173,6 +175,12 @@ export default async function (): Promise<Router> {
   );
   card_controller.SetAutomationRuleController(automation_rule_controller);
 
+  const search_controller = new SearchController(
+    card_repo,
+    board_repo,
+    card_attachment_repository
+  );
+
   // Setup split job repository and controller
   const split_job_repo = new SplitJobRepository();
   const split_job_controller = new SplitJobController(
@@ -226,6 +234,8 @@ export default async function (): Promise<Router> {
   const automation_rule_rest_view = new AutomationRuleRestView(
     automation_rule_controller
   );
+
+  const search_rest_view = new SearchRestView(search_controller);
 
   const router_account = Router();
   {
@@ -592,6 +602,11 @@ export default async function (): Promise<Router> {
     );
   }
 
+  const router_search = Router();
+  {
+    router_search.get("/", restJwt, search_rest_view.UnifiedSearch);
+  }
+
   // Initialize split job view with controller
   const split_job_rest_view = new SplitJobRestView(split_job_controller);
 
@@ -612,6 +627,7 @@ export default async function (): Promise<Router> {
   root_router.use("/label", router_label);
   root_router.use("/roles", router_role);
   root_router.use("/automation-rule", automation_rule_router);
+  root_router.use("/search", router_search);
 
   return root_router;
 }
