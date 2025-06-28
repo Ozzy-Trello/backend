@@ -1,7 +1,10 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
-import sequelize from '@/database/connections';
-import { EnumCustomFieldType, EnumCustomFieldSource } from '@/types/custom_field';
+import { DataTypes, Model, Optional } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
+import sequelize from "@/database/connections";
+import {
+  EnumCustomFieldType,
+  EnumCustomFieldSource,
+} from "@/types/custom_field";
 
 interface CustomFieldAttributes {
   id: string;
@@ -12,7 +15,7 @@ interface CustomFieldAttributes {
   order: number;
   description: string;
   workspace_id: string;
-  source: EnumCustomFieldSource;
+  source: string;
   trigger_id?: string;
   can_view?: string[];
   can_edit?: string[];
@@ -20,9 +23,13 @@ interface CustomFieldAttributes {
   updated_at?: Date;
 }
 
-interface CustomFieldCreationAttributes extends Optional<CustomFieldAttributes, 'id'> { }
+interface CustomFieldCreationAttributes
+  extends Optional<CustomFieldAttributes, "id"> {}
 
-class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttributes> implements CustomFieldAttributes {
+class CustomField
+  extends Model<CustomFieldAttributes, CustomFieldCreationAttributes>
+  implements CustomFieldAttributes
+{
   public id!: string;
   public name!: string;
   public type!: EnumCustomFieldType;
@@ -31,7 +38,7 @@ class CustomField extends Model<CustomFieldAttributes, CustomFieldCreationAttrib
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
   public trigger_id?: string;
   public can_view?: string[];
   public can_edit?: string[];
@@ -58,7 +65,7 @@ CustomField.init(
     is_show_at_front: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false
+      defaultValue: false,
     },
     options: {
       type: DataTypes.JSONB,
@@ -67,65 +74,65 @@ CustomField.init(
     order: {
       type: DataTypes.FLOAT,
       allowNull: false,
-      defaultValue: 0
+      defaultValue: 0,
     },
     workspace_id: {
       type: DataTypes.UUID,
       allowNull: false,
       references: {
-        model: 'workspace',
-        key: 'id',
+        model: "workspace",
+        key: "id",
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
+      onUpdate: "CASCADE",
+      onDelete: "CASCADE",
     },
     trigger_id: {
       type: DataTypes.UUID,
       allowNull: true,
       references: {
-        model: 'trigger',
-        key: 'id',
+        model: "trigger",
+        key: "id",
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
+      onUpdate: "CASCADE",
+      onDelete: "CASCADE",
     },
     description: {
-      type: new DataTypes.TEXT,
+      type: new DataTypes.TEXT(),
       allowNull: false,
     },
     source: {
-      type: new DataTypes.ENUM(EnumCustomFieldSource.Product, EnumCustomFieldSource.User),
+      type: DataTypes.STRING,
       allowNull: false,
     },
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW
+      defaultValue: DataTypes.NOW,
     },
     updated_at: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW
+      defaultValue: DataTypes.NOW,
     },
     can_view: {
       type: DataTypes.JSONB,
       allowNull: true,
-      defaultValue: []
+      defaultValue: [],
     },
     can_edit: {
       type: DataTypes.JSONB,
       allowNull: true,
-      defaultValue: []
+      defaultValue: [],
     },
   },
   {
-    tableName: 'custom_field',
+    tableName: "custom_field",
     sequelize,
     timestamps: true,
     underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    createdAt: "created_at",
+    updatedAt: "updated_at",
   }
-)
+);
 
-export default CustomField
+export default CustomField;

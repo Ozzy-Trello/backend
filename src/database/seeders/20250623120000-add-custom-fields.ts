@@ -16,6 +16,7 @@ type CustomField = {
   is_show_at_front: boolean;
   options?: OptionItem[];
   order: number;
+  source?: string;
   description: string;
   workspace_id: string;
   can_view?: string[];
@@ -180,18 +181,7 @@ const customFields: CustomField[] = [
     name: "Deal Maker",
     type: EnumCustomFieldType.Dropdown,
     is_show_at_front: true,
-    options: createOptions([
-      "Clariesta Dinar Ariela",
-      "Cicilia Siannawati",
-      "Debby Angelina",
-      "Devi Sofiana",
-      "Hari Sucipto",
-      "Lenni Luvita Dewi",
-      "Ramli Ramadhan",
-      "Reni",
-      "Uswatun Hasanah",
-      "Yudo Hadianto",
-    ]),
+    source: "user-role:29c11c13-89cb-4cc2-b7c3-1b82de1c197e",
     order: 2,
     description:
       "List nama HARUS MATCH dengan nama penjual di Accurate / otomatis terisi dari Accurate (penjual)",
@@ -1131,19 +1121,20 @@ const customFields: CustomField[] = [
     name: "Operator",
     type: EnumCustomFieldType.Dropdown,
     is_show_at_front: true,
-    options: createOptions([
-      "Adi Suryo",
-      "Dheva",
-      "Lilik",
-      "Roni",
-      "Ajek",
-      "Fikri",
-      "Redy",
-      "Haikal",
-      "Okta",
-      "Dzaki",
-      "Panji",
-    ]),
+    // options: createOptions([
+    //   "Adi Suryo",
+    //   "Dheva",
+    //   "Lilik",
+    //   "Roni",
+    //   "Ajek",
+    //   "Fikri",
+    //   "Redy",
+    //   "Haikal",
+    //   "Okta",
+    //   "Dzaki",
+    //   "Panji",
+    // ]),
+    source: "user-role:c7c84070-f0c4-4961-92bb-0a38bb9cd153",
     order: 75,
     description: "isi manual oleh operator bordir",
     workspace_id: WORKSPACE_ID,
@@ -1298,7 +1289,7 @@ export default {
       "custom_field",
       customFields.map((field) => ({
         ...field,
-        source: EnumCustomFieldSource.Custom,
+        source: field.source || EnumCustomFieldSource.Custom,
         options: JSON.stringify(field.options || []),
         created_at: new Date(),
         updated_at: new Date(),

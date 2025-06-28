@@ -63,7 +63,7 @@ export interface CustomFieldTable {
   workspace_id: string;
   trigger_id?: string;
   description: string;
-  source: EnumCustomFieldSource;
+  source: string;
   type: EnumCustomFieldType;
   is_show_at_front: boolean;
   options?: any;

@@ -7,6 +7,11 @@ module.exports = {
       "ALTER TYPE \"enum_custom_field_source\" ADD VALUE 'custom';"
     );
 
+    await queryInterface.changeColumn("custom_field", "source", {
+      type: Sequelize.STRING,
+      allowNull: false,
+    });
+
     await queryInterface.addColumn("custom_field", "type", {
       type: Sequelize.STRING,
       allowNull: true,
