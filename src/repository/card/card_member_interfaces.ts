@@ -1,6 +1,11 @@
 export interface CardMemberRepositoryI {
-  getMembersByCard(card_id: string): Promise<Array<{id: string, name: string, email: string}>>;
-  addMembersToCard(card_id: string, user_ids: string[]): Promise<Array<{id: string, name: string, email: string}>>;
+  getMembersByCard(
+    card_id: string
+  ): Promise<Array<{ id: string; username: string; email: string }>>;
+  addMembersToCard(
+    card_id: string,
+    user_ids: string[]
+  ): Promise<Array<{ id: string; username: string; email: string }>>;
   removeMemberFromCard(card_id: string, user_id: string): Promise<void>;
   isCardExist(card_id: string): Promise<boolean>;
   isUserExist(user_id: string): Promise<boolean>;
