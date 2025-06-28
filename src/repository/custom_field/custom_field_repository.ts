@@ -331,7 +331,7 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
             ? sql`${JSON.stringify(data.options)}::jsonb`
             : sql`'[]'::jsonb`,
           order: data.order,
-          source: data?.source || EnumCustomFieldSource.Custom,
+          source: data?.source || "custom",
           id: id,
           trigger_id: data.trigger?.id,
           can_view: data.can_view
@@ -1133,6 +1133,105 @@ export class CustomFieldRepository implements CustomFieldRepositoryI {
       throw new InternalServerError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
+
+  // Helper method to parse role-based source
+  private parseRoleSource(source: string): string[] {
+    if (source?.startsWith("user-role:")) {
+      return source
+        .slice(10)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [];
+  }
+
+  // Helper method to get users by role IDs
+  private async getUsersByRoleIds(roleIds: string[]): Promise<any[]> {
+    if (roleIds.length === 0) return [];
+
+    try {
+      const users = await User.findAll({
+        where: {
+          role_id: roleIds,
+        },
+        attributes: ["id", "username", "email", "role_id"],
+      });
+
+      return users.map((user) => ({
+        value: user.id,
+        label: user.username || user.email,
+        role_id: user.role_id,
+      }));
+    } catch (error) {
+      console.error("Error fetching users by role IDs:", error);
+      return [];
+    }
+  }
+
+  // Method to get custom field options (including role-based users)
+  async getCustomFieldOptions(
+    customFieldId: string
+  ): Promise<ResponseData<any[]>> {
+    try {
+      const customField = await this.getCustomFieldById(customFieldId);
+
+      if (customField.status_code !== StatusCodes.OK || !customField.data) {
+        return new ResponseData({
+          status_code: StatusCodes.NOT_FOUND,
+          message: "Custom field not found",
+          data: [],
+        });
+      }
+
+      const field = customField.data;
+
+      // Handle different source types
+      if (field.source === EnumCustomFieldSource.User) {
+        // Get all users in workspace
+        const users = await User.findAll({
+          attributes: ["id", "username", "email"],
+        });
+
+        return new ResponseData({
+          status_code: StatusCodes.OK,
+          message: "User options retrieved",
+          data: users.map((user) => ({
+            value: user.id,
+            label: user.username || user.email,
+          })),
+        });
+      } else if (field.source?.startsWith("user-role:")) {
+        // Get users by specific roles
+        const roleIds = this.parseRoleSource(field.source);
+        const users = await this.getUsersByRoleIds(roleIds);
+
+        return new ResponseData({
+          status_code: StatusCodes.OK,
+          message: "Role-based user options retrieved",
+          data: users,
+        });
+      } else if (field.source === EnumCustomFieldSource.Custom) {
+        // Return custom options
+        return new ResponseData({
+          status_code: StatusCodes.OK,
+          message: "Custom options retrieved",
+          data: field.options || [],
+        });
+      }
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "No options available",
+        data: [],
+      });
+    } catch (error) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        error instanceof Error ? error.message : String(error)
       );
     }
   }

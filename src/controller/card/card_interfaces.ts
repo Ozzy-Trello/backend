@@ -168,7 +168,7 @@ export class AssignCardResponse {
   description?: string;
   value?: null | string | number;
   order!: number;
-  source!: EnumCustomFieldSource;
+  source!: string;
   location?: string;
 
   constructor(payload: Partial<AssignCardResponse>) {

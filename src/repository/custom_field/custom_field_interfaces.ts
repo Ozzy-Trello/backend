@@ -101,6 +101,8 @@ export interface CustomFieldRepositoryI {
     targetPosition: number,
     targetPositionTopOrBottom?: "top" | "bottom"
   ): Promise<ResponseData<null>>;
+
+  getCustomFieldOptions(customFieldId: string): Promise<ResponseData<any[]>>;
 }
 
 export interface filterCustomFieldDetail {
@@ -109,7 +111,7 @@ export interface filterCustomFieldDetail {
   description?: string;
   workspace_id?: string;
   trigger_id?: string;
-  source?: EnumCustomFieldSource;
+  source?: string;
   order?: number;
   can_view?: string[];
   can_edit?: string[];
@@ -202,7 +204,7 @@ export class CustomFieldDetail {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
   public trigger?: _trigger;
   public card_id!: string;
   public value_user_id?: string;
@@ -235,7 +237,7 @@ export class AssignCardDetail {
   public name!: string;
   public order?: number;
   public value?: string | number;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
 
   constructor(payload: Partial<AssignCardDetail>) {
     Object.assign(this, payload);
@@ -322,7 +324,7 @@ export class CustomValueDetail {
   public description!: string;
   public workspace_id!: string;
   public order!: number;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
 
   constructor(payload: Partial<CustomValueDetail>) {
     Object.assign(this, payload);
@@ -361,7 +363,7 @@ export class CardCustomFieldResponse {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
   public card_id!: string;
   public value_user_id?: string;
   public value_string?: string;

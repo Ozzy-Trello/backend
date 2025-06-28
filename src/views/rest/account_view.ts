@@ -48,8 +48,18 @@ export default class AccountRestView implements AccountRestViewI {
     let page = req.query.page ? parseInt(req.query.page.toString()) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit.toString()) : 1000;
     let paginate = new Paginate(page, limit);
+
+    // Parse roleIds from query parameter
+    const roleIdsParam = req.query.roleIds?.toString();
+    const roleIds = roleIdsParam
+      ? roleIdsParam
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : [];
+
     let accResponse = await this.account_controller.GetAccountList(
-      new AccountFilter({}),
+      new AccountFilter({ roleIds }),
       paginate
     );
     if (accResponse.status_code !== StatusCodes.OK) {

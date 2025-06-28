@@ -305,16 +305,16 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let data = await this.trigger_controller.prepareDataSource(
-      value,
-      checkCustomField.data?.source!
-    );
-    if (data.status_code != StatusCodes.OK) {
-      return new ResponseData({
-        message: data.message,
-        status_code: data.status_code,
-      });
-    }
+    // let data = await this.trigger_controller.prepareDataSource(
+    //   value,
+    //   checkCustomField.data?.source!
+    // );
+    // if (data.status_code != StatusCodes.OK) {
+    //   return new ResponseData({
+    //     message: data.message,
+    //     status_code: data.status_code,
+    //   });
+    // }
 
     // if (checkCustomField.data?.trigger_id) {
     //   let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
@@ -326,7 +326,10 @@ export class CardController implements CardControllerI {
     let assignCustomFieldRes = await this.custom_field_repo.updateAssignedCard(
       custom_field_id,
       card_id,
-      data.data!
+      new CustomFieldCardDetail({
+        card_id: card_id,
+        value_string: value.toString(),
+      })
     );
     if (assignCustomFieldRes != StatusCodes.NO_CONTENT) {
       return new ResponseData({
@@ -380,21 +383,21 @@ export class CardController implements CardControllerI {
       });
     }
 
-    if (value) {
-      let checkSource = await this.trigger_controller.prepareDataSource(
-        value,
-        checkCustomField.data?.source!
-      );
-      if (checkSource.status_code != StatusCodes.OK) {
-        return new ResponseData({
-          message: checkSource.message,
-          status_code: checkSource.status_code,
-        });
-      }
-      data.value_number = checkSource.data?.value_number;
-      data.value_string = checkSource.data?.value_string;
-      data.value_user_id = checkSource.data?.value_user_id;
-    }
+    // if (value) {
+    //   let checkSource = await this.trigger_controller.prepareDataSource(
+    //     value,
+    //     checkCustomField.data?.source!
+    //   );
+    //   if (checkSource.status_code != StatusCodes.OK) {
+    //     return new ResponseData({
+    //       message: checkSource.message,
+    //       status_code: checkSource.status_code,
+    //     });
+    //   }
+    //   data.value_number = checkSource.data?.value_number;
+    //   data.value_string = checkSource.data?.value_string;
+    //   data.value_user_id = checkSource.data?.value_user_id;
+    // }
 
     // if (trigger) {
     //   let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
