@@ -20,6 +20,7 @@ import {
   CardFilter,
   CardMoveData,
   CopyCardData,
+  UpdateCardData,
 } from "../card/card_interfaces";
 import {
   EnumActions,
@@ -1104,6 +1105,16 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           );
           await this.handleSetDateCustomFieldAction(action, recentUserAction);
           break;
+        case EnumActions.RenameCard:
+          console.log(`executeAutomationAction: ${EnumActions.RenameCard}`);
+          await this.handleRenameCardAction(action, recentUserAction);
+          break;
+        case EnumActions.SetCardDescription:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetCardDescription}`
+          );
+          await this.handleSetCardDescriptionAction(action, recentUserAction);
+          break;
         default:
           console.warn(
             `Unknown automation action: ${action?.condition?.action}`
@@ -2076,6 +2087,82 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     } catch (err) {
       console.error("Error setting date field", err);
+    }
+  }
+
+  private async handleRenameCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const newTitle = action.condition?.text_input;
+
+    if (!cardId || !newTitle) {
+      console.warn("Missing card ID or new title for rename action");
+      return;
+    }
+
+    try {
+      console.log("Renaming card:", {
+        cardId,
+        newTitle,
+      });
+
+      // Use the card controller to update the card name
+      const updateResult = await this.card_controller.UpdateCard(
+        recentUserAction.user_id || "",
+        new CardFilter({ id: cardId }),
+        new UpdateCardData({ name: newTitle }),
+        EnumTriggeredBy.OzzyAutomation
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        console.log("Card renamed successfully");
+      } else {
+        console.warn("Failed to rename card:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error renaming card:", error);
+    }
+  }
+
+  private async handleSetCardDescriptionAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const newDescription = action.condition?.text_input;
+
+    if (!cardId || !newDescription) {
+      console.warn("Missing card ID or description for set description action");
+      return;
+    }
+
+    try {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] AUTOMATION: Setting card description:`, {
+        cardId,
+        descriptionLength: newDescription.length,
+        actionId: action.id,
+        ruleId: action.rule_id,
+        eventId: recentUserAction.eventId,
+      });
+
+      // Use the card controller to update the card description
+      const updateResult = await this.card_controller.UpdateCard(
+        recentUserAction.user_id || "",
+        new CardFilter({ id: cardId }),
+        new UpdateCardData({ description: newDescription }),
+        EnumTriggeredBy.OzzyAutomation
+      );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        console.log("Card description set successfully");
+      } else {
+        console.warn("Failed to set card description:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error setting card description:", error);
     }
   }
 }

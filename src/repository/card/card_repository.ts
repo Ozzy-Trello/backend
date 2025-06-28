@@ -473,21 +473,6 @@ export class CardRepository implements CardRepositoryI {
           .execute();
       }
 
-      // Check for mentions in description and send notifications
-      if (data.description) {
-        // Extract mentioned user IDs from HTML content using the static method
-        const mentionedUserIds = this.extractMentionedUserIds(data.description);
-
-        if (mentionedUserIds.length > 0) {
-          // Log the mentions for debugging
-          console.log(`Found mentions in card ${filter.id}:`, mentionedUserIds);
-
-          // Note: WhatsApp notification sending should be handled by the controller layer
-          // This is just logging for now - the actual notification logic should be
-          // implemented in the service/controller layer that calls this repository method
-        }
-      }
-
       return StatusCodes.NO_CONTENT;
     } catch (e) {
       if (e instanceof Error) {

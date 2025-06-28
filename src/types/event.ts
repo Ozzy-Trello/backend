@@ -60,6 +60,8 @@ export enum EnumActions {
   DecreaseNumberCustomField = "decrease.number.custom.field",
   SetDateCustomField = "set.date.custom.field",
   MoveDateCustomField = "cardfields.date.move",
+  RenameCard = "rename.card",
+  SetCardDescription = "set.card.description",
 }
 
 export interface UserActionEvent {
