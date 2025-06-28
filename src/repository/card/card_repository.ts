@@ -1127,37 +1127,30 @@ export class CardRepository implements CardRepositoryI {
             const cardIds: string[] = [];
 
             if (value) {
-              switch (operator) {
-                case "includes_any_of":
-                  const queryAssignInclude = await db
-                    .selectFrom("card_member")
-                    .innerJoin("card", "card.id", "card_member.card_id")
-                    .innerJoin("list", "list.id", "card.list_id")
-                    .innerJoin("board", "board.id", "list.board_id")
-                    .select(["card_member.card_id"])
-                    .where("board.workspace_id", "=", workspace_id)
-                    .where("card_member.user_id", "in", [value])
-                    .execute();
+              const isUuid = /[0-9a-fA-F\-]{36}/.test(String(value));
+              let queryAssignInclude = db
+                .selectFrom("card_member")
+                .innerJoin("card", "card.id", "card_member.card_id")
+                .innerJoin("list", "list.id", "card.list_id")
+                .innerJoin("board", "board.id", "list.board_id")
+                .select(["card_member.card_id"])
+                .where("board.workspace_id", "=", workspace_id);
 
-                  cardIds.push(...queryAssignInclude.map((a) => a.card_id));
-                  break;
-
-                case "does_not_include":
-                  const queryAssignNotInclude = await db
-                    .selectFrom("card_member")
-                    .innerJoin("card", "card.id", "card_member.card_id")
-                    .innerJoin("list", "list.id", "card.list_id")
-                    .innerJoin("board", "board.id", "list.board_id")
-                    .select(["card_member.card_id"])
-                    .where("board.workspace_id", "=", workspace_id)
-                    .where("card_member.user_id", "not in", [value])
-                    .execute();
-                  cardIds.push(...queryAssignNotInclude.map((a) => a.card_id));
-                  break;
-
-                default:
-                  break;
+              if (isUuid) {
+                queryAssignInclude = queryAssignInclude.where(
+                  "card_member.user_id",
+                  "in",
+                  [value]
+                );
+              } else {
+                queryAssignInclude = queryAssignInclude
+                  .innerJoin("user", "user.id", "card_member.user_id")
+                  .where("user.username", "=", value);
               }
+
+              const resultAssignInclude = await queryAssignInclude.execute();
+
+              cardIds.push(...resultAssignInclude.map((a) => a.card_id));
             }
 
             if (cardIds.length > 0) {
@@ -1194,6 +1187,7 @@ export class CardRepository implements CardRepositoryI {
                     eb.or([
                       eb("card_custom_field.value_option", "=", value),
                       eb("card_custom_field.value_string", "=", value),
+                      eb("card_custom_field.value_user_id", "=", value),
                     ])
                   );
                 break;
@@ -1204,6 +1198,7 @@ export class CardRepository implements CardRepositoryI {
                     eb.or([
                       eb("card_custom_field.value_option", "ilike", value),
                       eb("card_custom_field.value_string", "ilike", value),
+                      eb("card_custom_field.value_user_id", "ilike", value),
                     ])
                   );
                 break;
