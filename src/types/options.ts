@@ -206,7 +206,7 @@ export enum EnumDateStatusOperator {
   Due = "due",
   NotDue = "not-due",
   Starting = "starting",
-  NotStarting = "not-starting"
+  NotStarting = "not-starting",
 }
 
 export enum EnumTimeComparisonOperator {
@@ -216,7 +216,7 @@ export enum EnumTimeComparisonOperator {
   InBeetween = "in-between",
   LessThan = "less-than",
   MoreThan = "more-than",
-  Between = "between"
+  Between = "between",
 }
 
 export enum EnumTimeRangeOperator {
@@ -225,7 +225,7 @@ export enum EnumTimeRangeOperator {
   ThisWeek = "this-week",
   NextWeek = "next-week",
   ThisMonth = "this-month",
-  NextMonth = "next-month"
+  NextMonth = "next-month",
 }
 
 export enum EnumChecklistConditionOperator {
@@ -233,16 +233,16 @@ export enum EnumChecklistConditionOperator {
   WithAnIncompleteChecklists = "with-an-incomplete-checklist",
   WithCheckists = "with-checklist",
   WithoutChecklist = "without-checklists",
-  WithoutChecklists = "without-checklists"
+  WithoutChecklists = "without-checklists",
 }
 
 export enum EnumCardContentType {
   AName = "a-name",
   ADescription = "a-description",
-  ANameOrDescription = "a-name-or-description"
+  ANameOrDescription = "a-name-or-description",
 }
 
 export enum EnumCustomFieldAction {
   Set = "set",
-  Cleared = "cleared"
+  Cleared = "cleared",
 }

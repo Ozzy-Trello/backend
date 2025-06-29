@@ -20,7 +20,7 @@ export interface IChecklistRepository {
 }
 
 export interface IChecklistController {
-  SetEventPublisher(event_publisher: EventPublisher): void
+  SetEventPublisher(event_publisher: EventPublisher): void;
   GetChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
   GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
   CreateChecklist(
