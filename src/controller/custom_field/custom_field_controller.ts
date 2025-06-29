@@ -94,13 +94,13 @@ export class CustomFieldController implements CustomFieldControllerI {
           user_id: user_id,
           timestamp: new Date(),
           data: {
-            card: {
-              id: customFieldId,
-              action: "custom_field_reordered",
-              custom_field_id: customFieldId,
-              target_position: targetPosition,
-              position_type: targetPositionTopOrBottom || "position",
-            },
+            // card: {
+            //   id: customFieldId,
+            //   custom_field_id: customFieldId,
+            //   target_position: targetPosition,
+            //   position_type: targetPositionTopOrBottom || "position",
+            // },
+            // action: "custom_field_reordered",
           },
         };
         await this.event_publisher.publishUserAction(event);

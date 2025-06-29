@@ -15,7 +15,7 @@ interface FilterEvaluationResult {
 }
 
 // Abstract base class for all filter evaluators
-abstract class BaseCardFilterEvaluator {
+abstract class BaseAutomationRuleFilterEvaluator {
   protected filterType: string;
 
   constructor(filterType: string) {
@@ -93,7 +93,7 @@ abstract class BaseCardFilterEvaluator {
 }
 
 // Card Inclusion in List Filter
-class CardInclusionInListEvaluator extends BaseCardFilterEvaluator {
+class CardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-inclusion-in-list');
   }
@@ -125,7 +125,7 @@ class CardInclusionInListEvaluator extends BaseCardFilterEvaluator {
 }
 
 // Label Inclusion in Card Filter
-class LabelInclusionInCardEvaluator extends BaseCardFilterEvaluator {
+class LabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('label-inclusion-in-card');
   }
@@ -157,7 +157,7 @@ class LabelInclusionInCardEvaluator extends BaseCardFilterEvaluator {
 }
 
 // Card Assignment Filter
-class CardAssignmentEvaluator extends BaseCardFilterEvaluator {
+class CardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-assignment');
   }
@@ -205,7 +205,7 @@ class CardAssignmentEvaluator extends BaseCardFilterEvaluator {
 }
 
 // Custom Field 1: with/without all custom fields completed
-class CardCustomField1Evaluator extends BaseCardFilterEvaluator {
+class CardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-custom-field-1');
   }
@@ -242,7 +242,7 @@ class CardCustomField1Evaluator extends BaseCardFilterEvaluator {
 }
 
 // Custom Field 2: with/without specific custom field completed
-class CardCustomField2Evaluator extends BaseCardFilterEvaluator {
+class CardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-custom-field-2');
   }
@@ -278,7 +278,7 @@ class CardCustomField2Evaluator extends BaseCardFilterEvaluator {
 }
 
 // Custom Field 4: with/without custom field set to specific text
-class CardCustomField4Evaluator extends BaseCardFilterEvaluator {
+class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-custom-field-4');
   }
@@ -314,7 +314,7 @@ class CardCustomField4Evaluator extends BaseCardFilterEvaluator {
 }
 
 // Custom Field 6: with/without custom field number comparison
-class CardCustomField6Evaluator extends BaseCardFilterEvaluator {
+class CardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-custom-field-6');
   }
@@ -357,7 +357,7 @@ class CardCustomField6Evaluator extends BaseCardFilterEvaluator {
 }
 
 // Content Title/Description Filter
-class CardContentTitleDescriptionEvaluator extends BaseCardFilterEvaluator {
+class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvaluator {
   constructor() {
     super('card-content-title-description');
   }
@@ -404,8 +404,8 @@ class CardContentTitleDescriptionEvaluator extends BaseCardFilterEvaluator {
 }
 
 
-class CardFilterEvaluatorFactory {
-  private static evaluatorMap: Record<string, new () => BaseCardFilterEvaluator> = {
+class AutomationRuleTriggerFilterEvaluatorFactory {
+  private static evaluatorMap: Record<string, new () => BaseAutomationRuleFilterEvaluator> = {
 
     // trigger filter
     [EnumTiggerCarFilterType.CardInclusionInList]: CardInclusionInListEvaluator,
@@ -418,7 +418,7 @@ class CardFilterEvaluatorFactory {
     [EnumTiggerCarFilterType.CardContentTileDescription]: CardContentTitleDescriptionEvaluator,
   };
 
-  static create(filterType: string): BaseCardFilterEvaluator {
+  static create(filterType: string): BaseAutomationRuleFilterEvaluator {
     const EvaluatorClass = this.evaluatorMap[filterType];
     
     if (!EvaluatorClass) {
@@ -434,10 +434,11 @@ class CardFilterEvaluatorFactory {
 }
 
 // Main service class
-class CardFilterService {
+class AutomationRuleFilterService {
   static evaluate(filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
     try {
-      const evaluator = CardFilterEvaluatorFactory.create(filterType);
+      const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType);
+      console.log(`AutomationRuleFilterService: evaluator: %o`, evaluator);
       return evaluator.evaluate(condition, event, createdBy);
     } catch (error) {
       return {
@@ -447,3 +448,5 @@ class CardFilterService {
     }
   }
 }
+
+export { AutomationRuleFilterService, BaseAutomationRuleFilterEvaluator, AutomationRuleTriggerFilterEvaluatorFactory };
