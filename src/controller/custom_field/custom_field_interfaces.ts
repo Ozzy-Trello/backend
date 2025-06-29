@@ -15,8 +15,10 @@ import {
   EnumCustomFieldSource,
 } from "@/types/custom_field";
 import { EnumTriggeredBy } from "@/types/event";
+import { EventPublisher } from "@/event_publisher";
 
 export interface CustomFieldControllerI {
+  SetEventPublisher(event_publisher: EventPublisher): void;
   CreateCustomField(
     user_id: string,
     data: CustomFieldCreateData

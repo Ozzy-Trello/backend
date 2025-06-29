@@ -66,167 +66,52 @@ import { SearchController } from "@/controller/search/search_controller";
 import SearchRestView from "@/views/rest/search_view";
 import { AutomationRuleFilter } from "@/controller/automation_rule/automation_rule_interface";
 import { AutomationRuleFilterRepository } from "@/repository/automation_rule_filter/automation_rule_filter_repository";
+import { RepositoryContext } from "@/repository/repository_context";
+import { ControllerContext } from "@/controller/controller_context";
 
 export default async function (): Promise<Router> {
   const root_router = Router();
-  const automationServiceFactory = new AutomationServiceFactory();
-  const automationProcessor = new AutomationProcessor();
-
+  const repository_context = new RepositoryContext();
+  const automation_service_factory = new AutomationServiceFactory();
   const whatsapp_service = new WhatsAppHttpService();
+  const controller_context = new ControllerContext(
+    repository_context,
+    automation_service_factory,
+    whatsapp_service
+  );
+  const automation_processor = new AutomationProcessor();
+  automation_processor.setController(controller_context.automation);
+  automation_service_factory.init(automation_processor);
 
-  // Repositories
-  const user_repo = new UserRepository();
-  const role_repo = new RoleRepository();
-  const workspace_repo = new WorkspaceRepository();
-  const board_repo = new BoardRepository();
-  const list_repo = new ListRepository();
-  const card_repo = new CardRepository();
-  const custom_field_repo = new CustomFieldRepository();
-  const file_repository = new FileRepository();
-  const card_attachment_repository = new CardAttachmentRepository();
-  const checklist_repository = new ChecklistRepository();
-  const additional_field_repository = new AdditionalFieldRepository();
-  const card_list_time_history_repo = new CardListTimeRepository();
-  const card_board_time_history_repo = new CardBoardTimeRepository();
-  const accurate_repo = new AccurateRepository();
-  const request_repo = new RequestRepository();
-  const label_repo = new LabelRepository();
-  const card_member_repo = new CardMemberRepository();
-  const automation_rule_repo = new AutomationRuleRepository();
-  const automation_rule_filter_repo = new AutomationRuleFilterRepository();
-  const automation_rule_action_repo = new AutomationRuleActionRepository();
-
-  // Controllers
-  const card_attachment_controller = new CardAttachmentController(
-    card_attachment_repository,
-    file_repository
-  );
-  const checklist_controller = new ChecklistController(checklist_repository);
-  const additional_field_controller = new AdditionalFieldController(
-    additional_field_repository
-  );
-
-  const account_controller = new AccountController(user_repo);
-  const access_control_controller = new AccessControlController(role_repo);
-  const auth_controller = new AuthController(
-    user_repo,
-    workspace_repo,
-    role_repo
-  );
-  const workspace_controller = new WorkspaceController(
-    workspace_repo,
-    role_repo,
-    user_repo
-  );
-  const board_controller = new BoardController(
-    board_repo,
-    workspace_repo,
-    role_repo
-  );
-  const list_controller = new ListController(list_repo, board_repo);
-  const whatsapp_controller = new WhatsAppController(
-    whatsapp_service,
-    user_repo,
-    card_repo,
-    custom_field_repo
-  );
-
-  const card_controller = new CardController(
-    card_repo,
-    list_repo,
-    custom_field_repo,
-    card_attachment_repository,
-    card_list_time_history_repo,
-    card_board_time_history_repo,
-    whatsapp_controller
-  );
-  const custom_field_controller = new CustomFieldController(
-    custom_field_repo,
-    workspace_repo
-  );
-  const file_controller = new FileController(file_repository);
-  const accurate_controller = new AccurateController(accurate_repo);
-  const request_controller = new RequestController(request_repo, accurate_repo);
-  const label_controller = new LabelController(label_repo, workspace_repo);
-  const role_controller = new RoleController(role_repo);
-  const card_member_controller = new CardMemberController(
-    card_member_repo,
-    card_repo,
-    user_repo
-  );
-  const automation_rule_controller = new AutomationRuleController(
-    automation_rule_repo,
-    automation_rule_filter_repo,
-    automation_rule_action_repo,
-    card_controller,
-    whatsapp_controller,
-    custom_field_repo,
-    user_repo,
-    checklist_controller,
-    card_member_controller
-  );
-  card_controller.SetAutomationRuleController(automation_rule_controller);
-
-  const search_controller = new SearchController(
-    card_repo,
-    board_repo,
-    card_attachment_repository
-  );
-
-  // Setup split job repository and controller
-  const split_job_repo = new SplitJobRepository();
-  const split_job_controller = new SplitJobController(
-    split_job_repo,
-    workspace_repo,
-    custom_field_repo
-  );
-
-  // Setup automation
-  automationProcessor.setController(automation_rule_controller);
-  await automationServiceFactory.init(automationProcessor);
-
-  // Link publisher
-  const eventPublisher = automationServiceFactory.getPublisher();
-  card_controller.SetEventPublisher(eventPublisher);
-  card_controller.SetAutomationRuleController(automation_rule_controller);
-  custom_field_controller.SetEventPublisher(eventPublisher);
-  list_controller.SetEventPublisher(eventPublisher);
-  list_controller.SetAutomationRuleController(automation_rule_controller);
-  checklist_controller.SetEventPublisher(eventPublisher);
+  let event_publisher = automation_service_factory.getPublisher();
+  controller_context.card.SetEventPublisher(event_publisher);
+  controller_context.custom_field.SetEventPublisher(event_publisher);
+  controller_context.checklist.SetEventPublisher(event_publisher);
+ 
 
   // Views
-  const account_rest_view = new AccountRestView(account_controller);
-  const access_control_rest_view = new AccessControlRestView(
-    access_control_controller
-  );
-  const auth_rest_view = new AuthRestView(auth_controller);
-  const workspace_rest_view = new WorkspaceRestView(workspace_controller);
-  const board_rest_view = new BoardRestView(board_controller);
-  const list_rest_view = new ListRestView(list_controller);
-  const card_rest_view = new CardRestView(card_controller);
-  const custom_field_rest_view = new CustomFieldRestView(
-    custom_field_controller
-  );
-  const file_rest_view = new FileRestView(file_controller);
-  const card_attachment_rest_view = new CardAttachmentRestView(
-    card_attachment_controller
-  );
-  const label_rest_view = new LabelRestView(label_controller);
-  const role_rest_view = new RoleRestView(role_controller);
-  const card_member_rest_view = new CardMemberRestView(card_member_controller);
+  const account_rest_view = new AccountRestView(controller_context.account);
+  const access_control_rest_view = new AccessControlRestView(controller_context.access_control);
+  const auth_rest_view = new AuthRestView(controller_context.auth);
+  const workspace_rest_view = new WorkspaceRestView(controller_context.workspace);
+  const board_rest_view = new BoardRestView(controller_context.board);
+  const list_rest_view = new ListRestView(controller_context.list);
+  const card_rest_view = new CardRestView(controller_context.card);
+  const custom_field_rest_view = new CustomFieldRestView(controller_context.custom_field);
+  const file_rest_view = new FileRestView(controller_context.file);
+  const card_attachment_rest_view = new CardAttachmentRestView(controller_context.card_attachment);
+  const label_rest_view = new LabelRestView(controller_context.label);
+  const role_rest_view = new RoleRestView(controller_context.role);
+  const card_member_rest_view = new CardMemberRestView(controller_context.card_member);
 
-  const checklist_rest_view = new ChecklistRestView(checklist_controller);
-  const additional_field_rest_view = new AdditionalFieldRestView(
-    additional_field_controller
-  );
+  const checklist_rest_view = new ChecklistRestView(controller_context.checklist);
+  const additional_field_rest_view = new AdditionalFieldRestView(controller_context.additional_field);
 
-  const accurate_rest_view = new AccurateRestView(accurate_controller);
-  const request_rest_view = new RequestRestView(request_controller);
-  const automation_rule_rest_view = new AutomationRuleRestView(
-    automation_rule_controller
-  );
+  const accurate_rest_view = new AccurateRestView(controller_context.accurate);
+  const request_rest_view = new RequestRestView(controller_context.request);
+  const automation_rule_rest_view = new AutomationRuleRestView(controller_context.automation);
 
-  const search_rest_view = new SearchRestView(search_controller);
+  const search_rest_view = new SearchRestView(controller_context.search);
 
   const router_account = Router();
   {
@@ -591,7 +476,7 @@ export default async function (): Promise<Router> {
   }
 
   // Initialize split job view with controller
-  const split_job_rest_view = new SplitJobRestView(split_job_controller);
+  const split_job_rest_view = new SplitJobRestView(controller_context.split_job);
 
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);

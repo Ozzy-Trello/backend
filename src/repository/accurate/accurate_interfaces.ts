@@ -1,3 +1,5 @@
+import { AdjustmentType } from "./enum";
+
 export interface AccurateRepositoryI {
   openDb(id: number, token: string): Promise<string>;
   addToken(token: string, expiry_date: Date): Promise<any>;
@@ -6,6 +8,10 @@ export interface AccurateRepositoryI {
   getItemCategoryDetail(id: number): Promise<ItemCategoryDetail>;
   getGlaccountList(): Promise<any>;
   getItemList(search?: string): Promise<Item[]>;
+  saveItemAdjustment(
+    body: SaveItemAdjustmentBody
+  ): Promise<AccurateApiResponse<string[]>>;
+  getItemDetail(productId: number): Promise<any>;
 }
 
 export interface AccurateAuthToken {

@@ -29,22 +29,18 @@ import {
 } from "@/repository/workspace/workspace_interfaces";
 
 import { InternalServerError } from "@/utils/errors";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class CustomFieldController implements CustomFieldControllerI {
-  private custom_field_repo: CustomFieldRepositoryI;
-  private workspace_repo: WorkspaceRepositoryI;
+  private repository_context: RepositoryContext;
   private event_publisher: EventPublisher | undefined;
 
   SetEventPublisher(event_publisher: EventPublisher): void {
     this.event_publisher = event_publisher;
   }
 
-  constructor(
-    custom_field_repo: CustomFieldRepositoryI,
-    workspace_repo: WorkspaceRepositoryI,
-  ) {
-    this.custom_field_repo = custom_field_repo;
-    this.workspace_repo = workspace_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
 
     this.GetCustomField = this.GetCustomField.bind(this);
     this.GetListCustomField = this.GetListCustomField.bind(this);
@@ -63,7 +59,7 @@ export class CustomFieldController implements CustomFieldControllerI {
   ): Promise<ResponseData<null>> {
     try {
       // Validate workspace access
-      const workspace = await this.workspace_repo.getWorkspace(
+      const workspace = await this.repository_context.workspace.getWorkspace(
         new filterWorkspaceDetail({ id: workspaceId })
       );
 
@@ -78,7 +74,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       // Add your permission check logic here if needed
 
       // Perform the reorder operation
-      const result = await this.custom_field_repo.reorderCustomFields(
+      const result = await this.repository_context.custom_field.reorderCustomFields(
         workspaceId,
         customFieldId,
         targetPosition,
@@ -138,7 +134,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       });
     }
 
-    let workspace = await this.workspace_repo.getWorkspace(
+    let workspace = await this.repository_context.workspace.getWorkspace(
       new filterWorkspaceDetail({ id: data.workspace_id })
     );
     if (workspace.status_code != StatusCodes.OK) {
@@ -152,7 +148,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       });
     }
 
-    let checkCustomField = await this.custom_field_repo.getCustomField({
+    let checkCustomField = await this.repository_context.custom_field.getCustomField({
       workspace_id: data.workspace_id,
       name: data.name,
     });
@@ -181,7 +177,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     // }
     // }
 
-    let createResponse = await this.custom_field_repo.createCustomField(
+    let createResponse = await this.repository_context.custom_field.createCustomField(
       data.toCustomFieldDetail()
     );
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -218,7 +214,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (filter.workspace_id) {
-      let checkList = await this.workspace_repo.getWorkspace(
+      let checkList = await this.repository_context.workspace.getWorkspace(
         new filterWorkspaceDetail({ id: filter.workspace_id })
       );
       if (checkList.status_code == StatusCodes.NOT_FOUND) {
@@ -229,7 +225,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       }
     }
 
-    let checkList = await this.custom_field_repo.getCustomField(
+    let checkList = await this.repository_context.custom_field.getCustomField(
       filter.toFilterCustomFieldDetail()
     );
     if (checkList.status_code != StatusCodes.OK) {
@@ -263,7 +259,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (filter.workspace_id) {
-      let checkList = await this.workspace_repo.getWorkspace(
+      let checkList = await this.repository_context.workspace.getWorkspace(
         new filterWorkspaceDetail({ id: filter.workspace_id })
       );
       if (checkList.status_code != StatusCodes.OK) {
@@ -277,7 +273,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       }
     }
 
-    let custom_fields = await this.custom_field_repo.getListCustomField(
+    let custom_fields = await this.repository_context.custom_field.getListCustomField(
       filter.toFilterCustomFieldDetail(),
       paginate,
       user_id
@@ -309,7 +305,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       });
     }
     if (filter.workspace_id) {
-      let checkList = await this.workspace_repo.getWorkspace(
+      let checkList = await this.repository_context.workspace.getWorkspace(
         new filterWorkspaceDetail({ id: filter.workspace_id })
       );
       if (checkList.status_code != StatusCodes.OK) {
@@ -319,7 +315,7 @@ export class CustomFieldController implements CustomFieldControllerI {
         });
       }
     }
-    const deleteResponse = await this.custom_field_repo.deleteCustomField(
+    const deleteResponse = await this.repository_context.custom_field.deleteCustomField(
       filter
     );
     if (deleteResponse == StatusCodes.NOT_FOUND) {
@@ -366,7 +362,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (filter.workspace_id) {
-      let checkList = await this.workspace_repo.getWorkspace(
+      let checkList = await this.repository_context.workspace.getWorkspace(
         new filterWorkspaceDetail({ id: filter.workspace_id })
       );
       if (checkList.status_code != StatusCodes.OK) {
@@ -378,7 +374,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     if (filter.id) {
-      let currentCustomField = await this.custom_field_repo.getCustomField({
+      let currentCustomField = await this.repository_context.custom_field.getCustomField({
         id: filter.id,
       });
       if (currentCustomField.status_code == StatusCodes.NOT_FOUND) {
@@ -395,7 +391,7 @@ export class CustomFieldController implements CustomFieldControllerI {
       });
     }
 
-    const updateResponse = await this.custom_field_repo.updateCustomField(
+    const updateResponse = await this.repository_context.custom_field.updateCustomField(
       filter.toFilterCustomFieldDetail(),
       data.toCustomFieldDetailUpdate()
     );
@@ -425,7 +421,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     }
 
     const cardListCardCustomField =
-      await this.custom_field_repo.getListCardCustomField(
+      await this.repository_context.custom_field.getListCardCustomField(
         workspace_id,
         card_id,
         user_id
@@ -442,7 +438,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardCustomFieldResponse>> {
     // Check if the record exists
-    const findData = await this.custom_field_repo.getCardCustomField(
+    const findData = await this.repository_context.custom_field.getCardCustomField(
       workspace_id,
       card_id,
       custom_field_id
@@ -450,7 +446,7 @@ export class CustomFieldController implements CustomFieldControllerI {
 
     if (findData && findData.status_code === StatusCodes.OK && findData.data) {
       // Record exists, update it
-      const updateResp = await this.custom_field_repo.updateCardCustomField(
+      const updateResp = await this.repository_context.custom_field.updateCardCustomField(
         custom_field_id,
         card_id,
         data
@@ -458,7 +454,7 @@ export class CustomFieldController implements CustomFieldControllerI {
 
       if (updateResp.status_code === StatusCodes.NO_CONTENT) {
         // Get the updated record to return
-        const updatedData = await this.custom_field_repo.getCardCustomField(
+        const updatedData = await this.repository_context.custom_field.getCardCustomField(
           workspace_id,
           card_id,
           custom_field_id
@@ -510,14 +506,14 @@ export class CustomFieldController implements CustomFieldControllerI {
       );
     } else {
       // Record doesn't exist, create it
-      const createResp = await this.custom_field_repo.createCardCustomField(
+      const createResp = await this.repository_context.custom_field.createCardCustomField(
         custom_field_id,
         card_id,
         data
       );
 
       if (createResp.status_code === StatusCodes.CREATED && createResp.data) {
-        const fieldData = await this.custom_field_repo.getCardCustomField(
+        const fieldData = await this.repository_context.custom_field.getCardCustomField(
           workspace_id,
           card_id,
           custom_field_id
@@ -576,7 +572,7 @@ export class CustomFieldController implements CustomFieldControllerI {
     customFieldId: string
   ): Promise<ResponseData<any[]>> {
     try {
-      return await this.custom_field_repo.getCustomFieldOptions(customFieldId);
+      return await this.repository_context.custom_field.getCustomFieldOptions(customFieldId);
     } catch (error) {
       return new ResponseData({
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,

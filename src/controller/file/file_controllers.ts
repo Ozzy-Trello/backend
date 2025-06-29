@@ -5,12 +5,13 @@ import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { UploadFile } from "@/services/storage/upload.service";
 import { getFileSizeUnit } from "@/utils/file_utils"; // You'll need to create this utility
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class FileController implements FileControllerI {
-  private file_repository: FileRepositoryI;
+  private repository_context: RepositoryContext;
   
-  constructor(file_repository: FileRepositoryI) {
-    this.file_repository = file_repository;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
   
   async UploadFile(userId: string, data: FileCreateData): Promise<ResponseData<FileResponse>> {
@@ -58,7 +59,7 @@ export class FileController implements FileControllerI {
         created_by: userId,
       });
       
-      const saveResult = await this.file_repository.createFile(fileDetail);
+      const saveResult = await this.repository_context.file.createFile(fileDetail);
       
       if (saveResult.status_code !== StatusCodes.CREATED) {
         return {
@@ -116,7 +117,7 @@ export class FileController implements FileControllerI {
       };
       
       // Get file from repository
-      const result = await this.file_repository.getFile(repoFilter);
+      const result = await this.repository_context.file.getFile(repoFilter);
       
       if (result.status_code !== StatusCodes.OK) {
         return {
@@ -164,7 +165,7 @@ export class FileController implements FileControllerI {
       };
       
       // Get files from repository
-      const result = await this.file_repository.getFileList(repoFilter, paginate);
+      const result = await this.repository_context.file.getFileList(repoFilter, paginate);
       
       if (result.status_code !== StatusCodes.OK) {
         return {
@@ -234,7 +235,7 @@ export class FileController implements FileControllerI {
       
       // Delete file from repository
       // The file is not yet deleted in S3
-      const status = await this.file_repository.deleteFile(repoFilter);
+      const status = await this.repository_context.file.deleteFile(repoFilter);
       
       if (status === StatusCodes.NOT_FOUND) {
         return {

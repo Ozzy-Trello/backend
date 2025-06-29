@@ -6,25 +6,14 @@ import {
   SearchResult,
   GroupedSearchResults,
 } from "./search_interfaces";
-import { CardRepositoryI } from "@/repository/card/card_interfaces";
-import { BoardRepositoryI } from "@/repository/board/board_interfaces";
-import { CardAttachmentRepositoryI } from "@/repository/card_attachment/card_attachment_interface";
 import db from "@/database";
-import { sql } from "kysely";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class SearchController implements SearchControllerI {
-  private card_repo: CardRepositoryI;
-  private board_repo: BoardRepositoryI;
-  private card_attachment_repo: CardAttachmentRepositoryI;
+  private repository_context: RepositoryContext;
 
-  constructor(
-    card_repo: CardRepositoryI,
-    board_repo: BoardRepositoryI,
-    card_attachment_repo: CardAttachmentRepositoryI
-  ) {
-    this.card_repo = card_repo;
-    this.board_repo = board_repo;
-    this.card_attachment_repo = card_attachment_repo;
+  constructor( repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   async UnifiedSearch(
@@ -90,7 +79,7 @@ export class SearchController implements SearchControllerI {
         // Get card covers
         const cardIds = cardSearchResults.map((card) => card.id);
         const attachmentCovers =
-          await this.card_attachment_repo.getCoverAttachmentList(cardIds);
+          await this.repository_context.card_attachment.getCoverAttachmentList(cardIds);
         const attachmentCoversMap = new Map();
 
         if (
@@ -132,7 +121,7 @@ export class SearchController implements SearchControllerI {
         boardFilter.userId = userId;
       }
 
-      const boardSearchResults = await this.board_repo.getBoardList(
+      const boardSearchResults = await this.repository_context.board.getBoardList(
         boardFilter,
         new Paginate(1, 50) // Get more results to combine with cards
       );

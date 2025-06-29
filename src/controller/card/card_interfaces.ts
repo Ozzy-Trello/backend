@@ -22,8 +22,10 @@ import { CardType } from "@/types/card";
 import { EnumTriggeredBy } from "@/types/event";
 import { StringMappingType } from "typescript";
 import { EnumOptionPosition } from "@/types/options";
+import { EventPublisher } from "@/event_publisher";
 
 export interface CardControllerI {
+  SetEventPublisher(event_publisher: EventPublisher): void
   CreateCard(
     user_id: string,
     data: CardCreateData,
