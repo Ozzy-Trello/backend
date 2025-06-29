@@ -228,7 +228,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
             // trigger filter
             rule.filter?.map(async(f: AutomationRuleFilterDetail) => {
-              let res = AutomationRuleFilterService.evaluate(f.type, f.condition, recentUserAction, rule.created_by);
+              let res = await AutomationRuleFilterService.evaluate(this.repository_context, f.type, f.condition, recentUserAction, rule.created_by);
               console.log("Evaluate filter: res: %o", res);
               if (!res.matches) {
                 isPermsissable = false;

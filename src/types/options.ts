@@ -56,6 +56,7 @@ export enum EnumInclusionOperator {
   NotIn = "not-in",
   With = "with",
   Without = "without",
+  WihtoutAny = "without-any"
 }
 
 export enum EnumAssignmentOperator {

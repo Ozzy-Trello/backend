@@ -9,11 +9,10 @@ import {
   CardActivity,
   CardActivityMoveList,
   filterMoveCard,
-  filterCount,
   IItemDashcard,
   CardActivityAction,
 } from "@/repository/card/card_interfaces";
-import { Error, Op, Sequelize } from "sequelize";
+import { Error, Op } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { InternalServerError } from "@/utils/errors";
@@ -22,14 +21,12 @@ import db from "@/database";
 import { CardTable, Database } from "@/types/database";
 import {
   ExpressionBuilder,
-  SelectQueryBuilder,
   Transaction,
   sql,
 } from "kysely";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
-import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
-import { CopyCardData, FilterConfig } from "@/controller/card/card_interfaces";
+import { FilterConfig } from "@/controller/card/card_interfaces";
 import { EnumOptionPosition } from "@/types/options";
 
 export class CardRepository implements CardRepositoryI {

@@ -1,10 +1,11 @@
 import { CardRepositoryI } from "@/repository/card/card_interfaces";
 import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
 import { CardLabelDetail } from "@/repository/label/label_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 import { UserDetail, UserRepositoryI } from "@/repository/user/user_interfaces";
-import { EnumTiggerCarFilterType } from "@/types/automation_rule";
+import { EnumSelectionType, EnumTiggerCarFilterType } from "@/types/automation_rule";
 import { UserActionEvent } from "@/types/event";
-import { EnumCardContentType, EnumOptionsNumberComparisonOperators, EnumOptionTextComparisonOperator } from "@/types/options";
+import { EnumAssignmentOperator, EnumAssignmentSubjectOperator, EnumCardContentType, EnumInclusionOperator, EnumOptionsNumberComparisonOperators, EnumOptionTextComparisonOperator } from "@/types/options";
 
 type FilterCondition = {
   [key: string]: any;
@@ -19,12 +20,14 @@ interface FilterEvaluationResult {
 // Abstract base class for all filter evaluators
 abstract class BaseAutomationRuleFilterEvaluator {
   protected filterType: string;
+   protected repositories: RepositoryContext;
 
-  constructor(filterType: string) {
+  constructor(filterType: string, repositories: RepositoryContext) {
     this.filterType = filterType;
+    this.repositories = repositories;
   }
 
-  abstract evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string, updatedAt?: Date): FilterEvaluationResult;
+  abstract evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string, updatedAt?: Date): Promise<FilterEvaluationResult>;
 
   protected getInclusionValue(condition: FilterCondition, key = 'inclusion'): string {
     return condition[key]?.value || condition[key] || 'with';
@@ -92,30 +95,45 @@ abstract class BaseAutomationRuleFilterEvaluator {
       default: return false;
     }
   }
+
+  protected compareList(actual: string, expected:string[], operator: string): boolean {
+    if (!actual || !expected) return false;
+    
+    switch (operator) {
+      case EnumInclusionOperator.In: return expected.includes(actual);
+      case EnumInclusionOperator.NotIn: return !expected.includes(actual);
+      default: return false;
+    }
+  }
 }
 
+// Triggers
+
+
+
+// Filters
 // Card Inclusion in List Filter
-class CardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-inclusion-in-list');
+class FilterItemCardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardInclusionInList, repositories);
+    console.log(`${EnumTiggerCarFilterType.CardInclusionInList} evaluator`);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
-      const inclusionOperator = this.getInclusionValue(condition);
-      const listValue = condition.list?.value || condition.list;
-      const cardListId = event.data?.card?.list_id|| event.data?.list?.id;
-
-      if (!listValue) {
-        return { matches: false, reason: 'No list specified in condition' };
+      console.log(`Evaluating the condition: %o:`, condition);
+      let expected = [];
+      if (typeof condition[EnumSelectionType.List] == "string") {
+        expected.push(condition[EnumSelectionType.List]);
+      } else {
+        expected = condition[EnumSelectionType.List];
       }
 
-      const isInList = cardListId === listValue;
-      const shouldInclude = inclusionOperator === 'in';
+      let result = this.compareList(event?.data?.card?.list_id || "", expected, condition[EnumSelectionType.Inclusion]);
 
       return {
-        matches: shouldInclude ? isInList : !isInList,
-        reason: `Card is ${isInList ? 'in' : 'not in'} the specified list`
+        matches: result,
+        reason: `Card is ${result ? 'in' : 'not in'} the specified list`
       };
     } catch (error) {
       return {
@@ -127,27 +145,27 @@ class CardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Label Inclusion in Card Filter
-class LabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('label-inclusion-in-card');
+class FilterItemLabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.LabelInclusionInCard, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
-      const inclusionOperator = this.getInclusionValue(condition);
-      const labelValue = condition.card_label?.value || condition.card_label;
-      const retrieveCardLabels: CardLabelDetail[] = [];
-
-      if (!labelValue) {
-        return { matches: false, reason: 'No label specified in condition' };
+      let result = false;
+      let labels = await this.repositories.label.getAssignedLabelInCard(event?.workspace_id, event?.data?.card?.id || "");
+      let labelIds = labels?.data?.map(item => item.id) || [];
+    
+      switch (condition[EnumSelectionType.Inclusion]) {
+        case EnumInclusionOperator.With: result = labelIds?.includes(condition[EnumSelectionType.CardLabel]) || false;
+        case EnumInclusionOperator.Without: result = !labelIds?.includes(condition[EnumSelectionType.CardLabel]) || false;
+        case EnumInclusionOperator.WihtoutAny: result = labelIds?.length === 0
+        default: false;
       }
 
-      const hasLabel = retrieveCardLabels.filter(item => item.name.toLocaleLowerCase() === labelValue)?.length > 0;
-      const shouldHaveLabel = inclusionOperator === 'with';
-
       return {
-        matches: shouldHaveLabel ? hasLabel : !hasLabel,
-        reason: `Card ${hasLabel ? 'has' : 'does not have'} the specified label`
+        matches: result,
+        reason: `Card ${result ? 'has' : 'does not have'} the specified label`
       };
     } catch (error) {
       return {
@@ -159,44 +177,47 @@ class LabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Card Assignment Filter
-class CardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-assignment');
+class FilterItemCardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardAssignment, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string): Promise<FilterEvaluationResult> {
     try {
-      const assignmentOperator = condition.assignment?.value || condition.assignment;
-      const assignmentSubject = condition.assignment_subject?.value || condition.assignment_subject;
-      const conditionUserId = condition?.user;
-      const recentlyAssignedUser = event.data?.member;
+      let result = false;
+      let members = await this.repositories.card_member.getMembersByCard(event?.data?.card?.id || "");
+      let memberIds = members?.map(item => item.id) || [];
 
-      const userId = assignmentSubject === 'me' ? createdBy : assignmentSubject;
+      switch (condition[EnumSelectionType.Assignment]) {
+        case EnumAssignmentOperator.AssignedTo:
 
-      if (!userId && assignmentSubject === 'me') {
-        return { matches: false, reason: 'Created by user ID required for "me" assignment' };
-      }
-
-      switch (assignmentOperator) {
-        case 'assigned-to':
+          if (EnumAssignmentSubjectOperator.Me) result = memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = true;
           return {
-            matches: recentlyAssignedUser?.id === userId,
-            reason: `Card is ${recentlyAssignedUser?.id === userId ? '' : 'not '}assigned to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.AssignedTo} to the user`
           };
-        case 'assigned-only-to':
-          const retrieveMembes: UserDetail[] = [];
+        case EnumAssignmentOperator.AssignedOnlyTo:
+          if (EnumAssignmentSubjectOperator.Me) result = memberIds.length === 1 && memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = memberIds.length === 1 && memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = true;
           return {
-            matches: retrieveMembes.length === 1 && recentlyAssignedUser?.id === retrieveMembes[0]["id"],
-            reason: `Card is ${retrieveMembes.length === 1 && recentlyAssignedUser?.id === retrieveMembes[0]["id"] ? '' : 'not '}assigned only to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.AssignedOnlyTo} only to the user`
           };
-        case 'not-assigned-to':
+        case EnumAssignmentOperator.NotAssignedTo:
+          if (EnumAssignmentSubjectOperator.Me) result = !memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = !memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = memberIds?.length === 0;
           return {
-            matches: recentlyAssignedUser?.id !== userId,
-            reason: `Card is ${recentlyAssignedUser?.id !== userId ? '' : 'not '}assigned to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.NotAssignedTo} to the user`
           };
         default:
-          return { matches: false, reason: `Unknown assignment operator: ${assignmentOperator}` };
+          return { matches: false, reason: `Unknown assignment operator: ${condition[EnumSelectionType.Assignment]}` };
       }
+
     } catch (error) {
       return {
         matches: false,
@@ -207,12 +228,12 @@ class CardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 1: with/without all custom fields completed
-class CardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-1');
+class FilterItemCardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField1, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const completionStatus = condition.completion?.value || condition.completion;
@@ -244,12 +265,12 @@ class CardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 2: with/without specific custom field completed
-class CardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-2');
+class FilterItemCardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField2, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -280,12 +301,12 @@ class CardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 4: with/without custom field set to specific text
-class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-4');
+class FilterItemCardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
+ constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField4, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -299,7 +320,7 @@ class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
       const fieldText = String(fieldValue || '');
       const expectedTextStr = String(expectedText || '');
 
-      const matches = fieldText === expectedTextStr;
+      const matches = event.data.custom_field?.value === expectedTextStr;
       const shouldInclude = inclusionOperator === 'with';
 
       return {
@@ -316,12 +337,12 @@ class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 6: with/without custom field number comparison
-class CardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-6');
+class FilterItemCardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField6, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -359,12 +380,12 @@ class CardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Content Title/Description Filter
-class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-content-title-description');
+class FilterItemCardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardContentTileDescription, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const contentType = condition.card_content_type?.value || condition.card_content_type;
       const textComparison = condition.text_comparison?.value || condition.text_comparison;
@@ -405,29 +426,30 @@ class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvalu
   }
 }
 
-
 class AutomationRuleTriggerFilterEvaluatorFactory {
-  private static evaluatorMap: Record<string, new () => BaseAutomationRuleFilterEvaluator> = {
+  private static evaluatorMap: Record<
+    string,
+    (repos: RepositoryContext) => BaseAutomationRuleFilterEvaluator
+  > = {
+    // Trigger item
 
-    // trigger filter
-    [EnumTiggerCarFilterType.CardInclusionInList]: CardInclusionInListEvaluator,
-    [EnumTiggerCarFilterType.LabelInclusionInCard]: LabelInclusionInCardEvaluator,
-    [EnumTiggerCarFilterType.CardAssignment]: CardAssignmentEvaluator,
-    [EnumTiggerCarFilterType.CardCustomField1]: CardCustomField1Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField2]: CardCustomField2Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField4]: CardCustomField4Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField6]: CardCustomField6Evaluator,
-    [EnumTiggerCarFilterType.CardContentTileDescription]: CardContentTitleDescriptionEvaluator,
+    // Filter Item
+    [EnumTiggerCarFilterType.CardInclusionInList]: (repos) => new FilterItemCardInclusionInListEvaluator(repos),
+    [EnumTiggerCarFilterType.LabelInclusionInCard]: (repos) => new FilterItemLabelInclusionInCardEvaluator(repos),
+    [EnumTiggerCarFilterType.CardAssignment]: (repos) => new FilterItemCardAssignmentEvaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField1]: (repos) => new FilterItemCardCustomField1Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField2]: (repos) => new FilterItemCardCustomField2Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField4]: (repos) => new FilterItemCardCustomField4Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField6]: (repos) => new FilterItemCardCustomField6Evaluator(repos),
+    [EnumTiggerCarFilterType.CardContentTileDescription]: (repos) => new FilterItemCardContentTitleDescriptionEvaluator(repos),
   };
 
-  static create(filterType: string): BaseAutomationRuleFilterEvaluator {
-    const EvaluatorClass = this.evaluatorMap[filterType];
-    
-    if (!EvaluatorClass) {
+  static create(filterType: string, repositories: RepositoryContext): BaseAutomationRuleFilterEvaluator {
+    const createEvaluator = this.evaluatorMap[filterType];
+    if (!createEvaluator) {
       throw new Error(`Unknown filter type: ${filterType}`);
     }
-    
-    return new EvaluatorClass();
+    return createEvaluator(repositories);
   }
 
   static getSupportedTypes(): string[] {
@@ -435,28 +457,14 @@ class AutomationRuleTriggerFilterEvaluatorFactory {
   }
 }
 
+
 // Main service class
 class AutomationRuleFilterService {
 
-  private card_repo: CardRepositoryI;
-  private custom_field_repo: CustomFieldRepositoryI;
-  private user_repo: UserRepositoryI;
-
-  constructor(
-    card_repo: CardRepositoryI,
-    custom_field_repo: CustomFieldRepositoryI,
-    user_repo: UserRepositoryI
-  ) {
-    this.card_repo = card_repo;
-    this.custom_field_repo = custom_field_repo;
-    this.user_repo = user_repo;
-  }
-
-  static evaluate(filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
+  static async evaluate(repositories: RepositoryContext, filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): Promise<FilterEvaluationResult> {
     try {
-      const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType);
-      console.log(`AutomationRuleFilterService: evaluator: %o`, evaluator);
-      return evaluator.evaluate(condition, event, createdBy);
+      const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType, repositories);
+      return await evaluator.evaluate(condition, event, createdBy);
     } catch (error) {
       return {
         matches: false,
