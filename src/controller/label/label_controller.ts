@@ -309,9 +309,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repository_context.label.getAllLabels(
-      workspace_id
-    );
+    const result = await this.repository_context.label.getAllLabels(workspace_id);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,

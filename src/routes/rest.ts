@@ -79,6 +79,7 @@ export default async function (): Promise<Router> {
     automation_service_factory,
     whatsapp_service
   );
+  controller_context.automation.SetControllerContext(controller_context);
   const automation_processor = new AutomationProcessor();
   automation_processor.setController(controller_context.automation);
   automation_service_factory.init(automation_processor);

@@ -1,10 +1,11 @@
 import { CardRepositoryI } from "@/repository/card/card_interfaces";
 import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
 import { CardLabelDetail } from "@/repository/label/label_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 import { UserDetail, UserRepositoryI } from "@/repository/user/user_interfaces";
-import { EnumTiggerCarFilterType } from "@/types/automation_rule";
+import { EnumInputType, EnumSelectionType, EnumTiggerCarFilterType } from "@/types/automation_rule";
 import { UserActionEvent } from "@/types/event";
-import { EnumCardContentType, EnumOptionsNumberComparisonOperators, EnumOptionTextComparisonOperator } from "@/types/options";
+import { EnumAssignmentOperator, EnumAssignmentSubjectOperator, EnumCardContentType, EnumDateStatusOperator, EnumInclusionOperator, EnumOptionsNumberComparisonOperators, EnumOptionTextComparisonOperator, EnumTimeComparisonOperator, EnumTimeRangeOperator, EnumTimeUnit } from "@/types/options";
 
 type FilterCondition = {
   [key: string]: any;
@@ -19,12 +20,14 @@ interface FilterEvaluationResult {
 // Abstract base class for all filter evaluators
 abstract class BaseAutomationRuleFilterEvaluator {
   protected filterType: string;
+   protected repositories: RepositoryContext;
 
-  constructor(filterType: string) {
+  constructor(filterType: string, repositories: RepositoryContext) {
     this.filterType = filterType;
+    this.repositories = repositories;
   }
 
-  abstract evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string, updatedAt?: Date): FilterEvaluationResult;
+  abstract evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string, updatedAt?: Date): Promise<FilterEvaluationResult>;
 
   protected getInclusionValue(condition: FilterCondition, key = 'inclusion'): string {
     return condition[key]?.value || condition[key] || 'with';
@@ -73,49 +76,96 @@ abstract class BaseAutomationRuleFilterEvaluator {
   protected isInTimeRange(date: Date, range: string): boolean {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    const isSameDay = (d1: Date, d2: Date) => d1.getTime() === d2.getTime();
+
     switch (range) {
-      case 'today': 
-        return targetDate.getTime() === today.getTime();
-      case 'tomorrow': 
+      case EnumTimeRangeOperator.Today:
+        return isSameDay(target, today);
+      case EnumTimeRangeOperator.Tomorrow:
         const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return targetDate.getTime() === tomorrow.getTime();
-      case 'this-week':
+        tomorrow.setDate(today.getDate() + 1);
+        return isSameDay(target, tomorrow);
+      case EnumTimeRangeOperator.ThisWeek:
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay());
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
-        return targetDate >= weekStart && targetDate <= weekEnd;
-      // Add more ranges as needed
+        return target >= weekStart && target <= weekEnd;
+      case EnumTimeRangeOperator.NextWeek:
+        const nextWeekStart = new Date(today);
+        nextWeekStart.setDate(today.getDate() + 7 - today.getDay());
+        const nextWeekEnd = new Date(nextWeekStart);
+        nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+        return target >= nextWeekStart && target <= nextWeekEnd;
+      case EnumTimeRangeOperator.ThisMonth:
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        return target >= monthStart && target <= monthEnd;
+      case EnumTimeRangeOperator.NextMonth:
+        const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        return target >= nextMonthStart && target <= nextMonthEnd;
+      default:
+        return false;
+    }
+  }
+
+  protected compareList(actual: string, expected:string[], operator: string): boolean {
+    if (!actual || !expected) return false;
+    
+    switch (operator) {
+      case EnumInclusionOperator.In: return expected.includes(actual);
+      case EnumInclusionOperator.NotIn: return !expected.includes(actual);
       default: return false;
     }
   }
+
+  protected calculateDaysDifference(start: Date, end: Date, workingDaysOnly: boolean): number {
+    const s = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+    let diff = 0;
+    while (s < e) {
+      if (!workingDaysOnly || (s.getDay() !== 0 && s.getDay() !== 6)) {
+        diff++;
+      }
+      s.setDate(s.getDate() + 1);
+    }
+
+    return diff;
+  }
 }
 
+// Triggers
+
+
+
+// Filters
 // Card Inclusion in List Filter
-class CardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-inclusion-in-list');
+class FilterItemCardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardInclusionInList, repositories);
+    console.log(`${EnumTiggerCarFilterType.CardInclusionInList} evaluator`);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
-      const inclusionOperator = this.getInclusionValue(condition);
-      const listValue = condition.list?.value || condition.list;
-      const cardListId = event.data?.card?.list_id|| event.data?.list?.id;
-
-      if (!listValue) {
-        return { matches: false, reason: 'No list specified in condition' };
+      console.log(`Evaluating [condition: %o] [event: %o]`, condition, event);
+      let expected = [];
+      if (typeof condition[EnumSelectionType.List] == "string") {
+        expected.push(condition[EnumSelectionType.List]);
+      } else {
+        expected = condition[EnumSelectionType.List];
       }
 
-      const isInList = cardListId === listValue;
-      const shouldInclude = inclusionOperator === 'in';
+      let result = this.compareList(event?.data?.list?.id || event?.data?.card?.list_id || "", expected, condition[EnumSelectionType.Inclusion]);
 
       return {
-        matches: shouldInclude ? isInList : !isInList,
-        reason: `Card is ${isInList ? 'in' : 'not in'} the specified list`
+        matches: result,
+        reason: `Card is ${result ? 'in' : 'not in'} the specified list`
       };
     } catch (error) {
       return {
@@ -127,27 +177,27 @@ class CardInclusionInListEvaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Label Inclusion in Card Filter
-class LabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('label-inclusion-in-card');
+class FilterItemLabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.LabelInclusionInCard, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
-      const inclusionOperator = this.getInclusionValue(condition);
-      const labelValue = condition.card_label?.value || condition.card_label;
-      const retrieveCardLabels: CardLabelDetail[] = [];
-
-      if (!labelValue) {
-        return { matches: false, reason: 'No label specified in condition' };
+      let result = false;
+      let labels = await this.repositories.label.getAssignedLabelInCard(event?.workspace_id, event?.data?.card?.id || "");
+      let labelIds = labels?.data?.map(item => item.id) || [];
+    
+      switch (condition[EnumSelectionType.Inclusion]) {
+        case EnumInclusionOperator.With: result = labelIds?.includes(condition[EnumSelectionType.CardLabel]) || false;
+        case EnumInclusionOperator.Without: result = !labelIds?.includes(condition[EnumSelectionType.CardLabel]) || false;
+        case EnumInclusionOperator.WihtoutAny: result = labelIds?.length === 0
+        default: false;
       }
 
-      const hasLabel = retrieveCardLabels.filter(item => item.name.toLocaleLowerCase() === labelValue)?.length > 0;
-      const shouldHaveLabel = inclusionOperator === 'with';
-
       return {
-        matches: shouldHaveLabel ? hasLabel : !hasLabel,
-        reason: `Card ${hasLabel ? 'has' : 'does not have'} the specified label`
+        matches: result,
+        reason: `Card ${result ? 'has' : 'does not have'} the specified label`
       };
     } catch (error) {
       return {
@@ -158,45 +208,233 @@ class LabelInclusionInCardEvaluator extends BaseAutomationRuleFilterEvaluator {
   }
 }
 
-// Card Assignment Filter
-class CardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-assignment');
+
+// CardDueDates
+class FilterItemCardDueDatesEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardDueDates, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
-      const assignmentOperator = condition.assignment?.value || condition.assignment;
-      const assignmentSubject = condition.assignment_subject?.value || condition.assignment_subject;
-      const conditionUserId = condition?.user;
-      const recentlyAssignedUser = event.data?.member;
+      let result = false;
+      
+      const card = await this.repositories.card.getCard({id: event?.data?.card?.id || ""});
+      result = card?.data?.due_date === null || card?.data?.due_date === undefined;
 
-      const userId = assignmentSubject === 'me' ? createdBy : assignmentSubject;
+      return {
+        matches: result,
+        reason: `Card ${result ? 'has' : 'does not have'} the specified label`
+      };
+    } catch (error) {
+      return {
+        matches: false,
+        error: `Error evaluating label inclusion: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+}
 
-      if (!userId && assignmentSubject === 'me') {
-        return { matches: false, reason: 'Created by user ID required for "me" assignment' };
+// CardStartDate
+class FilterItemCardStartDatesEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardDueDates, repositories);
+  }
+
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
+    try {
+      let result = false;
+      
+      const card = await this.repositories.card.getCard({id: event?.data?.card?.id || ""});
+      result = card?.data?.start_date === null || card?.data?.start_date === undefined;
+
+      return {
+        matches: result,
+        reason: `Card ${result ? 'has' : 'does not have'} the specified label`
+      };
+    } catch (error) {
+      return {
+        matches: false,
+        error: `Error evaluating label inclusion: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }
+}
+
+// CardDateStatus
+class FilterItemCardDateStatusEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardDueDates, repositories);
+  }
+
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
+    try {
+      const cardId = event?.data?.card?.id || "";
+      const cardResult = await this.repositories.card.getCard({ id: cardId });
+
+      const card = cardResult?.data;
+      const cardStartDate = card?.start_date ? new Date(card.start_date) : null;
+      const cardDueDate = card?.due_date ? new Date(card.due_date) : null;
+
+      const dateStatus = condition[EnumSelectionType.DateStatus];
+      const timeRange = condition[EnumSelectionType.TimeRange];
+      const now = new Date();
+
+      let targetDate: Date | null = null;
+
+      switch (dateStatus) {
+        case EnumDateStatusOperator.Due:
+          targetDate = cardDueDate;
+          break;
+        case EnumDateStatusOperator.NotDue:
+          targetDate = cardDueDate;
+          break;
+        case EnumDateStatusOperator.Starting:
+          targetDate = cardStartDate;
+          break;
+        case EnumDateStatusOperator.NotStarting:
+          targetDate = cardStartDate;
+          break;
+        default:
+          return { matches: false, reason: `Invalid date status: ${dateStatus}` };
       }
 
-      switch (assignmentOperator) {
-        case 'assigned-to':
+      if (!targetDate) {
+        return { matches: false, reason: "Card does not have a relevant date set" };
+      }
+
+      const isInRange = this.isInTimeRange(targetDate, timeRange);
+      const shouldMatch = [EnumDateStatusOperator.Due, EnumDateStatusOperator.Starting].includes(dateStatus);
+
+      return {
+        matches: shouldMatch ? isInRange : !isInRange,
+        reason: `Card ${shouldMatch === isInRange ? 'matches' : 'does not match'} the ${dateStatus} condition for ${timeRange}`
+      };
+    } catch (error) {
+      return {
+        matches: false,
+        error: `Error evaluating date status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+}
+
+class FilterItemCardDateStatusWithSpecificEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardDueDates, repositories);
+  }
+
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
+    try {
+      const cardId = event?.data?.card?.id || "";
+      const cardResult = await this.repositories.card.getCard({ id: cardId });
+      const card = cardResult?.data;
+
+      const cardStartDate = card?.start_date ? new Date(card.start_date) : null;
+      const cardDueDate = card?.due_date ? new Date(card.due_date) : null;
+
+      const dateStatus = condition[EnumSelectionType.DateStatus];
+      const timeComparison = condition[EnumSelectionType.TimeComparison];
+      const timeUnit = condition[EnumSelectionType.TimeUnit];
+      const input = condition[EnumInputType.Number]; // could be number or array
+
+      const now = new Date();
+
+      let targetDate: Date | null = null;
+      switch (dateStatus) {
+        case EnumDateStatusOperator.Due:
+          targetDate = cardDueDate;
+          break;
+        case EnumDateStatusOperator.Starting:
+          targetDate = cardStartDate;
+          break;
+        default:
+          return { matches: false, reason: `Invalid date status: ${dateStatus}` };
+      }
+
+      if (!targetDate) {
+        return { matches: false, reason: "Card does not have a relevant date set" };
+      }
+
+      const daysDiff = this.calculateDaysDifference(now, targetDate, timeUnit === EnumTimeUnit.WorkingDays);
+
+      let matches = false;
+      switch (timeComparison) {
+        case EnumTimeComparisonOperator.InLessThan:
+          matches = daysDiff < Number(input);
+          break;
+        case EnumTimeComparisonOperator.InMoreThan:
+          matches = daysDiff > Number(input);
+          break;
+        case EnumTimeComparisonOperator.In:
+          matches = daysDiff === Number(input);
+          break;
+        case EnumTimeComparisonOperator.InBeetween:
+          if (!Array.isArray(input) || input.length !== 2) {
+            return { matches: false, reason: `Invalid input range format. Expected [min, max]` };
+          }
+          const [min, max] = input.map(Number);
+          matches = daysDiff >= min && daysDiff <= max;
+          break;
+        default:
+          return { matches: false, reason: `Unsupported time comparison: ${timeComparison}` };
+      }
+
+      return {
+        matches,
+        reason: `Card ${matches ? 'matches' : 'does not match'} the '${timeComparison}' condition with date difference = ${daysDiff}`,
+      };
+    } catch (error) {
+      return {
+        matches: false,
+        error: `Error evaluating date status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+}
+
+// Card Assignment Filter
+class FilterItemCardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardAssignment, repositories);
+  }
+
+  async evaluate(condition: FilterCondition, event: UserActionEvent, createdBy?: string): Promise<FilterEvaluationResult> {
+    try {
+      let result = false;
+      let members = await this.repositories.card_member.getMembersByCard(event?.data?.card?.id || "");
+      let memberIds = members?.map(item => item.id) || [];
+
+      switch (condition[EnumSelectionType.Assignment]) {
+        case EnumAssignmentOperator.AssignedTo:
+
+          if (EnumAssignmentSubjectOperator.Me) result = memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = true;
           return {
-            matches: recentlyAssignedUser?.id === userId,
-            reason: `Card is ${recentlyAssignedUser?.id === userId ? '' : 'not '}assigned to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.AssignedTo} to the user`
           };
-        case 'assigned-only-to':
-          const retrieveMembes: UserDetail[] = [];
+        case EnumAssignmentOperator.AssignedOnlyTo:
+          if (EnumAssignmentSubjectOperator.Me) result = memberIds.length === 1 && memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = memberIds.length === 1 && memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = true;
           return {
-            matches: retrieveMembes.length === 1 && recentlyAssignedUser?.id === retrieveMembes[0]["id"],
-            reason: `Card is ${retrieveMembes.length === 1 && recentlyAssignedUser?.id === retrieveMembes[0]["id"] ? '' : 'not '}assigned only to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.AssignedOnlyTo} only to the user`
           };
-        case 'not-assigned-to':
+        case EnumAssignmentOperator.NotAssignedTo:
+          if (EnumAssignmentSubjectOperator.Me) result = !memberIds.includes(createdBy || "");
+          if (EnumAssignmentSubjectOperator.Member) result = !memberIds.includes(condition[EnumSelectionType.List]);
+          if (EnumAssignmentSubjectOperator.Anyone) result = memberIds?.length === 0;
           return {
-            matches: recentlyAssignedUser?.id !== userId,
-            reason: `Card is ${recentlyAssignedUser?.id !== userId ? '' : 'not '}assigned to the user`
+            matches: result,
+            reason: `Card is ${result ? '' : 'not '}${EnumAssignmentOperator.NotAssignedTo} to the user`
           };
         default:
-          return { matches: false, reason: `Unknown assignment operator: ${assignmentOperator}` };
+          return { matches: false, reason: `Unknown assignment operator: ${condition[EnumSelectionType.Assignment]}` };
       }
+
     } catch (error) {
       return {
         matches: false,
@@ -207,12 +445,12 @@ class CardAssignmentEvaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 1: with/without all custom fields completed
-class CardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-1');
+class FilterItemCardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField1, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const completionStatus = condition.completion?.value || condition.completion;
@@ -244,12 +482,12 @@ class CardCustomField1Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 2: with/without specific custom field completed
-class CardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-2');
+class FilterItemCardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField2, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -280,12 +518,12 @@ class CardCustomField2Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 4: with/without custom field set to specific text
-class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-4');
+class FilterItemCardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
+ constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField4, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -299,7 +537,7 @@ class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
       const fieldText = String(fieldValue || '');
       const expectedTextStr = String(expectedText || '');
 
-      const matches = fieldText === expectedTextStr;
+      const matches = event.data.custom_field?.value === expectedTextStr;
       const shouldInclude = inclusionOperator === 'with';
 
       return {
@@ -316,12 +554,12 @@ class CardCustomField4Evaluator extends BaseAutomationRuleFilterEvaluator {
 }
 
 // Custom Field 6: with/without custom field number comparison
-class CardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-custom-field-6');
+class FilterItemCardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardCustomField6, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const inclusionOperator = this.getInclusionValue(condition);
       const customFieldName = condition.custom_field?.value || condition.custom_field;
@@ -358,13 +596,15 @@ class CardCustomField6Evaluator extends BaseAutomationRuleFilterEvaluator {
   }
 }
 
+
+
 // Content Title/Description Filter
-class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvaluator {
-  constructor() {
-    super('card-content-title-description');
+class FilterItemCardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvaluator {
+  constructor(repositories: RepositoryContext) {
+    super(EnumTiggerCarFilterType.CardContentTileDescription, repositories);
   }
 
-  evaluate(condition: FilterCondition, event: UserActionEvent): FilterEvaluationResult {
+  async evaluate(condition: FilterCondition, event: UserActionEvent): Promise<FilterEvaluationResult> {
     try {
       const contentType = condition.card_content_type?.value || condition.card_content_type;
       const textComparison = condition.text_comparison?.value || condition.text_comparison;
@@ -405,29 +645,34 @@ class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvalu
   }
 }
 
-
 class AutomationRuleTriggerFilterEvaluatorFactory {
-  private static evaluatorMap: Record<string, new () => BaseAutomationRuleFilterEvaluator> = {
+  private static evaluatorMap: Record<
+    string,
+    (repos: RepositoryContext) => BaseAutomationRuleFilterEvaluator
+  > = {
+    // Trigger item
 
-    // trigger filter
-    [EnumTiggerCarFilterType.CardInclusionInList]: CardInclusionInListEvaluator,
-    [EnumTiggerCarFilterType.LabelInclusionInCard]: LabelInclusionInCardEvaluator,
-    [EnumTiggerCarFilterType.CardAssignment]: CardAssignmentEvaluator,
-    [EnumTiggerCarFilterType.CardCustomField1]: CardCustomField1Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField2]: CardCustomField2Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField4]: CardCustomField4Evaluator,
-    [EnumTiggerCarFilterType.CardCustomField6]: CardCustomField6Evaluator,
-    [EnumTiggerCarFilterType.CardContentTileDescription]: CardContentTitleDescriptionEvaluator,
+    // Filter Item
+    [EnumTiggerCarFilterType.CardInclusionInList]: (repos) => new FilterItemCardInclusionInListEvaluator(repos),
+    [EnumTiggerCarFilterType.LabelInclusionInCard]: (repos) => new FilterItemLabelInclusionInCardEvaluator(repos),
+    [EnumTiggerCarFilterType.CardAssignment]: (repos) => new FilterItemCardAssignmentEvaluator(repos),
+    [EnumTiggerCarFilterType.CardDueDates]: (repos) => new FilterItemCardDueDatesEvaluator(repos),
+    [EnumTiggerCarFilterType.CardStartDate]: (repos) => new FilterItemCardStartDatesEvaluator(repos),
+    [EnumTiggerCarFilterType.CardDateStatus]: (repos) => new FilterItemCardDateStatusEvaluator(repos),
+    [EnumTiggerCarFilterType.CardDateStatusWithSpecificDays]: (repos) => new FilterItemCardDateStatusWithSpecificEvaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField1]: (repos) => new FilterItemCardCustomField1Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField2]: (repos) => new FilterItemCardCustomField2Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField4]: (repos) => new FilterItemCardCustomField4Evaluator(repos),
+    [EnumTiggerCarFilterType.CardCustomField6]: (repos) => new FilterItemCardCustomField6Evaluator(repos),
+    [EnumTiggerCarFilterType.CardContentTileDescription]: (repos) => new FilterItemCardContentTitleDescriptionEvaluator(repos),
   };
 
-  static create(filterType: string): BaseAutomationRuleFilterEvaluator {
-    const EvaluatorClass = this.evaluatorMap[filterType];
-    
-    if (!EvaluatorClass) {
+  static create(filterType: string, repositories: RepositoryContext): BaseAutomationRuleFilterEvaluator {
+    const createEvaluator = this.evaluatorMap[filterType];
+    if (!createEvaluator) {
       throw new Error(`Unknown filter type: ${filterType}`);
     }
-    
-    return new EvaluatorClass();
+    return createEvaluator(repositories);
   }
 
   static getSupportedTypes(): string[] {
@@ -435,28 +680,14 @@ class AutomationRuleTriggerFilterEvaluatorFactory {
   }
 }
 
+
 // Main service class
 class AutomationRuleFilterService {
 
-  private card_repo: CardRepositoryI;
-  private custom_field_repo: CustomFieldRepositoryI;
-  private user_repo: UserRepositoryI;
-
-  constructor(
-    card_repo: CardRepositoryI,
-    custom_field_repo: CustomFieldRepositoryI,
-    user_repo: UserRepositoryI
-  ) {
-    this.card_repo = card_repo;
-    this.custom_field_repo = custom_field_repo;
-    this.user_repo = user_repo;
-  }
-
-  static evaluate(filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
+  static async evaluate(repositories: RepositoryContext, filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): Promise<FilterEvaluationResult> {
     try {
-      const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType);
-      console.log(`AutomationRuleFilterService: evaluator: %o`, evaluator);
-      return evaluator.evaluate(condition, event, createdBy);
+      const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType, repositories);
+      return await evaluator.evaluate(condition, event, createdBy);
     } catch (error) {
       return {
         matches: false,

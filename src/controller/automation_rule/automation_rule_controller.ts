@@ -240,38 +240,33 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             let isPermsissable = true;
 
             // trigger filter
-            rule.filter?.map(async (f: AutomationRuleFilterDetail) => {
-              let res = AutomationRuleFilterService.evaluate(
-                f.type,
-                f.condition,
-                recentUserAction,
-                rule.created_by
-              );
-              console.log("Evaluate filter: res: %o", res);
-              if (!res.matches) {
-                isPermsissable = false;
-                return isPermsissable;
+            if (rule.filter && rule.filter.length > 0) {
+              for (const f of rule.filter) {
+                const res = await AutomationRuleFilterService.evaluate(
+                  this.repository_context,
+                  f.type,
+                  f.condition,
+                  recentUserAction,
+                  rule.created_by
+                );
+                console.log("Evaluate filter: res: %o", res);
+                if (!res.matches) {
+                  isPermsissable = false;
+                  break;
+                }
               }
-            });
+            }
 
             // trigger condition
-            if (rule.condition?.[EnumSelectionType.Board]) {
-              console.log("rule has board dependency");
-              if (
-                recentUserAction?.data?.board?.id !==
-                rule.condition?.[EnumSelectionType.Board]
-              )
-                isPermsissable = false;
-            }
+            // if (rule.condition?.[EnumSelectionType.Board]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
+            // }
 
-            if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
-              console.log("rule has board dependency");
-              if (
-                recentUserAction?.data?.board?.id !==
-                rule.condition?.[EnumSelectionType.OptionalBoard]
-              )
-                isPermsissable = false;
-            }
+            // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
+            // }
 
             // list
             if (rule.condition?.[EnumSelectionType.List]) {
@@ -1017,6 +1012,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 })
               );
             }
+            console.log(`rule is not permissable`);
             return `rule is not permissable`;
           }
           return Promise.resolve();
@@ -1304,6 +1300,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
+    console.log("handleMoveAction...");
     const moveData = new CardMoveData({
       id: recentUserAction?.data?.card?.id,
       previous_list_id: recentUserAction?.data?._previous_data?.card?.id,
@@ -1316,7 +1313,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     });
 
     await this.controller_context?.card.MoveCard(
-      "recentUserAction.user_id",
+      recentUserAction?.user_id,
       moveData,
       EnumTriggeredBy.OzzyAutomation
     );
@@ -1368,264 +1365,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }),
       EnumTriggeredBy.OzzyAutomation
     );
-  }
-
-  private async handleCreateItemAction(
-    action: AutomationRuleActionDetail,
-    recentUserAction: UserActionEvent
-  ): Promise<void> {
-    const boardId = action.condition.board;
-    const listId = action.condition.list;
-    const title = action.condition.text_title;
-    const description = action.condition.text_description;
-    const position = action.condition.position;
-    const multiUsers = action.condition.multi_users ?? [];
-    const multiChecklists = action.condition.multi_checklists ?? [];
-    const multiDates = action.condition.multi_dates ?? [];
-
-    const result = await this.controller_context?.card.GetListCard(
-      new CardFilter({
-        list_id: listId,
-      }),
-      new Paginate(1, 1000)
-    );
-
-    const cards = result?.data ?? [];
-
-    let order = 10000;
-    let start_date = null;
-    let due_date = null;
-
-    if (cards && cards.length > 0 && position !== EnumOptionPosition.InList) {
-      const card = cards.sort((a, b) => a.order! - b.order!);
-
-      if (position === EnumOptionPosition.TopOfList) {
-        order = (card[cards.length - 1]?.order || order) - 1000;
-      }
-
-      if (position === EnumOptionPosition.BottomOfList) {
-        order = (card[0]?.order || order) + 10000;
-      }
-    }
-
-    const setDayType = (value: EnumDayType) => {
-      switch (value) {
-        case EnumDayType.Tomorrow:
-          return new Date(new Date().setDate(new Date().getDate() + 1));
-        case EnumDayType.Yesterday:
-          return new Date(new Date().setDate(new Date().getDate() - 1));
-
-        default:
-          return new Date();
-      }
-    };
-
-    const setTimeType = (value: EnumTimeType, inTime: string) => {
-      if (isNaN(Number(inTime))) return null;
-
-      switch (value) {
-        case EnumTimeType.Days:
-          return new Date(
-            new Date().setDate(new Date().getDate() + Number(inTime))
-          );
-        case EnumTimeType.Hours:
-          return new Date(
-            new Date().setHours(new Date().getHours() + Number(inTime))
-          );
-        case EnumTimeType.Minutes:
-          return new Date(
-            new Date().setMinutes(new Date().getMinutes() + Number(inTime))
-          );
-        case EnumTimeType.Months:
-          return new Date(
-            new Date().setMonth(new Date().getMonth() + Number(inTime))
-          );
-        case EnumTimeType.Weeks:
-          return new Date(
-            new Date().setDate(new Date().getDate() + Number(inTime) * 7)
-          );
-        case EnumTimeType.WorkingDays:
-          const today = new Date();
-          let day = today.getDay();
-          let addDays = Number(inTime);
-          let newDate = new Date(today);
-
-          while (addDays > 0) {
-            day = (day + 1) % 7;
-            if (day === 0 || day === 6) {
-              continue;
-            }
-            newDate.setDate(newDate.getDate() + 1);
-            addDays--;
-          }
-
-          return newDate;
-        default:
-          break;
-      }
-    };
-
-    const setDay = (value: EnumDay) => {
-      const today = new Date();
-      const day = today.getDay();
-      switch (value) {
-        case EnumDay.Tuesday:
-          const daysUntilTuesday = (2 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilTuesday));
-        case EnumDay.Wednesday:
-          const daysUntilWednesday = (3 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilWednesday));
-        case EnumDay.Thursday:
-          const daysUntilThursday = (4 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilThursday));
-        case EnumDay.Friday:
-          const daysUntilFriday = (5 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilFriday));
-        case EnumDay.Saturday:
-          const daysUntilSaturday = (6 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilSaturday));
-        case EnumDay.Sunday:
-          const daysUntilSunday = (7 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilSunday));
-        default:
-          const daysUntilMonday = (1 + 7 - day) % 7 || 7;
-          return new Date(today.setDate(today.getDate() + daysUntilMonday));
-      }
-    };
-
-    const setNextWeek = (value: EnumDay) => {
-      let dayNumber = 1;
-      switch (value) {
-        case EnumDay.Tuesday:
-          dayNumber = 2;
-          break;
-        case EnumDay.Wednesday:
-          dayNumber = 3;
-          break;
-        case EnumDay.Thursday:
-          dayNumber = 4;
-          break;
-        case EnumDay.Friday:
-          dayNumber = 5;
-          break;
-        case EnumDay.Saturday:
-          dayNumber = 6;
-          break;
-        case EnumDay.Sunday:
-          dayNumber = 7;
-          break;
-        default:
-          dayNumber = 1;
-          break;
-      }
-
-      const today = new Date();
-      const day = today.getDay(); // 0-6 (Sun-Sat)
-    
-      // Awal minggu ini (Minggu)
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - day);
-    
-      // Awal minggu depan
-      const startOfNextWeek = new Date(startOfWeek);
-      startOfNextWeek.setDate(startOfWeek.getDate() + 7);
-    
-      // Tambah offset weekday target
-      startOfNextWeek.setDate(startOfNextWeek.getDate() + dayNumber);
-    
-      return startOfNextWeek;
-    }
-
-    if (multiDates && multiDates.length > 0) {
-      for (let index = 0; index < multiDates.length; index++) {
-        const itemDate = multiDates[index];
-
-        switch (itemDate.type) {
-          case "1":
-            if (itemDate.set_date === EnumSetDate.Due) {
-              due_date = setDayType(itemDate.day_type);
-            }
-
-            if (itemDate.set_date === EnumSetDate.Start) {
-              start_date = setDayType(itemDate.day_type);
-            }
-
-            break;
-
-          case "2":
-            if (itemDate.set_date === EnumSetDate.Due) {
-              due_date = setTimeType(itemDate.time_type, itemDate.in);
-            }
-
-            if (itemDate.set_date === EnumSetDate.Start) {
-              start_date = setTimeType(itemDate.time_type, itemDate.in);
-            }
-
-            break;
-
-          case "3":
-            if (itemDate.set_date === EnumSetDate.Due) {
-              due_date = setDay(itemDate.day);
-            }
-
-            if (itemDate.set_date === EnumSetDate.Start) {
-              start_date = setDay(itemDate.day);
-            }
-
-            break;
-
-          case "4":
-            if (itemDate.set_date === EnumSetDate.Due) {
-              due_date = setNextWeek(itemDate.day);
-            }
-
-            if (itemDate.set_date === EnumSetDate.Start) {
-              start_date = setNextWeek(itemDate.day);
-            }
-
-            break;
-
-          default:
-            break;
-        }
-      }
-    }
-
-    const resultCreateCard = await this.controller_context?.card.CreateCard(
-      recentUserAction.user_id,
-      new CardCreateData({
-        name: title,
-        description: description,
-        list_id: listId,
-        type: CardType.Regular,
-        order,
-        dash_config: undefined,
-        due_date,
-        start_date,
-      }),
-      EnumTriggeredBy.OzzyAutomation
-    );
-
-    const data = resultCreateCard?.data;
-
-    if (multiUsers.length > 0 && data) {
-      await this.controller_context?.card_member.addMembers(
-        data.id,
-        multiUsers
-      );
-    }
-
-    if (multiChecklists.length > 0 && data) {
-      const dataChecklist = multiChecklists.map((item: any) => ({
-        card_id: data.id,
-        title: item.name,
-        data: [],
-      }));
-
-      await this.controller_context?.checklist.CreateBulkChecklist(
-        dataChecklist
-      );
-    }
   }
 
   private async handleClearCustomFieldAction(
@@ -2307,6 +2046,68 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
 
     return null;
+  }
+
+  private async handleCreateItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const boardId = action.condition.board;
+    const listId = action.condition.list;
+    const title = action.condition.text_title;
+    const description = action.condition.text_description;
+    const position = action.condition.position;
+    const multiUsers = action.condition.multi_users ?? [];
+    const multiChecklists = action.condition.multi_checklists ?? [];
+
+    const { data: cards } = await this.repository_context.card.getListCard(
+      new CardFilter({
+        list_id: listId,
+      }),
+      new Paginate(1, 1000)
+    );
+
+    let order = 10000;
+
+    if (cards && cards.length > 0 && position !== EnumOptionPosition.InList) {
+      const card = cards.sort((a, b) => a.order! - b.order!);
+
+      if (position === EnumOptionPosition.TopOfList) {
+        order = (card[cards.length - 1]?.order || order) - 1000;
+      }
+
+      if (position === EnumOptionPosition.BottomOfList) {
+        order = (card[0]?.order || order) + 10000;
+      }
+    }
+
+    const createCardResult = await this.controller_context?.card.CreateCard(
+      recentUserAction.user_id,
+      new CardCreateData({
+        name: title,
+        description: description,
+        list_id: listId,
+        type: CardType.Regular,
+        order,
+        dash_config: undefined,
+      }),
+      EnumTriggeredBy.OzzyAutomation
+    );
+    const data = createCardResult?.data;
+
+    if (multiUsers.length > 0 && data) {
+      await this.controller_context?.card_member.addMembers(data.id, multiUsers);
+    }
+
+    if (multiChecklists.length > 0 && data) {
+      const dataChecklist = multiChecklists.map((item: any) => ({
+        card_id: data.id,
+        title: item.name,
+        data: [],
+      }));
+
+      await this.controller_context?.checklist.CreateBulkChecklist(dataChecklist);
+    }
   }
 
   private evaluateDateExpression(actual: Date, meta: any): boolean {
