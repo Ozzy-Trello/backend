@@ -411,4 +411,22 @@ export class LabelRepository implements LabelRepositoryI {
       );
     }
   }
+
+  async removeAllLabelsFromCard(card_id: string): Promise<ResponseData<null>> {
+    try {
+      await db
+        .deleteFrom("card_label")
+        .where("card_id", "=", card_id)
+        .execute();
+      return new ResponseData({
+        status_code: StatusCodes.NO_CONTENT,
+        message: "All labels removed from card",
+      });
+    } catch (e) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
 }

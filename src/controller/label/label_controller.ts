@@ -324,4 +324,20 @@ export class LabelController implements LabelControllerI {
       data: result.data,
     });
   }
+
+  async RemoveAllLabelsFromCard(card_id: string): Promise<ResponseData<null>> {
+    const result = await this.repository_context.label.removeAllLabelsFromCard(
+      card_id
+    );
+    if (result.status_code !== StatusCodes.NO_CONTENT) {
+      return new ResponseData({
+        message: result.message,
+        status_code: result.status_code,
+      });
+    }
+    return new ResponseData({
+      message: "All labels removed from card successfully",
+      status_code: StatusCodes.NO_CONTENT,
+    });
+  }
 }

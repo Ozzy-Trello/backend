@@ -32,6 +32,12 @@ import {
   EnumOptionBySubject,
   EnumOptionsSet,
   EnumOptionPosition,
+  EnumAddRemove,
+  EnumRemoveFromCard,
+  EnumSetDate,
+  EnumDayType,
+  EnumTimeType,
+  EnumDay,
 } from "@/types/options";
 import { CardCustomFieldValueUpdate } from "@/repository/custom_field/custom_field_interfaces";
 import { CreateChecklistDTO } from "../checklist/checklist_interfaces";
@@ -41,6 +47,7 @@ import { AutomationRuleFilterService } from "../automation/automation_filter_eva
 import { RepositoryContext } from "@/repository/repository_context";
 import { ControllerContext } from "../controller_context";
 import { CardType } from "@/types/card";
+import { CardAttachmentFilter } from "../card_attachment/card_attachment_interface";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private repository_context: RepositoryContext;
@@ -1082,6 +1089,13 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         case ActionType.CreateItem:
           await this.handleCreateItemAction(action, recentUserAction);
           break;
+        case ActionType.AddRemoveLabel:
+          await this.handleAddRemoveLabelAction(action, recentUserAction);
+          break;
+
+        case ActionType.RemoveFromCard:
+          await this.handleRemoveFromCardAction(action, recentUserAction);
+          break;
 
         default:
           break;
@@ -1367,6 +1381,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     const position = action.condition.position;
     const multiUsers = action.condition.multi_users ?? [];
     const multiChecklists = action.condition.multi_checklists ?? [];
+    const multiDates = action.condition.multi_dates ?? [];
 
     const result = await this.controller_context?.card.GetListCard(
       new CardFilter({
@@ -1378,6 +1393,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     const cards = result?.data ?? [];
 
     let order = 10000;
+    let start_date = null;
+    let due_date = null;
 
     if (cards && cards.length > 0 && position !== EnumOptionPosition.InList) {
       const card = cards.sort((a, b) => a.order! - b.order!);
@@ -1391,6 +1408,189 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     }
 
+    const setDayType = (value: EnumDayType) => {
+      switch (value) {
+        case EnumDayType.Tomorrow:
+          return new Date(new Date().setDate(new Date().getDate() + 1));
+        case EnumDayType.Yesterday:
+          return new Date(new Date().setDate(new Date().getDate() - 1));
+
+        default:
+          return new Date();
+      }
+    };
+
+    const setTimeType = (value: EnumTimeType, inTime: string) => {
+      if (isNaN(Number(inTime))) return null;
+
+      switch (value) {
+        case EnumTimeType.Days:
+          return new Date(
+            new Date().setDate(new Date().getDate() + Number(inTime))
+          );
+        case EnumTimeType.Hours:
+          return new Date(
+            new Date().setHours(new Date().getHours() + Number(inTime))
+          );
+        case EnumTimeType.Minutes:
+          return new Date(
+            new Date().setMinutes(new Date().getMinutes() + Number(inTime))
+          );
+        case EnumTimeType.Months:
+          return new Date(
+            new Date().setMonth(new Date().getMonth() + Number(inTime))
+          );
+        case EnumTimeType.Weeks:
+          return new Date(
+            new Date().setDate(new Date().getDate() + Number(inTime) * 7)
+          );
+        case EnumTimeType.WorkingDays:
+          const today = new Date();
+          let day = today.getDay();
+          let addDays = Number(inTime);
+          let newDate = new Date(today);
+
+          while (addDays > 0) {
+            day = (day + 1) % 7;
+            if (day === 0 || day === 6) {
+              continue;
+            }
+            newDate.setDate(newDate.getDate() + 1);
+            addDays--;
+          }
+
+          return newDate;
+        default:
+          break;
+      }
+    };
+
+    const setDay = (value: EnumDay) => {
+      const today = new Date();
+      const day = today.getDay();
+      switch (value) {
+        case EnumDay.Tuesday:
+          const daysUntilTuesday = (2 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilTuesday));
+        case EnumDay.Wednesday:
+          const daysUntilWednesday = (3 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilWednesday));
+        case EnumDay.Thursday:
+          const daysUntilThursday = (4 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilThursday));
+        case EnumDay.Friday:
+          const daysUntilFriday = (5 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilFriday));
+        case EnumDay.Saturday:
+          const daysUntilSaturday = (6 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilSaturday));
+        case EnumDay.Sunday:
+          const daysUntilSunday = (7 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilSunday));
+        default:
+          const daysUntilMonday = (1 + 7 - day) % 7 || 7;
+          return new Date(today.setDate(today.getDate() + daysUntilMonday));
+      }
+    };
+
+    const setNextWeek = (value: EnumDay) => {
+      let dayNumber = 1;
+      switch (value) {
+        case EnumDay.Tuesday:
+          dayNumber = 2;
+          break;
+        case EnumDay.Wednesday:
+          dayNumber = 3;
+          break;
+        case EnumDay.Thursday:
+          dayNumber = 4;
+          break;
+        case EnumDay.Friday:
+          dayNumber = 5;
+          break;
+        case EnumDay.Saturday:
+          dayNumber = 6;
+          break;
+        case EnumDay.Sunday:
+          dayNumber = 7;
+          break;
+        default:
+          dayNumber = 1;
+          break;
+      }
+
+      const today = new Date();
+      const day = today.getDay(); // 0-6 (Sun-Sat)
+    
+      // Awal minggu ini (Minggu)
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - day);
+    
+      // Awal minggu depan
+      const startOfNextWeek = new Date(startOfWeek);
+      startOfNextWeek.setDate(startOfWeek.getDate() + 7);
+    
+      // Tambah offset weekday target
+      startOfNextWeek.setDate(startOfNextWeek.getDate() + dayNumber);
+    
+      return startOfNextWeek;
+    }
+
+    if (multiDates && multiDates.length > 0) {
+      for (let index = 0; index < multiDates.length; index++) {
+        const itemDate = multiDates[index];
+
+        switch (itemDate.type) {
+          case "1":
+            if (itemDate.set_date === EnumSetDate.Due) {
+              due_date = setDayType(itemDate.day_type);
+            }
+
+            if (itemDate.set_date === EnumSetDate.Start) {
+              start_date = setDayType(itemDate.day_type);
+            }
+
+            break;
+
+          case "2":
+            if (itemDate.set_date === EnumSetDate.Due) {
+              due_date = setTimeType(itemDate.time_type, itemDate.in);
+            }
+
+            if (itemDate.set_date === EnumSetDate.Start) {
+              start_date = setTimeType(itemDate.time_type, itemDate.in);
+            }
+
+            break;
+
+          case "3":
+            if (itemDate.set_date === EnumSetDate.Due) {
+              due_date = setDay(itemDate.day);
+            }
+
+            if (itemDate.set_date === EnumSetDate.Start) {
+              start_date = setDay(itemDate.day);
+            }
+
+            break;
+
+          case "4":
+            if (itemDate.set_date === EnumSetDate.Due) {
+              due_date = setNextWeek(itemDate.day);
+            }
+
+            if (itemDate.set_date === EnumSetDate.Start) {
+              start_date = setNextWeek(itemDate.day);
+            }
+
+            break;
+
+          default:
+            break;
+        }
+      }
+    }
+
     const resultCreateCard = await this.controller_context?.card.CreateCard(
       recentUserAction.user_id,
       new CardCreateData({
@@ -1400,6 +1600,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         type: CardType.Regular,
         order,
         dash_config: undefined,
+        due_date,
+        start_date,
       }),
       EnumTriggeredBy.OzzyAutomation
     );
@@ -2885,6 +3087,82 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     } catch (e) {
       console.error("Error removing member", e);
+    }
+  }
+
+  private async handleAddRemoveLabelAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ) {
+    const addRemove = action.condition.add_remove;
+    const label = action.condition.card_label;
+    const cardId = recentUserAction.data.card?.id;
+    if (!cardId || !label) return;
+    try {
+      if (addRemove === EnumAddRemove.Add) {
+        await this.controller_context?.label.AddLabelToCard({
+          card_id: cardId,
+          label_id: label,
+          created_by: recentUserAction.user_id,
+        });
+      } else {
+        await this.controller_context?.label.RemoveLabelFromCard(cardId, label);
+      }
+    } catch (e) {
+      console.error("Error adding/removing label", e);
+    }
+  }
+
+  private async handleRemoveFromCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ) {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = recentUserAction.user_id;
+    if (!cardId || !userId) return;
+
+    switch (action.condition.remove_from_card) {
+      case EnumRemoveFromCard.DueDate:
+        await this.controller_context?.card.UpdateCard(
+          userId,
+          new CardFilter({ id: cardId }),
+          new UpdateCardData({ due_date: undefined }),
+          EnumTriggeredBy.OzzyAutomation
+        );
+        break;
+      case EnumRemoveFromCard.StartDate:
+        await this.controller_context?.card.UpdateCard(
+          userId,
+          new CardFilter({ id: cardId }),
+          new UpdateCardData({ start_date: undefined }),
+          EnumTriggeredBy.OzzyAutomation
+        );
+        break;
+      case EnumRemoveFromCard.CoverImage:
+        await this.controller_context?.card_attachment.DeleteCardAttachment(
+          new CardAttachmentFilter({
+            card_id: cardId,
+            is_cover: true,
+          })
+        );
+        break;
+      case EnumRemoveFromCard.AllLabels:
+        await this.controller_context?.label.RemoveAllLabelsFromCard(cardId);
+        break;
+      case EnumRemoveFromCard.AllStickers:
+        break;
+      case EnumRemoveFromCard.AllChecklist:
+        await this.controller_context?.checklist.DeleteAllChecklistFromCard(
+          cardId
+        );
+        break;
+      case EnumRemoveFromCard.AllMembers:
+        await this.controller_context?.card_member.removeAllMemberFromCard(
+          cardId
+        );
+        break;
+      default:
+        break;
     }
   }
 }

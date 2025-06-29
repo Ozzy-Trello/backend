@@ -11,4 +11,5 @@ export interface CardMemberRepositoryI {
   isUserExist(user_id: string): Promise<boolean>;
   isMember(card_id: string, user_id: string): Promise<boolean>;
   getExistingMemberIds(card_id: string, user_ids: string[]): Promise<string[]>;
+  removeAllMemberFromCard(card_id: string): Promise<number>;
 }
