@@ -148,6 +148,7 @@ export enum ActionType {
 
   // remove <RemoveFromCard> from the card
   RemoveFromCard = `remove-<${EnumSelectionType.RemoveFromCard}>-from-the-card`,
+
   //add more..
 }
 
