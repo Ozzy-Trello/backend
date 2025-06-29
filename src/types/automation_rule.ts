@@ -43,11 +43,26 @@ export enum EnumSelectionType {
   ChecklistScope = "checklist_scope",
   ItemScope = "item_scope",
   TextComparison = "text_comparison",
+  CreateType = "create_type", // new | unique
+  CreateTypeItem = "create_type_item", // regular | board | link | separator | mirror
+  MultiLabels = "multi_labels",
+  MultiChecklists = "multi_checklists",
+  MultiUsers = "multi_users",
+  MultiDates = "multi_dates",
+  AddRemove = "add_remove",
+  RemoveFromCard = "remove_from_card",
+  TaskType = "task_type",
+  SetTask = "set_task",
+  CardContentType = "card_content_type",
+  CardContentText = "card_content_text",
+  CardLabel = "card_label",
 }
 
 export enum EnumInputType {
   Number = "number",
   Text = "text",
+  TextDescription = "text_description",
+  TextTitle = "text_title",
 }
 
 export enum TriggerType {
@@ -101,6 +116,15 @@ export enum ActionType {
   ActionTheCardToPositionInSpecificList = `<${EnumSelectionType.Action}>_the_card_to_<${EnumSelectionType.Position}>_<${EnumSelectionType.List}>`,
   ActionTheCardToPosition = `<action>_the_card_to_<${EnumSelectionType.Position}>`,
   ArchivalActionTheCard = `<${EnumSelectionType.Action}>_the_card`,
+
+  // create a <CardType> <CardTypeItem> card with title <TextTitle> <TextDescription> <Position> <List> <Board> <MultiLabels> <MultiChecklists> <MultiUsers> <MultiDates>
+  CreateItem = `create-a-<${EnumSelectionType.CreateType}>-card-with-title-<${EnumInputType.TextTitle}>-<${EnumInputType.TextDescription}>-<${EnumSelectionType.Position}>-<${EnumSelectionType.List}>-<${EnumSelectionType.Board}>-<${EnumSelectionType.MultiLabels}>-<${EnumSelectionType.MultiChecklists}>-<${EnumSelectionType.MultiUsers}>-<${EnumSelectionType.MultiDates}>`,
+
+  // <AddRemove> the <CardLabel> label to the card
+  AddRemoveLabel = `<${EnumSelectionType.AddRemove}>-the-<${EnumSelectionType.CardLabel}>-label-to-the-card`,
+
+  // remove <RemoveFromCard> from the card
+  RemoveFromCard = `remove-<${EnumSelectionType.RemoveFromCard}>-from-the-card`,
   //add more..
 }
 

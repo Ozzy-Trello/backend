@@ -1,15 +1,26 @@
-import { LabelRepository } from '@/repository/label/label_repository';
-import { ResponseData, ResponseListData } from '@/utils/response_utils';
-import { LabelAttributes } from '@/database/schemas/label';
-import { Paginate } from '@/utils/data_utils';
-import { StatusCodes } from 'http-status-codes';
-import { CardLabelDetail, CreateCardLabelData, filterLabelDetail, LabelRepositoryI } from '@/repository/label/label_interfaces';
-import { LabelControllerI } from '@/controller/label/label_interfaces';
-import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
+import { LabelRepository } from "@/repository/label/label_repository";
+import { ResponseData, ResponseListData } from "@/utils/response_utils";
+import { LabelAttributes } from "@/database/schemas/label";
+import { Paginate } from "@/utils/data_utils";
+import { StatusCodes } from "http-status-codes";
+import {
+  CardLabelDetail,
+  CreateCardLabelData,
+  filterLabelDetail,
+  LabelRepositoryI,
+} from "@/repository/label/label_interfaces";
+import { LabelControllerI } from "@/controller/label/label_interfaces";
+import {
+  filterWorkspaceDetail,
+  WorkspaceRepositoryI,
+} from "@/repository/workspace/workspace_interfaces";
 
 export class LabelController implements LabelControllerI {
   private repo: LabelRepositoryI;
-  constructor(repo: LabelRepositoryI, private workspace_repo: WorkspaceRepositoryI) {
+  constructor(
+    repo: LabelRepositoryI,
+    private workspace_repo: WorkspaceRepositoryI
+  ) {
     this.repo = repo;
     this.workspace_repo = workspace_repo;
     this.CreateLabel = this.CreateLabel.bind(this);
@@ -19,23 +30,27 @@ export class LabelController implements LabelControllerI {
     this.DeleteLabel = this.DeleteLabel.bind(this);
   }
 
-  async CreateLabel(data: Omit<LabelAttributes, 'id' | 'created_at' | 'updated_at'>): Promise<ResponseData<LabelAttributes>> {
+  async CreateLabel(
+    data: Omit<LabelAttributes, "id" | "created_at" | "updated_at">
+  ): Promise<ResponseData<LabelAttributes>> {
     if (!data.name) {
       return new ResponseData({
         message: "'name' is required",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
+    const workspace = await this.workspace_repo.getWorkspace(
+      new filterWorkspaceDetail({ id: data.workspace_id })
+    );
     if (workspace.status_code != StatusCodes.OK) {
-      let msg = "internal server error"
-      if (workspace.status_code == StatusCodes.NOT_FOUND){
-        msg = "workspace is not found"
+      let msg = "internal server error";
+      if (workspace.status_code == StatusCodes.NOT_FOUND) {
+        msg = "workspace is not found";
       }
       return new ResponseData({
         message: msg,
         status_code: StatusCodes.BAD_REQUEST,
-      })
+      });
     }
     const result = await this.repo.createLabel(data);
     if (result.status_code !== StatusCodes.OK) {
@@ -45,16 +60,18 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Label created successfully',
+      message: "Label created successfully",
       status_code: StatusCodes.CREATED,
       data: result.data,
     });
   }
 
-  async GetLabel(filter: filterLabelDetail): Promise<ResponseData<LabelAttributes>> {
+  async GetLabel(
+    filter: filterLabelDetail
+  ): Promise<ResponseData<LabelAttributes>> {
     if (!filter || Object.keys(filter).length === 0) {
       return new ResponseData({
-        message: 'You need to provide a filter to get label data',
+        message: "You need to provide a filter to get label data",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
@@ -92,20 +109,25 @@ export class LabelController implements LabelControllerI {
   //   }, result.paginate);
   // }
 
-  async UpdateLabel(filter: filterLabelDetail, data: Partial<LabelAttributes>): Promise<ResponseData<LabelAttributes>> {
+  async UpdateLabel(
+    filter: filterLabelDetail,
+    data: Partial<LabelAttributes>
+  ): Promise<ResponseData<LabelAttributes>> {
     if (!filter || Object.keys(filter).length === 0) {
       return new ResponseData({
-        message: 'You need filter to update',
+        message: "You need filter to update",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
     if (!data || Object.keys(data).length === 0) {
       return new ResponseData({
-        message: 'You need data to update',
+        message: "You need data to update",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: filter.workspace_id}))
+    const workspace = await this.workspace_repo.getWorkspace(
+      new filterWorkspaceDetail({ id: filter.workspace_id })
+    );
     if (workspace.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: workspace.message,
@@ -114,7 +136,9 @@ export class LabelController implements LabelControllerI {
     }
 
     if (data.workspace_id) {
-      const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
+      const workspace = await this.workspace_repo.getWorkspace(
+        new filterWorkspaceDetail({ id: data.workspace_id })
+      );
       if (workspace.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: workspace.message,
@@ -126,7 +150,7 @@ export class LabelController implements LabelControllerI {
     // Only support update by id for now
     if (!filter.id) {
       return new ResponseData({
-        message: 'id is required for update',
+        message: "id is required for update",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
@@ -138,7 +162,7 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Label updated successfully',
+      message: "Label updated successfully",
       status_code: StatusCodes.OK,
       data: result.data,
     });
@@ -147,19 +171,19 @@ export class LabelController implements LabelControllerI {
   async DeleteLabel(filter: filterLabelDetail): Promise<ResponseData<null>> {
     if (!filter || Object.keys(filter).length === 0) {
       return new ResponseData({
-        message: 'You need filter to delete',
+        message: "You need filter to delete",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
     if (filter.workspace_id) {
       return new ResponseData({
-        message: 'You cannot delete label by workspace_id',
+        message: "You cannot delete label by workspace_id",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
     if (!filter.id) {
       return new ResponseData({
-        message: 'id is required for delete',
+        message: "id is required for delete",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
@@ -171,12 +195,14 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Label deleted successfully',
+      message: "Label deleted successfully",
       status_code: StatusCodes.NO_CONTENT,
     });
   }
 
-  async AddLabelToCard(data: CreateCardLabelData): Promise<ResponseData<CardLabelDetail>> {
+  async AddLabelToCard(
+    data: CreateCardLabelData
+  ): Promise<ResponseData<CardLabelDetail>> {
     if (!data.card_id || !data.label_id || !data.created_by) {
       return new ResponseData({
         message: "'card_id', 'label_id', and 'created_by' are required",
@@ -191,13 +217,16 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Label added to card successfully',
+      message: "Label added to card successfully",
       status_code: StatusCodes.CREATED,
       data: result.data,
     });
   }
 
-  async RemoveLabelFromCard(label_id: string, card_id: string): Promise<ResponseData<null>> {
+  async RemoveLabelFromCard(
+    label_id: string,
+    card_id: string
+  ): Promise<ResponseData<null>> {
     const result = await this.repo.removeLabelFromCard(label_id, card_id);
     if (result.status_code !== StatusCodes.NO_CONTENT) {
       return new ResponseData({
@@ -206,12 +235,16 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Label removed from Card successfully',
+      message: "Label removed from Card successfully",
       status_code: StatusCodes.NO_CONTENT,
     });
   }
 
-  async GetLabels(workspace_id: string, card_id: string, paginate: Paginate): Promise<ResponseData<CardLabelDetail[]>> {
+  async GetLabels(
+    workspace_id: string,
+    card_id: string,
+    paginate: Paginate
+  ): Promise<ResponseData<CardLabelDetail[]>> {
     if (!workspace_id || !card_id) {
       return new ResponseData({
         message: "'workspace_id' and 'card_id' are required",
@@ -226,20 +259,26 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Card labels retrieved successfully',
+      message: "Card labels retrieved successfully",
       status_code: StatusCodes.OK,
       data: result.data,
     });
   }
 
-  async GetAssignedLabelInCard(workspace_id: string, card_id: string): Promise<ResponseData<CardLabelDetail[]>> {
-     if (!workspace_id || !card_id) {
+  async GetAssignedLabelInCard(
+    workspace_id: string,
+    card_id: string
+  ): Promise<ResponseData<CardLabelDetail[]>> {
+    if (!workspace_id || !card_id) {
       return new ResponseData({
         message: "'workspace_id' and 'card_id' are required",
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.getAssignedLabelInCard(workspace_id, card_id);
+    const result = await this.repo.getAssignedLabelInCard(
+      workspace_id,
+      card_id
+    );
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -247,10 +286,33 @@ export class LabelController implements LabelControllerI {
       });
     }
     return new ResponseData({
-      message: 'Card labels retrieved successfully',
+      message: "Card labels retrieved successfully",
       status_code: StatusCodes.OK,
       data: result.data,
     });
   }
-  
+
+  async GetAllLabels(
+    workspace_id: string
+  ): Promise<ResponseData<LabelAttributes[]>> {
+    console.log("baba all controller");
+    if (!workspace_id) {
+      return new ResponseData({
+        message: "'workspace_id' is required",
+        status_code: StatusCodes.BAD_REQUEST,
+      });
+    }
+    const result = await this.repo.getAllLabels(workspace_id);
+    if (result.status_code !== StatusCodes.OK) {
+      return new ResponseData({
+        message: result.message,
+        status_code: result.status_code,
+      });
+    }
+    return new ResponseData({
+      message: "Labels retrieved successfully",
+      status_code: StatusCodes.OK,
+      data: result.data,
+    });
+  }
 }

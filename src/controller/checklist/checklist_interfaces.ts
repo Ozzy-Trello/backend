@@ -12,6 +12,9 @@ export interface IChecklistRepository {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   deleteChecklist(id: string): Promise<number>;
+  createBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
 }
 
 export interface IChecklistController {
@@ -27,6 +30,9 @@ export interface IChecklistController {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   DeleteChecklist(user_id: string, id: string): Promise<ResponseData<null>>;
+  CreateBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
 }
 
 export interface ChecklistItem {

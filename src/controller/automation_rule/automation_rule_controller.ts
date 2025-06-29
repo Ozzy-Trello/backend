@@ -43,6 +43,10 @@ import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "../whatsapp/whatsapp_controller";
 import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
 import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import { CardType } from "@/types/card";
+import { ListControllerI, ListFilter } from "../list/list_interfaces";
+import { CardMemberControllerI } from "../card/card_member_interfaces";
+import { ChecklistController } from "../checklist/checklist_controller";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -51,6 +55,8 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   private whatsapp_controller: WhatsAppController;
   private custom_field_repo: CustomFieldRepositoryI;
   private user_repo: UserRepositoryI;
+  private card_member_controller: CardMemberControllerI;
+  private checklist_controller: ChecklistController;
 
   constructor(
     automation_rule_repo: AutomationRuleRepositoryI,
@@ -58,7 +64,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     card_controller: CardControllerI,
     whatsapp_controller: WhatsAppController,
     custom_field_repo: CustomFieldRepositoryI,
-    user_repo: UserRepositoryI
+    user_repo: UserRepositoryI,
+    card_member_controller: CardMemberControllerI,
+    checklist_controller: ChecklistController
   ) {
     this.automation_rule_repo = automation_rule_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
@@ -66,6 +74,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     this.whatsapp_controller = whatsapp_controller;
     this.custom_field_repo = custom_field_repo;
     this.user_repo = user_repo;
+    this.card_member_controller = card_member_controller;
+    this.checklist_controller = checklist_controller;
+
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
@@ -1017,6 +1028,15 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     recentUserAction: UserActionEvent
   ): Promise<void> {
     try {
+      switch (action.type) {
+        case ActionType.CreateItem:
+          await this.handleCreateItemAction(action, recentUserAction);
+          break;
+
+        default:
+          break;
+      }
+
       switch (action?.condition?.action) {
         case EnumActions.MoveCard:
           console.log("executeAutomationAction: move.card");
@@ -1148,6 +1168,67 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }),
       EnumTriggeredBy.OzzyAutomation
     );
+  }
+
+  private async handleCreateItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const boardId = action.condition.board;
+    const listId = action.condition.list;
+    const title = action.condition.text_title;
+    const description = action.condition.text_description;
+    const position = action.condition.position;
+    const multiUsers = action.condition.multi_users ?? [];
+    const multiChecklists = action.condition.multi_checklists ?? [];
+
+    const { data: cards } = await this.card_controller.GetListCard(
+      new CardFilter({
+        list_id: listId,
+      }),
+      new Paginate(1, 1000)
+    );
+
+    let order = 10000;
+
+    if (cards && cards.length > 0 && position !== EnumOptionPosition.InList) {
+      const card = cards.sort((a, b) => a.order! - b.order!);
+
+      if (position === EnumOptionPosition.TopOfList) {
+        order = (card[cards.length - 1]?.order || order) - 1000;
+      }
+
+      if (position === EnumOptionPosition.BottomOfList) {
+        order = (card[0]?.order || order) + 10000;
+      }
+    }
+
+    const { data } = await this.card_controller.CreateCard(
+      recentUserAction.user_id,
+      new CardCreateData({
+        name: title,
+        description: description,
+        list_id: listId,
+        type: CardType.Regular,
+        order,
+        dash_config: undefined,
+      }),
+      EnumTriggeredBy.OzzyAutomation
+    );
+
+    if (multiUsers.length > 0 && data) {
+      await this.card_member_controller.addMembers(data.id, multiUsers);
+    }
+
+    if (multiChecklists.length > 0 && data) {
+      const dataChecklist = multiChecklists.map((item: any) => ({
+        card_id: data.id,
+        title: item.name,
+        data: [],
+      }));
+
+      await this.checklist_controller.CreateBulkChecklist(dataChecklist);
+    }
   }
 
   private evaluateDateExpression(actual: Date, meta: any): boolean {

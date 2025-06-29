@@ -669,10 +669,10 @@ export class CardController implements CardControllerI {
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
 
-      event.eventId = uuidv4();
-      event.type = EnumUserActionEvent.CreatedIn;
-      console.log("Trying to publish event: %s", event.eventId);
-      this.event_publisher.publishUserAction(event);
+      // event.eventId = uuidv4();
+      // event.type = EnumUserActionEvent.CreatedIn;
+      // console.log("Trying to publish event: %s", event.eventId);
+      // this.event_publisher.publishUserAction(event);
 
       // event.eventId = uuidv4();
       // event.type = EnumUserActionEvent.CardAddedTo;

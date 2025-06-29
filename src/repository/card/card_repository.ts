@@ -249,7 +249,7 @@ export class CardRepository implements CardRepositoryI {
             name: data.name!,
             list_id: data.list_id,
             description: "",
-            order: newOrder,
+            order: data.order || newOrder,
             dash_config: data.dash_config,
             type: data.type,
           })

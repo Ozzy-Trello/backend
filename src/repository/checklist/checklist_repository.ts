@@ -163,6 +163,30 @@ export class ChecklistRepository implements IChecklistRepository {
     }
   }
 
+  async createBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>> {
+    try {
+      const checklists = await Checklist.bulkCreate(data);
+      return new ResponseData({
+        status_code: StatusCodes.CREATED,
+        message: "Checklists created successfully",
+        data: checklists,
+      });
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
+      }
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
+    }
+  }
+
   async updateChecklist(
     id: string,
     data: UpdateChecklistDTO

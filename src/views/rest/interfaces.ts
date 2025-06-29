@@ -111,6 +111,7 @@ export interface LabelRestViewI {
   AddLabelToCard(req: Request, res: Response): Promise<void>;
   RemoveLabelFromCard(req: Request, res: Response): Promise<void>;
   GetAssignedLabelInCard(req: Request, res: Response): Promise<void>;
+  GetAllLabels(req: Request, res: Response): Promise<void>;
 }
 
 export interface AutomationRuleRestViewI {

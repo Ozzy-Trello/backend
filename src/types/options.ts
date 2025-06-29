@@ -1,6 +1,7 @@
 export enum EnumOptionPosition {
   BottomOfList = "bottom-of-list",
   TopOfList = "top-of-list",
+  InList = "in-list",
 }
 
 export enum EnumOptionsNumberComparisonOperators {
