@@ -448,4 +448,20 @@ export class ChecklistController implements IChecklistController {
       };
     }
   }
+
+  async DeleteAllChecklistFromCard(card_id: string): Promise<number> {
+    try {
+      const result =
+        await this.repository_context.checklist.deleteAllChecklistFromCard(
+          card_id
+        );
+      return result;
+    } catch (error) {
+      console.error(
+        "Error in ChecklistController.DeleteAllChecklistFromCard:",
+        error
+      );
+      return StatusCodes.INTERNAL_SERVER_ERROR;
+    }
+  }
 }

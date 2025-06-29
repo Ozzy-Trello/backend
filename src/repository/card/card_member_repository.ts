@@ -1,6 +1,8 @@
 import db from "@/database";
 import { v4 as uuidv4 } from "uuid";
 import { CardMemberRepositoryI } from "./card_member_interfaces";
+import { StatusCodes } from "http-status-codes";
+import { InternalServerError } from "@/utils/errors";
 
 export class CardMemberRepository implements CardMemberRepositoryI {
   async getMembersByCard(
@@ -81,5 +83,26 @@ export class CardMemberRepository implements CardMemberRepositoryI {
       .select("user_id")
       .execute();
     return members.map((m) => m.user_id);
+  }
+
+  async removeAllMemberFromCard(card_id: string): Promise<number> {
+    try {
+      await db
+        .deleteFrom("card_member")
+        .where("card_id", "=", card_id)
+        .execute();
+      return StatusCodes.NO_CONTENT;
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
+      }
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
+    }
   }
 }

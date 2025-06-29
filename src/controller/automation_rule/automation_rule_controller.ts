@@ -35,6 +35,12 @@ import {
   EnumOptionBySubject,
   EnumOptionsSet,
   EnumOptionPosition,
+  EnumAddRemove,
+  EnumRemoveFromCard,
+  EnumSetDate,
+  EnumDayType,
+  EnumTimeType,
+  EnumDay,
 } from "@/types/options";
 import {
   CardCustomFieldValueUpdate,
@@ -49,6 +55,7 @@ import { RepositoryContext } from "@/repository/repository_context";
 import { ControllerContext } from "../controller_context";
 import { ActionType } from "@/types/automation_rule";
 import { CardType } from "@/types/card";
+import { CardAttachmentFilter } from "../card_attachment/card_attachment_interface";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private repository_context: RepositoryContext;
@@ -1075,6 +1082,13 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       switch (action.type) {
         case ActionType.CreateItem:
           await this.handleCreateItemAction(action, recentUserAction);
+          break;
+        case ActionType.AddRemoveLabel:
+          await this.handleAddRemoveLabelAction(action, recentUserAction);
+          break;
+
+        case ActionType.RemoveFromCard:
+          await this.handleRemoveFromCardAction(action, recentUserAction);
           break;
 
         default:
@@ -2834,6 +2848,82 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     } catch (e) {
       console.error("Error removing member", e);
+    }
+  }
+
+  private async handleAddRemoveLabelAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ) {
+    const addRemove = action.condition.add_remove;
+    const label = action.condition.card_label;
+    const cardId = recentUserAction.data.card?.id;
+    if (!cardId || !label) return;
+    try {
+      if (addRemove === EnumAddRemove.Add) {
+        await this.controller_context?.label.AddLabelToCard({
+          card_id: cardId,
+          label_id: label,
+          created_by: recentUserAction.user_id,
+        });
+      } else {
+        await this.controller_context?.label.RemoveLabelFromCard(cardId, label);
+      }
+    } catch (e) {
+      console.error("Error adding/removing label", e);
+    }
+  }
+
+  private async handleRemoveFromCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ) {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = recentUserAction.user_id;
+    if (!cardId || !userId) return;
+
+    switch (action.condition.remove_from_card) {
+      case EnumRemoveFromCard.DueDate:
+        await this.controller_context?.card.UpdateCard(
+          userId,
+          new CardFilter({ id: cardId }),
+          new UpdateCardData({ due_date: undefined }),
+          EnumTriggeredBy.OzzyAutomation
+        );
+        break;
+      case EnumRemoveFromCard.StartDate:
+        await this.controller_context?.card.UpdateCard(
+          userId,
+          new CardFilter({ id: cardId }),
+          new UpdateCardData({ start_date: undefined }),
+          EnumTriggeredBy.OzzyAutomation
+        );
+        break;
+      case EnumRemoveFromCard.CoverImage:
+        await this.controller_context?.card_attachment.DeleteCardAttachment(
+          new CardAttachmentFilter({
+            card_id: cardId,
+            is_cover: true,
+          })
+        );
+        break;
+      case EnumRemoveFromCard.AllLabels:
+        await this.controller_context?.label.RemoveAllLabelsFromCard(cardId);
+        break;
+      case EnumRemoveFromCard.AllStickers:
+        break;
+      case EnumRemoveFromCard.AllChecklist:
+        await this.controller_context?.checklist.DeleteAllChecklistFromCard(
+          cardId
+        );
+        break;
+      case EnumRemoveFromCard.AllMembers:
+        await this.controller_context?.card_member.removeAllMemberFromCard(
+          cardId
+        );
+        break;
+      default:
+        break;
     }
   }
 }

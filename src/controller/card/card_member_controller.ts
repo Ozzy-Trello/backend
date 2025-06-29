@@ -8,7 +8,7 @@ import { RepositoryContext } from "@/repository/repository_context";
 
 export class CardMemberController {
   private repository_context: RepositoryContext;
-  constructor(repository_context: RepositoryContext ) {
+  constructor(repository_context: RepositoryContext) {
     this.repository_context = repository_context;
   }
 
@@ -28,7 +28,9 @@ export class CardMemberController {
         members: [],
       };
     }
-    const data = await this.repository_context.card_member.getMembersByCard(card_id);
+    const data = await this.repository_context.card_member.getMembersByCard(
+      card_id
+    );
     return { status_code: StatusCodes.OK, data };
   }
 
@@ -62,7 +64,9 @@ export class CardMemberController {
         invalidUserIds.push(user_id);
         continue;
       }
-      const userRes = await this.repository_context.user.getUser({ id: user_id });
+      const userRes = await this.repository_context.user.getUser({
+        id: user_id,
+      });
       if (userRes.status_code !== StatusCodes.OK) {
         invalidUserIds.push(user_id);
       }
@@ -75,19 +79,24 @@ export class CardMemberController {
       };
     }
     // Cek duplikasi member
-    const alreadyMemberIds = await this.repository_context.card_member.getExistingMemberIds(
-      card_id,
-      user_ids
-    );
+    const alreadyMemberIds =
+      await this.repository_context.card_member.getExistingMemberIds(
+        card_id,
+        user_ids
+      );
     if (alreadyMemberIds.length > 0) {
-      const existingMembers = await this.repository_context.card_member.getMembersByCard(card_id);
+      const existingMembers =
+        await this.repository_context.card_member.getMembersByCard(card_id);
       return {
         status_code: StatusCodes.BAD_REQUEST,
         message: `User(s) already member: ${alreadyMemberIds.join(", ")}`,
         members: existingMembers,
       };
     }
-    const members = await this.repository_context.card_member.addMembersToCard(card_id, user_ids);
+    const members = await this.repository_context.card_member.addMembersToCard(
+      card_id,
+      user_ids
+    );
 
     // notify clients
     broadcastToWebSocket("card_member:updated", { cardId: card_id, members });
@@ -110,18 +119,45 @@ export class CardMemberController {
     if (userRes.status_code !== StatusCodes.OK) {
       return { status_code: StatusCodes.NOT_FOUND, message: "User not found" };
     }
-    const isMember = await this.repository_context.card_member.isMember(card_id, user_id);
+    const isMember = await this.repository_context.card_member.isMember(
+      card_id,
+      user_id
+    );
     if (!isMember) {
       return {
         status_code: StatusCodes.BAD_REQUEST,
         message: "User is not a member of this card",
       };
     }
-    await this.repository_context.card_member.removeMemberFromCard(card_id, user_id);
+    await this.repository_context.card_member.removeMemberFromCard(
+      card_id,
+      user_id
+    );
 
-    const members = await this.repository_context.card_member.getMembersByCard(card_id);
+    const members = await this.repository_context.card_member.getMembersByCard(
+      card_id
+    );
     broadcastToWebSocket("card_member:updated", { cardId: card_id, members });
 
     return { status_code: StatusCodes.OK, message: "Member removed" };
+  }
+
+  async removeAllMemberFromCard(card_id: string) {
+    if (!isValidUUID(card_id)) {
+      return {
+        status_code: StatusCodes.BAD_REQUEST,
+        message: "card_id is not valid uuid",
+      };
+    }
+    const cardRes = await this.repository_context.card.getCard({ id: card_id });
+    if (cardRes.status_code !== StatusCodes.OK) {
+      return { status_code: StatusCodes.NOT_FOUND, message: "Card not found" };
+    }
+    await this.repository_context.card_member.removeAllMemberFromCard(card_id);
+    const members = await this.repository_context.card_member.getMembersByCard(
+      card_id
+    );
+    broadcastToWebSocket("card_member:updated", { cardId: card_id, members });
+    return { status_code: StatusCodes.OK, message: "All members removed" };
   }
 }

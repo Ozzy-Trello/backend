@@ -35,4 +35,5 @@ export interface LabelControllerI {
     card_id: string
   ): Promise<ResponseData<CardLabelDetail[]>>;
   GetAllLabels(workspace_id: string): Promise<ResponseData<LabelAttributes[]>>;
+  RemoveAllLabelsFromCard(card_id: string): Promise<ResponseData<null>>;
 }
