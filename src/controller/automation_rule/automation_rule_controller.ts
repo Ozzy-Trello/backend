@@ -231,25 +231,33 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             let isPermsissable = true;
 
             // trigger filter
-            rule.filter?.map(async(f: AutomationRuleFilterDetail) => {
-              let res = await AutomationRuleFilterService.evaluate(this.repository_context, f.type, f.condition, recentUserAction, rule.created_by);
-              console.log("Evaluate filter: res: %o", res);
-              if (!res.matches) {
-                isPermsissable = false;
-                return isPermsissable;
+            if (rule.filter && rule.filter.length > 0) {
+              for (const f of rule.filter) {
+                const res = await AutomationRuleFilterService.evaluate(
+                  this.repository_context,
+                  f.type,
+                  f.condition,
+                  recentUserAction,
+                  rule.created_by
+                );
+                console.log("Evaluate filter: res: %o", res);
+                if (!res.matches) {
+                  isPermsissable = false;
+                  break;
+                }
               }
-            })
+            }
 
             // trigger condition
-            if (rule.condition?.[EnumSelectionType.Board]) {
-              console.log("rule has board dependency");
-              if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
-            }
+            // if (rule.condition?.[EnumSelectionType.Board]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
+            // }
 
-            if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
-              console.log("rule has board dependency");
-              if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
-            }
+            // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
+            //   console.log("rule has board dependency");
+            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
+            // }
 
             // list
             if (rule.condition?.[EnumSelectionType.List]) {
@@ -995,6 +1003,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 })
               );
             }
+            console.log(`rule is not permissable`);
             return `rule is not permissable`;
           }
           return Promise.resolve();
@@ -1275,6 +1284,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
+    console.log("handleMoveAction...");
     const moveData = new CardMoveData({
       id: recentUserAction?.data?.card?.id,
       previous_list_id: recentUserAction?.data?._previous_data?.card?.id,
@@ -1287,7 +1297,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     });
 
     await this.controller_context?.card.MoveCard(
-      "recentUserAction.user_id",
+      recentUserAction?.user_id,
       moveData,
       EnumTriggeredBy.OzzyAutomation
     );

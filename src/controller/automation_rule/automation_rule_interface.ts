@@ -8,8 +8,10 @@ import {
 import { AutomationRuleActionDetail } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import { CardDetail } from "@/repository/card/card_interfaces";
 import { UserActionEvent } from "@/types/event";
+import { ControllerContext } from "../controller_context";
 
 export interface AutomationRuleControllerI {
+  SetControllerContext(controllerContext: ControllerContext): void;
   CreateAutomationRule(
     user_id: string,
     data: AutomationRuleCreateData

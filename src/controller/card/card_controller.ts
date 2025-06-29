@@ -901,6 +901,7 @@ export class CardController implements CardControllerI {
     filter: CardMoveData,
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<CardResponse>> {
+    console.log("CardController: MoveCard");
     try {
       // 1. Validate card ID
       if (!filter.id || !isValidUUID(filter.id)) {
