@@ -17,45 +17,39 @@ export default class AutomationRuleRestView implements AutomationRuleRestViewI {
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
   }
-
-  async CreateAutomationRule(req: Request, res: Response): Promise<void> {
-    try {
-      const login_response: ResponseData<any> =
-        await this.controller.CreateAutomationRule(
-          req.auth!.user_id,
-          new AutomationRuleCreateData({
-            type: req.body.type,
-            group_type: req.body.group_type,
-            workspace_id: req.body.workspace_id,
-            condition: req.body.condition,
-            action: req.body.action,
-          })
-        );
-      if (login_response.status_code != StatusCodes.OK) {
-        if (login_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
-          console.log(login_response.message);
-          res.status(login_response.status_code).json({
-            message: "internal server error",
-          });
-          return;
-        }
-        res.status(login_response.status_code).json({
-          message: login_response.message,
-        });
-        return;
-      }
-      res.status(login_response.status_code).json({
-        data: login_response.data,
-        message: login_response.message,
-      });
-      return;
-    } catch (err) {
-      console.log(err);
-      res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: ReasonPhrases.INTERNAL_SERVER_ERROR });
-    }
-  }
+	async CreateAutomationRule(req: Request, res: Response): Promise<void> {
+		try {
+			const create_response: ResponseData<any> = await this.controller.CreateAutomationRule(req.auth!.user_id, new AutomationRuleCreateData({
+				type: req.body.type,
+				group_type: req.body.group_type,
+        workspace_id: req.body.workspace_id,
+        condition: req.body.condition,
+				filter: req.body.filter,
+        action: req.body.action
+			}))
+			if (create_response.status_code != StatusCodes.OK) {
+				if (create_response.status_code === StatusCodes.INTERNAL_SERVER_ERROR) {
+					console.log(create_response.message)
+					res.status(create_response.status_code).json({
+						"message": "internal server error",
+					})
+					return
+				}
+				res.status(create_response.status_code).json({
+					"message": create_response.message,
+				})
+				return
+			}
+			res.status(create_response.status_code).json({
+				"data": create_response.data,
+				"message": create_response.message
+			})
+			return
+		} catch (err) {
+			console.log(err)
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({"message": ReasonPhrases.INTERNAL_SERVER_ERROR})
+		}
+	}
 
   async GetListAutomationRule(req: Request, res: Response): Promise<void> {
     try {

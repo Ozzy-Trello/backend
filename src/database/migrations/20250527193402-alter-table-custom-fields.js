@@ -3,9 +3,20 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
 
-    await queryInterface.sequelize.query(
-      "ALTER TYPE \"enum_custom_field_source\" ADD VALUE 'custom';"
-    );
+   await queryInterface.sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_type t
+          JOIN pg_enum e ON t.oid = e.enumtypid
+          WHERE t.typname = 'enum_custom_field_source' AND e.enumlabel = 'custom'
+        ) THEN
+          ALTER TYPE "enum_custom_field_source" ADD VALUE 'custom';
+        END IF;
+      END
+      $$;
+    `);
+
 
     await queryInterface.changeColumn("custom_field", "source", {
       type: Sequelize.STRING,
@@ -44,7 +55,7 @@ module.exports = {
     await queryInterface.sequelize.query(`
       ALTER TABLE custom_field ALTER COLUMN source TYPE VARCHAR;
       DROP TYPE IF EXISTS "enum_custom_field_source";
-      CREATE TYPE "enum_custom_field_source" AS ENUM ('product', 'user');
+      CREATE TYPE IF EXISTS"enum_custom_field_source" AS ENUM ('product', 'user');
       ALTER TABLE custom_field ALTER COLUMN source TYPE "enum_custom_field_source" 
       USING source::"enum_custom_field_source";
     `);

@@ -16,6 +16,7 @@ import { EnumUserActionEvent } from "@/types/event";
 import { EnumOptionsNumberComparisonOperators } from "@/types/options";
 import { EnumSelectionType } from "@/types/automation_rule";
 import AutomationRuleAction from "@/database/schemas/automation_rule_action";
+import AutomationRuleFilter from "@/database/schemas/automation_rule_filter";
 
 export class AutomationRuleRepository implements AutomationRuleRepositoryI {
   createFilter(filter: filterAutomationRule): any {
@@ -221,6 +222,24 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
       });
     }
 
+    // getting filters
+    const filters = await AutomationRuleFilter.findAll({
+      where: {
+        rule_id: {
+          [Op.in]: ids
+        }
+      }
+    });
+    // Build a map of rule_id => filter(s)
+    const filterMap = new Map<string, AutomationRuleAction[]>();
+    for (const filter of filters) {
+      const list = filterMap.get(filter.rule_id) || [];
+      list.push(filter);
+      filterMap.set(filter.rule_id, list);
+    }
+
+
+    // getting actions
     const actions = await AutomationRuleAction.findAll({
       where: {
         rule_id: {
@@ -240,6 +259,7 @@ export class AutomationRuleRepository implements AutomationRuleRepositoryI {
     const result = rules.map((rule) => {
       const detail = new AutomationRuleDetail(rule.toJSON());
       detail.action = actionMap.get(rule.id) || [];
+      detail.filter = filterMap.get(rule.id) || [];
       return detail;
     });
 

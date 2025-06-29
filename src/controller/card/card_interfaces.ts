@@ -10,7 +10,6 @@ import {
 } from "@/repository/card/card_interfaces";
 import { AssignCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import {
-  CardActionValue,
   CardActivityType,
   ConditionType,
   EnumCustomFieldSource,
@@ -85,6 +84,9 @@ export interface CardControllerI {
     data: UpdateCardData,
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
+  // AddActivity(
+  //   data: CardActivity
+  // ): Promise<ResponseData<CardActivity>>;
   GetCardActivity(
     card_id: string,
     paginate: Paginate
@@ -516,27 +518,6 @@ export class CardCommentData extends CardActivity {
   // }
 }
 
-export class CardActionActivityData extends CardActivity {
-  activity_id!: string;
-  // action_type!: CardActionType;
-  source?: CardActionValue;
-
-  constructor(payload: Partial<CardActionActivityData>) {
-    super(payload);
-    Object.assign(this, payload);
-  }
-
-  // toCardActionActivity(): CardActionActivity{
-  // 	return {
-  // 		activity_id: this.activity_id,
-  // 		activity_type: this.activity_type,
-  // 		card_id: this.card_id,
-  // 		sender_id: this.sender_id,
-  // 		source: this.source,
-  // 		action_type: this.action_type
-  // 	}
-  // }
-}
 
 export class TriggerDoData {
   group_type!: TriggerTypes;

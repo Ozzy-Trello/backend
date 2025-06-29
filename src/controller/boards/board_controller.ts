@@ -172,6 +172,15 @@ export class BoardController implements BoardControllerI {
       filter.workspace_id = workspace.data?.id!;
     }
 
+    if (filter?.id) {
+      if (isValidUUID(filter?.id)) {
+        return new ResponseData({
+          message: "board id is not a valid uuid",
+          status_code: StatusCodes.BAD_REQUEST,
+        });
+      }
+    }
+
     let board = await this.board_repo.getBoard(filter);
     if (board.status_code != StatusCodes.OK) {
       return new ResponseData({

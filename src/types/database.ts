@@ -1,6 +1,5 @@
 import { Generated } from "kysely";
 import {
-  CardActionValue,
   CardActivityType,
   ConditionType,
   EnumCustomFieldType,
@@ -167,6 +166,9 @@ export interface CardActivityTable {
   sender_user_id: string;
   card_id: string;
   activity_type: CardActivityType;
+  triggered_by: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface CardActionTextTable {
@@ -178,8 +180,9 @@ export interface CardActionTextTable {
 export interface CardActivityActionTable {
   id: Generated<string>;
   activity_id: string;
-  // action: CardActionType;
-  source: CardActionValue;
+  action: string;
+  old_value: any;
+  new_value: any;
 }
 
 export interface AccurateAuth {
