@@ -39,6 +39,7 @@ export class AutomationRuleDetail {
   public group_type!: string;
   public type!: string;
   public condition!: any;
+  public filter?: any[];
   public action?: any[];
   public created_at?: Date;
   public updated_at?: Date;

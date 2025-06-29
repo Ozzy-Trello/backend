@@ -1,4 +1,7 @@
+import Card from "@/database/schemas/card";
+import CardCustomField from "@/database/schemas/card_custom_field";
 import { CardLabelAttributes } from "@/database/schemas/card_label";
+import CustomField from "@/database/schemas/custom_field";
 import User from "@/database/schemas/user";
 
 export enum EnumTriggeredBy {
@@ -80,13 +83,17 @@ export interface UserActionEvent {
   user_id: string;
   timestamp: Date;
   data: {
-    card?: any;
+    card?: Card;
     list?: any;
     board?: any;
     label?: CardLabelAttributes;
     member?: User;
-    previous_data?: any;
     value_user_id?: string;
     checklist?: any;
+    custom_field?: CustomField | CardCustomField;
+    _previous_data: {
+      card: Card,
+      custom_field?: CustomField | CardCustomField
+    }
   };
 }

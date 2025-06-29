@@ -12,13 +12,11 @@ import { EventPublisher } from "@/event_publisher";
 import {
   CardCustomFieldResponse,
   CardCustomFieldValueUpdate,
-  CustomFieldDetail,
   CustomFieldRepositoryI,
 } from "@/repository/custom_field/custom_field_interfaces";
 import {
   CreateCustomFieldResponse,
   fromCustomFieldDetailToCustomFieldResponse,
-  fromCustomFieldDetailToCustomFieldResponseCustomField,
   CustomFieldControllerI,
   CustomFieldCreateData,
   CustomFieldFilter,
@@ -29,19 +27,12 @@ import {
   filterWorkspaceDetail,
   WorkspaceRepositoryI,
 } from "@/repository/workspace/workspace_interfaces";
-import {
-  TriggerControllerI,
-  TriggerFilter,
-} from "../trigger/trigger_interfaces";
-import { TriggerRepositoryI } from "@/repository/trigger/trigger_interfaces";
-import { EnumCustomFieldSource } from "@/types/custom_field";
+
 import { InternalServerError } from "@/utils/errors";
 
 export class CustomFieldController implements CustomFieldControllerI {
   private custom_field_repo: CustomFieldRepositoryI;
   private workspace_repo: WorkspaceRepositoryI;
-  private trigger_repo: TriggerRepositoryI;
-  private trigger_controller: TriggerControllerI;
   private event_publisher: EventPublisher | undefined;
 
   SetEventPublisher(event_publisher: EventPublisher): void {
@@ -51,13 +42,9 @@ export class CustomFieldController implements CustomFieldControllerI {
   constructor(
     custom_field_repo: CustomFieldRepositoryI,
     workspace_repo: WorkspaceRepositoryI,
-    trigger_repo: TriggerRepositoryI,
-    trigger_controller: TriggerControllerI
   ) {
     this.custom_field_repo = custom_field_repo;
     this.workspace_repo = workspace_repo;
-    this.trigger_repo = trigger_repo;
-    this.trigger_controller = trigger_controller;
 
     this.GetCustomField = this.GetCustomField.bind(this);
     this.GetListCustomField = this.GetListCustomField.bind(this);
@@ -401,33 +388,6 @@ export class CustomFieldController implements CustomFieldControllerI {
         });
       }
 
-      // let checkCustomFieldName = await this.custom_field_repo.getCustomField({ __notId: filter.id, __orName: data.name, __orWorkspaceId: filter.workspace_id});
-      // if (checkCustomFieldName.status_code == StatusCodes.OK) {
-      //   return new ResponseData({
-      //     message: "this workspace name already taken by others",
-      //     status_code: StatusCodes.NOT_FOUND,
-      //   })
-      // }
-
-      if (data.trigger_id) {
-        const checkTrigger = await this.trigger_repo.getTrigger(
-          new TriggerFilter({ id: data.trigger_id })
-        );
-        if (checkTrigger.status_code != StatusCodes.OK) {
-          return new ResponseData({
-            message: checkTrigger.message,
-            status_code: checkTrigger.status_code,
-          });
-        }
-
-        // let checkSourceVal = await this.trigger_controller.checkConditionalValue(checkTrigger.data?.condition_value!, currentCustomField.data?.source!, checkTrigger.data?.action!)
-        // if (checkSourceVal.status_code != StatusCodes.OK){
-        //   return new ResponseData({
-        //     message: checkSourceVal.message,
-        //     status_code: checkSourceVal.status_code,
-        //   })
-        // }
-      }
     } else {
       return new ResponseData({
         message: "Update without id currenly is not supported",

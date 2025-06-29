@@ -53,9 +53,11 @@ import {
 } from "../checklist/checklist_interfaces";
 import { broadcastToWebSocket } from "@/server";
 import { CardMemberControllerI } from "../card/card_member_interfaces";
+import { AutomationRuleFilterDetail, AutomationRuleFilterRepositoryI } from "@/repository/automation_rule_filter/automation_rule_filter_interface";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
+  private automation_rule_filter_repo: AutomationRuleFilterRepositoryI;
   private automation_rule_action_repo: AutomationRuleActionRepositoryI;
   private card_controller: CardControllerI;
   private whatsapp_controller: WhatsAppController;
@@ -66,6 +68,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
   constructor(
     automation_rule_repo: AutomationRuleRepositoryI,
+    automation_filter_repo: AutomationRuleFilterRepositoryI,
     automation_rule_action_repo: AutomationRuleActionRepositoryI,
     card_controller: CardControllerI,
     whatsapp_controller: WhatsAppController,
@@ -75,6 +78,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     card_member_controller: CardMemberControllerI
   ) {
     this.automation_rule_repo = automation_rule_repo;
+    this.automation_rule_filter_repo = automation_filter_repo;
     this.automation_rule_action_repo = automation_rule_action_repo;
     this.card_controller = card_controller;
     this.whatsapp_controller = whatsapp_controller;
@@ -109,10 +113,23 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
+    
+    // bulk create filter
+    if (data?.filter) {
+      let data_filter = [];
+      for (let filter of data?.filter) {
+        let filterData = new AutomationRuleFilterDetail({
+          ...filter,
+          rule_id: result?.data?.id
+        });
+        data_filter.push(filterData);
+      }
+      this.automation_rule_filter_repo.bulkCreateFilters(data_filter);
+    }
 
+    // bulk create actions
     let data_actions = [];
     for (let action of data?.action) {
-      // bulk create automation rule action
       let actionData = new AutomationRuleActionDetail({
         ...action,
         rule_id: result?.data?.id,
@@ -142,6 +159,27 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         (id): id is string => id !== undefined
       );
       if (rule_ids.length > 0) {
+        // getting filters
+        const resultFilter = await this.automation_rule_filter_repo.getFilterList({rule_ids: rule_ids}, paginate);
+        if (resultFilter && resultFilter.data) {
+          // Map actions to their respective rules
+          const filtersMap = new Map<string, AutomationRuleActionDetail[]>();
+          for (const action of resultFilter.data) {
+            if (!filtersMap.has(action.rule_id)) {
+              filtersMap.set(action.rule_id, []);
+            }
+            filtersMap.get(action.rule_id)?.push(action);
+          }
+
+          // Attach actions to each rule
+          for (const rule of result?.data) {
+            if (rule?.id) {
+              rule.action = filtersMap.get(rule?.id) || [];
+            }
+          }
+        }
+
+        // getting actions
         const resultAction =
           await this.automation_rule_action_repo.getActionList(
             {
@@ -207,6 +245,10 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         } potential matching rules`
       );
 
+      if (filter) {
+
+      }
+
       if (rules?.data) {
         // Process rules in parallel for better performance
         const processingPromises = rules.data.map(async (rule) => {
@@ -214,15 +256,15 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             console.log("rule: is: %o", rule);
             let isPermsissable = true;
 
-            // if (rule.condition?.[EnumSelectionType.Board]) {
-            //   console.log("rule has board dependency");
-            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
-            // }
+            if (rule.condition?.[EnumSelectionType.Board]) {
+              console.log("rule has board dependency");
+              if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
+            }
 
-            // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
-            //   console.log("rule has board dependency");
-            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
-            // }
+            if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
+              console.log("rule has board dependency");
+              if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
+            }
 
             // list
             if (rule.condition?.[EnumSelectionType.List]) {

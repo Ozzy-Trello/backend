@@ -4,8 +4,8 @@ import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
 import { Paginate } from "@/utils/data_utils";
 import {
-  CardActionActivity,
   CardActivity,
+  CardActivityAction,
   CardDetail,
   CardDetailUpdate,
   CardRepositoryI,
@@ -34,7 +34,6 @@ import {
   CustomFieldCardDetail,
   CustomFieldRepositoryI,
 } from "@/repository/custom_field/custom_field_interfaces";
-import { TriggerControllerI } from "../trigger/trigger_interfaces";
 import { CardActivityType } from "@/types/custom_field";
 import {
   CardAttachmentDetail,
@@ -51,7 +50,6 @@ import {
 import { CardType } from "@/types/card";
 import {
   AutomationRuleControllerI,
-  AutomationRuleFilter,
 } from "../automation_rule/automation_rule_interface";
 import {
   WhatsAppControllerI,
@@ -63,7 +61,6 @@ import {
   EnumUserActionEvent,
   UserActionEvent,
 } from "@/types/event";
-import { UUID } from "sequelize";
 import { EnumOptionPosition } from "@/types/options";
 
 export class CardController implements CardControllerI {
@@ -71,7 +68,6 @@ export class CardController implements CardControllerI {
   private card_repo: CardRepositoryI;
   private list_repo: ListRepositoryI;
   private custom_field_repo: CustomFieldRepositoryI;
-  private trigger_controller: TriggerControllerI;
   private card_attachmment_repo: CardAttachmentRepositoryI;
   private card_list_time_repo: CardListTimeRepositoryI;
   private card_board_time_repo: CardBoardTimeRepositoryI;
@@ -85,7 +81,6 @@ export class CardController implements CardControllerI {
     card_repo: CardRepositoryI,
     list_repo: ListRepositoryI,
     custom_field_repo: CustomFieldRepositoryI,
-    trigger_controller: TriggerControllerI,
     card_attachmment_repo: CardAttachmentRepositoryI,
     card_list_time_repo: CardListTimeRepositoryI,
     card_board_time_repo: CardBoardTimeRepositoryI,
@@ -94,7 +89,6 @@ export class CardController implements CardControllerI {
     this.card_repo = card_repo;
     this.list_repo = list_repo;
     this.custom_field_repo = custom_field_repo;
-    this.trigger_controller = trigger_controller;
     this.card_attachmment_repo = card_attachmment_repo;
     this.card_list_time_repo = card_list_time_repo;
     this.card_board_time_repo = card_board_time_repo;
@@ -331,6 +325,7 @@ export class CardController implements CardControllerI {
         value_string: value.toString(),
       })
     );
+    
     if (assignCustomFieldRes != StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: "internal server error",
@@ -413,6 +408,7 @@ export class CardController implements CardControllerI {
       custom_field_id,
       data
     );
+
     if (assignCustomFieldRes != StatusCodes.NO_CONTENT) {
       if (assignCustomFieldRes == StatusCodes.CONFLICT) {
         return new ResponseData({
@@ -981,25 +977,6 @@ export class CardController implements CardControllerI {
       const sourceListId = card.data!.list_id;
       const targetListId = filter.target_list_id || sourceListId;
 
-      if (targetListId !== sourceListId) {
-        await this.card_repo.addActivity(
-          { id: filter.id },
-          new CardActivity(
-            {
-              activity_type: CardActivityType.Action,
-              card_id: filter.id,
-              sender_id: user_id,
-            },
-            new CardActionActivity({
-              source: {
-                origin_list_id: sourceListId,
-                destination_list_id: targetListId,
-              },
-            })
-          )
-        );
-      }
-
       // Do async procedures
       if (sourceListId !== targetListId) {
         // Update time tracking record of previous list
@@ -1271,6 +1248,38 @@ export class CardController implements CardControllerI {
       cards.paginate
     );
   }
+
+  // async AddActivity(
+  //   data: CardActivity
+  // ): Promise<ResponseData<CardActivity>> {
+  //   if (!isValidUUID(data.card_id)) {
+  //     return new ResponseData(
+  //       {
+  //         message: "'card_id' is not valid uuid",
+  //         status_code: StatusCodes.BAD_REQUEST,
+  //       }
+  //     );
+  //   }
+
+  //   let newCard: CardActivity = new CardActivity(
+  //     data
+  //   );
+  //   let result = await this.card_repo.addActivity(newCard);
+  //   if (result.status_code != StatusCodes.OK) {
+  //     return new ResponseData(
+  //       {
+  //         message: result.message,
+  //         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+  //       },
+  //     );
+  //   }
+
+  //   return new ResponseData({
+  //     status_code: result.status_code,
+  //     message: result.message,
+  //     data: result.data
+  //   });
+  // }
 
   async GetCardActivity(
     card_id: string,
@@ -1573,28 +1582,6 @@ export class CardController implements CardControllerI {
     }
 
     if (data.list_id && selectedCard.data?.list_id! != data.list_id!) {
-      const activityRes = await this.card_repo.addActivity(
-        filter.toFilterCardDetail(),
-        new CardActivity(
-          {
-            activity_type: CardActivityType.Action,
-            card_id: selectedCard.data?.id,
-            sender_id: user_id,
-          },
-          new CardActionActivity({
-            // action_type: CardActionType.MoveList,
-            source: {
-              origin_list_id: selectedCard.data?.list_id!,
-              destination_list_id: data.list_id!,
-            },
-          })
-        )
-      );
-      if (activityRes.status_code != StatusCodes.OK) {
-        warning =
-          "successfull but error to add to activities, " + activityRes.message;
-      }
-
       if (move_to_other_board) {
         let assignRes =
           await this.custom_field_repo.assignAllBoardCustomFieldToCard(

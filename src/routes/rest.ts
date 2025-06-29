@@ -8,7 +8,6 @@ import { CustomFieldController } from "@/controller/custom_field/custom_field_co
 import { ListController } from "@/controller/list/list_controller";
 import { RequestController } from "@/controller/request/request_controller";
 import { SplitJobController } from "@/controller/split_job/split_job_controller";
-import { TriggerController } from "@/controller/trigger/trigger_controller";
 import { WorkspaceController } from "@/controller/workspace/workspace_controller";
 import { restJwt } from "@/middleware/rest_middleware";
 import { AccurateRepository } from "@/repository/accurate/accurate_repository";
@@ -19,7 +18,6 @@ import { ListRepository } from "@/repository/list/list_repository";
 import { RequestRepository } from "@/repository/request/request_repository";
 import { RoleRepository } from "@/repository/role_access/role_repository";
 import { SplitJobRepository } from "@/repository/split_job/split_job_repository";
-import { TriggerRepository } from "@/repository/trigger/trigger_repository";
 import { UserRepository } from "@/repository/user/user_repository";
 import { WorkspaceRepository } from "@/repository/workspace/workspace_repository";
 import AccessControlRestView from "@/views/rest/access_control_view";
@@ -32,7 +30,6 @@ import CustomFieldRestView from "@/views/rest/custom_field_view";
 import ListRestView from "@/views/rest/list_view";
 import RequestRestView from "@/views/rest/request_view";
 import { SplitJobRestView } from "@/routes/split_job/split_job_view";
-import TriggerRestView from "@/views/rest/trigger_view";
 import { FileRepository } from "@/repository/file/file_repository";
 import { FileController } from "@/controller/file/file_controllers";
 import FileRestView from "@/views/rest/files_view";
@@ -67,6 +64,8 @@ import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
 import { SearchController } from "@/controller/search/search_controller";
 import SearchRestView from "@/views/rest/search_view";
+import { AutomationRuleFilter } from "@/controller/automation_rule/automation_rule_interface";
+import { AutomationRuleFilterRepository } from "@/repository/automation_rule_filter/automation_rule_filter_repository";
 
 export default async function (): Promise<Router> {
   const root_router = Router();
@@ -83,7 +82,6 @@ export default async function (): Promise<Router> {
   const list_repo = new ListRepository();
   const card_repo = new CardRepository();
   const custom_field_repo = new CustomFieldRepository();
-  const trigger_repo = new TriggerRepository();
   const file_repository = new FileRepository();
   const card_attachment_repository = new CardAttachmentRepository();
   const checklist_repository = new ChecklistRepository();
@@ -95,6 +93,7 @@ export default async function (): Promise<Router> {
   const label_repo = new LabelRepository();
   const card_member_repo = new CardMemberRepository();
   const automation_rule_repo = new AutomationRuleRepository();
+  const automation_rule_filter_repo = new AutomationRuleFilterRepository();
   const automation_rule_action_repo = new AutomationRuleActionRepository();
 
   // Controllers
@@ -106,14 +105,7 @@ export default async function (): Promise<Router> {
   const additional_field_controller = new AdditionalFieldController(
     additional_field_repository
   );
-  const trigger_controller = new TriggerController(
-    workspace_repo,
-    trigger_repo,
-    card_repo,
-    list_repo,
-    user_repo,
-    board_repo
-  );
+
   const account_controller = new AccountController(user_repo);
   const access_control_controller = new AccessControlController(role_repo);
   const auth_controller = new AuthController(
@@ -143,7 +135,6 @@ export default async function (): Promise<Router> {
     card_repo,
     list_repo,
     custom_field_repo,
-    trigger_controller,
     card_attachment_repository,
     card_list_time_history_repo,
     card_board_time_history_repo,
@@ -151,9 +142,7 @@ export default async function (): Promise<Router> {
   );
   const custom_field_controller = new CustomFieldController(
     custom_field_repo,
-    workspace_repo,
-    trigger_repo,
-    trigger_controller
+    workspace_repo
   );
   const file_controller = new FileController(file_repository);
   const accurate_controller = new AccurateController(accurate_repo);
@@ -167,6 +156,7 @@ export default async function (): Promise<Router> {
   );
   const automation_rule_controller = new AutomationRuleController(
     automation_rule_repo,
+    automation_rule_filter_repo,
     automation_rule_action_repo,
     card_controller,
     whatsapp_controller,
@@ -205,7 +195,6 @@ export default async function (): Promise<Router> {
   checklist_controller.SetEventPublisher(eventPublisher);
 
   // Views
-  const trigger_rest_view = new TriggerRestView(trigger_controller);
   const account_rest_view = new AccountRestView(account_controller);
   const access_control_rest_view = new AccessControlRestView(
     access_control_controller
@@ -442,15 +431,6 @@ export default async function (): Promise<Router> {
       restJwt,
       custom_field_rest_view.ReorderCustomFields
     );
-  }
-
-  const router_trigger = Router();
-  {
-    router_trigger.post("/", restJwt, trigger_rest_view.CreateTrigger);
-    router_trigger.get("/", restJwt, trigger_rest_view.GetListTrigger);
-    router_trigger.get("/:id", restJwt, trigger_rest_view.GetTrigger);
-    router_trigger.put("/:id", restJwt, trigger_rest_view.UpdateTrigger);
-    router_trigger.delete("/:id", restJwt, trigger_rest_view.DeleteTrigger);
   }
 
   const router_file = Router();
