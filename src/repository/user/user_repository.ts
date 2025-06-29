@@ -25,6 +25,12 @@ export class UserRepository implements UserRepositoryI {
     if (filter.username) whereClause.username = filter.username;
     if (filter.email) whereClause.email = filter.email;
     if (filter.phone) whereClause.phone = filter.phone;
+
+    // Add role filtering
+    if (filter.roleIds && filter.roleIds.length > 0) {
+      whereClause.role_id = { [Op.in]: filter.roleIds };
+    }
+
     if (filter.identify) {
       orConditions.push(
         { username: filter.identify },
@@ -204,6 +210,18 @@ export class UserRepository implements UserRepositoryI {
       where: filterData,
       offset: paginate.getOffset(),
       limit: paginate.limit,
+      include: [
+        {
+          model: Role,
+          as: "role",
+          include: [
+            {
+              model: Permission,
+              as: "permission",
+            },
+          ],
+        },
+      ],
     });
     for (const user of users) {
       result.push(
@@ -212,6 +230,19 @@ export class UserRepository implements UserRepositoryI {
           username: user.username,
           email: user.email,
           phone: user.phone,
+          role: user.role_id
+            ? {
+                id: (user as any).role?.id,
+                name: (user as any).role?.name,
+                description: (user as any).role?.description,
+                permission: {
+                  id: (user as any).role?.permission?.id,
+                  level: (user as any).role?.permission?.level,
+                  description: (user as any).role?.permission?.description,
+                  permissions: (user as any).role?.permission?.permissions,
+                },
+              }
+            : undefined,
         })
       );
     }

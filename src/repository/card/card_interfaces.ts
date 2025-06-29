@@ -1,15 +1,9 @@
-import { validate as isValidUUID } from "uuid";
-
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
 import {
-  CardActionValue,
   CardActivityType,
-  MoveListValue,
 } from "@/types/custom_field";
-import { date } from "zod";
 import {
-  CopyCardData,
   DashCardConfig,
   FilterConfig,
 } from "@/controller/card/card_interfaces";
@@ -30,7 +24,6 @@ export interface CardRepositoryI {
   getTotalCardInList(list_id: string): Promise<ResponseData<number>>;
 
   addActivity(
-    filter: filterCardDetail,
     data: CardActivity
   ): Promise<ResponseData<CardActivity>>;
   getCardActivities(
@@ -61,31 +54,32 @@ export interface CardRepositoryI {
 
 export class CardActivity {
   id!: string;
-  sender_id!: string;
+  sender_user_id!: string;
   card_id!: string;
   activity_type!: CardActivityType;
-  data?: CardActionActivity | Comment;
-  action?: CardActionActivity;
-  comment?: CardComment;
+  data?: CardActivityAction | CardActivityComment;
+  action?: CardActivityAction;
+  comment?: CardActivityComment;
+  triggered_by?: string;
 
-  constructor(
-    payload: Partial<CardActivity>,
-    data: CardActionActivity | CardComment
-  ) {
+  constructor(payload: Partial<CardActivity>) {
     Object.assign(this, payload);
-    // if ('action_type' in data) {
-    //   this.action = data
-    // }else if('text' in data){
-    //   this.comment = data
-    // }
+    if (this.activity_type) {
+      if (this.activity_type == CardActivityType.Action) {
+        this.data = this.action;
+      } else {
+        this.data = this.comment;
+      }
+    }
     // delete this.data
   }
 }
 
-export class CardComment {
+export class CardActivityComment {
+  id?:string;
   text!: string;
 
-  constructor(payload: Partial<CardComment>) {
+  constructor(payload: Partial<CardActivityComment>) {
     Object.assign(this, payload);
   }
 
@@ -95,56 +89,23 @@ export class CardComment {
   }
 }
 
-export class CardActionActivity {
-  // action_type!: CardActionType;
-  source?: CardActionValue;
+export class CardActivityAction {
+  id?: string;
+  activity_id?: string;
+  action?: string;
+  old_value?: JSON;
+  new_value?: JSON;
 
-  constructor(payload: Partial<CardActionActivity>) {
+  constructor(payload: Partial<CardActivityComment>) {
     Object.assign(this, payload);
-    this.setMoveListValue = this.setMoveListValue.bind(this);
   }
 
-  setMoveListValue(data: MoveListValue) {
-    // if (this.action_type != CardActionType.MoveList) {
-    //   throw Error("not activity action is not move list")
-    // }
-    this.source = {
-      origin_list_id: data.origin_list_id,
-      destination_list_id: data.destination_list_id,
-    };
+  checkRequired(): string | null {
+    if (this.action == undefined) return "action";
+    return null;
   }
-
-  // fromStringJson(data: string) {
-  //   try {
-  //     if (!data) return;
-
-  //     const parsed = JSON.parse(data);
-  //     switch (this.action_type) {
-  //       case CardActionType.MoveList:
-  //         if (parsed.origin_list_id && parsed.destination_list_id) {
-  //           this.source = {
-  //             origin_list_id: parsed.origin_list_id,
-  //             destination_list_id: parsed.destination_list_id
-  //           };
-  //         }
-  //         break;
-
-  //       case CardActionType.MakeLabel:
-  //       case CardActionType.AddTag:
-  //       case CardActionType.RemoveTag:
-  //         this.source = parsed;
-  //         break;
-
-  //       default:
-  //         this.source = undefined;
-  //     }
-
-  //   } catch (e) {
-  //     console.error('Failed to parse action value:', e);
-  //     this.source = undefined;
-  //   }
-  // }
 }
+
 
 export interface filterCardDetail {
   id?: string;

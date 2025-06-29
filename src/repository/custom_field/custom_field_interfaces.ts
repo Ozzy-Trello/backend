@@ -94,13 +94,15 @@ export interface CustomFieldRepositoryI {
   getCustomFieldById(
     id: string
   ): Promise<ResponseData<CustomFieldDetail | undefined>>;
-  
+
   reorderCustomFields(
     workspaceId: string,
     customFieldId: string,
     targetPosition: number,
-    targetPositionTopOrBottom?: 'top' | 'bottom'
+    targetPositionTopOrBottom?: "top" | "bottom"
   ): Promise<ResponseData<null>>;
+
+  getCustomFieldOptions(customFieldId: string): Promise<ResponseData<any[]>>;
 }
 
 export interface filterCustomFieldDetail {
@@ -109,7 +111,7 @@ export interface filterCustomFieldDetail {
   description?: string;
   workspace_id?: string;
   trigger_id?: string;
-  source?: EnumCustomFieldSource;
+  source?: string;
   order?: number;
   can_view?: string[];
   can_edit?: string[];
@@ -202,7 +204,7 @@ export class CustomFieldDetail {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
   public trigger?: _trigger;
   public card_id!: string;
   public value_user_id?: string;
@@ -235,7 +237,7 @@ export class AssignCardDetail {
   public name!: string;
   public order?: number;
   public value?: string | number;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
 
   constructor(payload: Partial<AssignCardDetail>) {
     Object.assign(this, payload);
@@ -322,7 +324,7 @@ export class CustomValueDetail {
   public description!: string;
   public workspace_id!: string;
   public order!: number;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
 
   constructor(payload: Partial<CustomValueDetail>) {
     Object.assign(this, payload);
@@ -361,7 +363,7 @@ export class CardCustomFieldResponse {
   public order!: number;
   public description!: string;
   public workspace_id!: string;
-  public source!: EnumCustomFieldSource;
+  public source!: string;
   public card_id!: string;
   public value_user_id?: string;
   public value_string?: string;
@@ -404,20 +406,41 @@ export class CardCustomFieldValueUpdate {
   public value_checkbox?: boolean;
   public value_option?: string;
   public value_date?: Date;
+  private _clearAllFields = false;
 
   constructor(payload: Partial<CardCustomFieldResponse>) {
     Object.assign(this, payload);
     this.toObject = this.toObject.bind(this);
+    this.clearAllFields = this.clearAllFields.bind(this);
+  }
+
+  public clearAllFields(): void {
+    this._clearAllFields = true;
   }
 
   public toObject(): any {
     const data: any = {};
-    if (this.value_checkbox) data.value_checkbox = this.value_checkbox;
-    if (this.value_option) data.card_id = this.value_option;
-    if (this.value_date) data.card_id = this.value_date;
-    if (this.value_user_id) data.value_user_id = this.value_user_id;
-    if (this.value_string) data.value_string = this.value_string;
-    if (this.value_number) data.value_number = this.value_number;
+
+    // If clearing all fields, explicitly set all to null
+    if (this._clearAllFields) {
+      data.value_checkbox = null;
+      data.value_option = null;
+      data.value_date = null;
+      data.value_user_id = null;
+      data.value_string = null;
+      data.value_number = null;
+      return data;
+    }
+
+    // Otherwise, only include defined fields
+    if (this.value_checkbox !== undefined)
+      data.value_checkbox = this.value_checkbox;
+    if (this.value_option !== undefined) data.value_option = this.value_option;
+    if (this.value_date !== undefined) data.value_date = this.value_date;
+    if (this.value_user_id !== undefined)
+      data.value_user_id = this.value_user_id;
+    if (this.value_string !== undefined) data.value_string = this.value_string;
+    if (this.value_number !== undefined) data.value_number = this.value_number;
     return data;
   }
 }

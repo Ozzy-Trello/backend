@@ -2,7 +2,7 @@ import { EnumActions, EnumUserActionEvent } from "./event";
 import {
   EnumOptionPosition,
   EnumOptionsNumberComparisonOperators,
-  EnumOptionsSubject,
+  EnumOptionBySubject,
   EnumOptionsSet,
 } from "./options";
 
@@ -43,6 +43,16 @@ export enum EnumSelectionType {
   ChecklistScope = "checklist_scope",
   ItemScope = "item_scope",
   TextComparison = "text_comparison",
+  ChecklistName = "checklist_name",
+  Completion = "completion",
+  ArticleType = "article_type", //[the, any]
+  Subject = "subject", //[i am, someone is]
+  Inclusion = "inclusion",
+  CardLabel = "card_label",
+  Assignment = "assignment",
+  AssignmentSubject = "assignment_subject",
+  CheckboxState = "checkbox_state", // checkbox checked/unchecked state
+  DateValue = "date_value",
   CreateType = "create_type", // new | unique
   CreateTypeItem = "create_type_item", // regular | board | link | separator | mirror
   MultiLabels = "multi_labels",
@@ -53,9 +63,16 @@ export enum EnumSelectionType {
   RemoveFromCard = "remove_from_card",
   TaskType = "task_type",
   SetTask = "set_task",
-  CardContentType = "card_content_type",
   CardContentText = "card_content_text",
-  CardLabel = "card_label",
+  DateStatus = "date_status",
+  TimeRange = "time_range",
+  TimeComparison = "time_comparison",
+  TimeUnit = "time_unit",
+  TimeRelativeReference = "time_relative_reference",
+  ChecklistConditionOperator = "checklists_condition_oerator", // with all complete, with an incomplete, etc
+  CardContentType = "card_content_type",
+  CustomField = "custom_field",
+  CustomFieldAction = "custom_field_action", // set, cleared
 }
 
 export enum EnumInputType {
@@ -63,6 +80,7 @@ export enum EnumInputType {
   Text = "text",
   TextDescription = "text_description",
   TextTitle = "text_title",
+  DateValue = "date_value",
 }
 
 export enum TriggerType {
@@ -125,7 +143,37 @@ export enum ActionType {
 
   // remove <RemoveFromCard> from the card
   RemoveFromCard = `remove-<${EnumSelectionType.RemoveFromCard}>-from-the-card`,
+  AddChecklistToCard = `<${EnumSelectionType.Action}>_an_empty_checklist_named_<${EnumSelectionType.TextInput}>_to_the_card`,
+  ManageChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_to_checklist_<${EnumSelectionType.ChecklistName}>`,
+  SetChecklistItemDueDate = `set_the_item_due_<${EnumInputType.DateValue}>`,
+  MoveChecklistItemDueDate = `move_the_item_due_date_to_<${EnumInputType.DateValue}>`,
+  ToggleChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_in_checklist_<${EnumSelectionType.ChecklistName}>`,
   //add more..
+}
+
+export enum EnumTiggerCarFilterType {
+  CardInclusionInList = `<${EnumSelectionType.Inclusion}>-list-<${EnumSelectionType.List}>`,
+  LabelInclusionInCard = `<${EnumSelectionType.Inclusion}>-the-<${EnumSelectionType.CardLabel}>-label`,
+  CardAssignment = `<${EnumSelectionType.Assignment}>-<${EnumSelectionType.AssignmentSubject}>`,
+
+  CardDueDates = `<${EnumSelectionType.Inclusion}>-a-date`,
+  CardStartDate = `<${EnumSelectionType.Inclusion}>-a-start-date`,
+  CardDateStatus = `<${EnumSelectionType.DateStatus}>-<${EnumSelectionType.TimeRange}>`,
+  CardDateStatusWithSpecificDays = `<${EnumSelectionType.DateStatus}>-<${EnumSelectionType.TimeComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.TimeUnit}>`,
+
+  CardChecklist = `<${EnumSelectionType.ChecklistConditionOperator}>`,
+
+  CardContentTileDescription = `with-<${EnumSelectionType.CardContentType}>-<${EnumSelectionType.TextComparison}>-[${EnumInputType.Text}]`,
+  CardContentDescriptionInclusion = `<${EnumSelectionType.Inclusion}>-an-empty-description`,
+
+  CardCustomField1 = `<${EnumSelectionType.Inclusion}>-all-custom-fields-<${EnumSelectionType.Completion}>`,
+  CardCustomField2 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-<${EnumSelectionType.Completion}>`,
+  CardCustomField3 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-<${EnumSelectionType.CustomFieldAction}>`,
+  CardCustomField4 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-[${EnumInputType.Text}]`,
+  CardCustomField5 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-<${EnumSelectionType.CheckboxState}>`,
+  CardCustomField6 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-number-<${EnumSelectionType.NumberComparison}>-[${EnumInputType.Number}]`,
+  CardCustomField7 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-date-<${EnumSelectionType.Inclusion}>-<${EnumSelectionType.TimeRange}>`,
+  CardCustomField8 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-date-<${EnumSelectionType.TimeComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.TimeUnit}>-<${EnumSelectionType.TimeRelativeReference}>`,
 }
 
 // Triggers Map - this can be used for validation later
@@ -146,11 +194,11 @@ export const TriggersMap: Map<string, Trigger> = new Map([
         EnumUserActionEvent.CardMovedOutOf,
       ],
       [EnumSelectionType.OptionalBySubject]: [
-        EnumOptionsSubject.ByAnyone,
-        EnumOptionsSubject.ByMe,
-        EnumOptionsSubject.BySpecificUser,
-        EnumOptionsSubject.ByAnyoneExceptMe,
-        EnumOptionsSubject.ByAnyoneExceptSpecificUser,
+        EnumOptionBySubject.ByAnyone,
+        EnumOptionBySubject.ByMe,
+        EnumOptionBySubject.BySpecificUser,
+        EnumOptionBySubject.ByAnyoneExceptMe,
+        EnumOptionBySubject.ByAnyoneExceptSpecificUser,
       ],
     },
   ],
@@ -172,11 +220,11 @@ export const TriggersMap: Map<string, Trigger> = new Map([
         EnumUserActionEvent.CardMovedOutOf,
       ],
       [EnumSelectionType.OptionalBySubject]: [
-        EnumOptionsSubject.ByAnyone,
-        EnumOptionsSubject.ByMe,
-        EnumOptionsSubject.BySpecificUser,
-        EnumOptionsSubject.ByAnyoneExceptMe,
-        EnumOptionsSubject.ByAnyoneExceptSpecificUser,
+        EnumOptionBySubject.ByAnyone,
+        EnumOptionBySubject.ByMe,
+        EnumOptionBySubject.BySpecificUser,
+        EnumOptionBySubject.ByAnyoneExceptMe,
+        EnumOptionBySubject.ByAnyoneExceptSpecificUser,
       ],
     },
   ],
@@ -210,11 +258,11 @@ export const TriggersMap: Map<string, Trigger> = new Map([
         EnumUserActionEvent.CardUnarchived,
       ],
       [EnumSelectionType.OptionalBySubject]: [
-        EnumOptionsSubject.ByAnyone,
-        EnumOptionsSubject.ByMe,
-        EnumOptionsSubject.BySpecificUser,
-        EnumOptionsSubject.ByAnyoneExceptMe,
-        EnumOptionsSubject.ByAnyoneExceptSpecificUser,
+        EnumOptionBySubject.ByAnyone,
+        EnumOptionBySubject.ByMe,
+        EnumOptionBySubject.BySpecificUser,
+        EnumOptionBySubject.ByAnyoneExceptMe,
+        EnumOptionBySubject.ByAnyoneExceptSpecificUser,
       ],
     },
   ],
@@ -424,6 +472,69 @@ export const ActionsMap: Map<string, Action> = new Map([
       [EnumSelectionType.Action]: [
         EnumActions.ArchiveCard,
         EnumActions.UnarchiveCard,
+      ],
+    },
+  ],
+  [
+    ActionType.AddChecklistToCard,
+    {
+      action_type: ActionType.AddChecklistToCard,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.AddChecklist],
+    },
+  ],
+  [
+    ActionType.ManageChecklistItem,
+    {
+      action_type: ActionType.ManageChecklistItem,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+        EnumSelectionType.ChecklistName,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumActions.AddChecklistItem,
+        EnumActions.RemoveChecklistItem,
+      ],
+    },
+  ],
+  [
+    ActionType.SetChecklistItemDueDate,
+    {
+      action_type: ActionType.SetChecklistItemDueDate,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumInputType.DateValue,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.SetChecklistItemDueDate],
+    },
+  ],
+  [
+    ActionType.MoveChecklistItemDueDate,
+    {
+      action_type: ActionType.MoveChecklistItemDueDate,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumInputType.DateValue,
+      ],
+      [EnumSelectionType.Action]: [EnumActions.MoveChecklistItemDueDate],
+    },
+  ],
+  [
+    ActionType.ToggleChecklistItem,
+    {
+      action_type: ActionType.ToggleChecklistItem,
+      expected_condition_key: [
+        EnumSelectionType.Action,
+        EnumSelectionType.TextInput,
+        EnumSelectionType.ChecklistName,
+      ],
+      [EnumSelectionType.Action]: [
+        EnumActions.CheckChecklistItem,
+        EnumActions.UncheckChecklistItem,
       ],
     },
   ],

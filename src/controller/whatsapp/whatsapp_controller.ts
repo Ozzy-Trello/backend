@@ -1,9 +1,7 @@
-import type { CardRepositoryI } from "@/repository/card/card_interfaces";
-import type { UserRepositoryI } from "@/repository/user/user_interfaces";
 import type { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
 import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
-import type { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export interface WhatsAppControllerI {
   sendNotification(
@@ -38,12 +36,11 @@ interface CustomFieldValue {
 export class WhatsAppController implements WhatsAppControllerI {
   constructor(
     private whatsappService: WhatsAppHttpService,
-    private userRepo: UserRepositoryI,
-    private cardRepo: CardRepositoryI,
-    private customFieldRepo: CustomFieldRepositoryI
+    private repository_context: RepositoryContext
   ) {
     this.sendNotification = this.sendNotification.bind(this);
     this.sendMessageFromMention = this.sendMessageFromMention.bind(this);
+    this.repository_context = repository_context;
   }
 
   async sendNotification(
@@ -62,7 +59,7 @@ export class WhatsAppController implements WhatsAppControllerI {
 
       console.log(customFields, "<< ini isi customfields");
 
-      let userInField = await this.customFieldRepo.getCardCustomField(
+      let userInField = await this.repository_context.custom_field.getCardCustomField(
         data?.workspace_id!,
         data?.card?.id!,
         userFieldId!
@@ -211,7 +208,7 @@ export class WhatsAppController implements WhatsAppControllerI {
     data?: string;
     error?: ResponseData<any>;
   }> {
-    const userResponse = await this.userRepo.getUser({ id: userId });
+    const userResponse = await this.repository_context.user.getUser({ id: userId });
 
     if (userResponse.status_code !== StatusCodes.OK || !userResponse.data) {
       return {
@@ -263,7 +260,7 @@ export class WhatsAppController implements WhatsAppControllerI {
       };
     }
 
-    const cardResponse = await this.cardRepo.getCard({ id: cardId });
+    const cardResponse = await this.repository_context.card.getCard({ id: cardId });
 
     if (cardResponse.status_code !== StatusCodes.OK || !cardResponse.data) {
       return {
@@ -333,8 +330,8 @@ export class WhatsAppController implements WhatsAppControllerI {
   ): Promise<string | null> {
     try {
       const [fieldValueResponse, fieldDefResponse] = await Promise.all([
-        this.customFieldRepo.getCardCustomField(workspaceId, cardId, fieldId),
-        this.customFieldRepo.getCustomFieldById(fieldId),
+        this.repository_context.custom_field.getCardCustomField(workspaceId, cardId, fieldId),
+        this.repository_context.custom_field.getCustomFieldById(fieldId),
       ]);
 
       // Always include the field definition if it exists, even if there's no value
@@ -436,7 +433,7 @@ export class WhatsAppController implements WhatsAppControllerI {
 
   private async formatUserValue(userId: string): Promise<string> {
     try {
-      const userResponse = await this.userRepo.getUser({ id: userId });
+      const userResponse = await this.repository_context.user.getUser({ id: userId });
 
       if (userResponse.status_code === StatusCodes.OK && userResponse.data) {
         return userResponse.data.username || `User (${userId})`;

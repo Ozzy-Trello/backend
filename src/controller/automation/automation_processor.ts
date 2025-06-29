@@ -1,12 +1,12 @@
 import { UserActionEvent } from "@/types/event";
 import { AutomationRuleController } from "../automation_rule/automation_rule_controller";
-import { AutomationRuleFilter, RecentUserAction } from "../automation_rule/automation_rule_interface";
+import { AutomationRuleControllerI, AutomationRuleFilter, RecentUserAction } from "../automation_rule/automation_rule_interface";
 
 
 export class AutomationProcessor {
-  private automationController!: AutomationRuleController;
+  private automationController!: AutomationRuleControllerI;
 
-  setController(controller: AutomationRuleController) {
+  setController(controller: AutomationRuleControllerI) {
     this.automationController = controller;
   }
 

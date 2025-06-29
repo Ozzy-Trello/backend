@@ -10,13 +10,15 @@ import { StatusCodes } from "http-status-codes";
 import { EventPublisher } from "@/event_publisher";
 import { v4 as uuidv4 } from "uuid";
 import { UserActionEvent, EnumUserActionEvent } from "@/types/event";
+import { CardDetail } from "@/repository/card/card_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class ChecklistController implements IChecklistController {
-  private checklistRepo: IChecklistRepository;
+  private repository_context: RepositoryContext;
   private event_publisher: EventPublisher | undefined;
 
-  constructor(checklistRepo: IChecklistRepository) {
-    this.checklistRepo = checklistRepo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   SetEventPublisher(event_publisher: EventPublisher): void {
@@ -27,7 +29,9 @@ export class ChecklistController implements IChecklistController {
     cardId: string
   ): Promise<ResponseData<ChecklistDTO[]>> {
     try {
-      return await this.checklistRepo.getChecklistsByCardId(cardId);
+      return await this.repository_context.checklist.getChecklistsByCardId(
+        cardId
+      );
     } catch (error) {
       console.error(
         "Error in ChecklistController.GetChecklistsByCardId:",
@@ -43,7 +47,7 @@ export class ChecklistController implements IChecklistController {
 
   async GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>> {
     try {
-      return await this.checklistRepo.getChecklistById(id);
+      return await this.repository_context.checklist.getChecklistById(id);
     } catch (error) {
       console.error("Error in ChecklistController.GetChecklistById:", error);
       return {
@@ -55,19 +59,53 @@ export class ChecklistController implements IChecklistController {
 
   async CreateChecklist(
     user_id: string,
-    data: CreateChecklistDTO
+    data: CreateChecklistDTO,
+    isAutomatedAction: boolean = false
   ): Promise<ResponseData<ChecklistDTO>> {
     try {
-      const result = await this.checklistRepo.createChecklist({
+      // For automated actions, check if a checklist with the same name already exists
+      // to prevent duplicates from automation race conditions
+      if (isAutomatedAction && data.title) {
+        const existingChecklists =
+          await this.repository_context.checklist.getChecklistsByCardId(
+            data.card_id
+          );
+        if (
+          existingChecklists.status_code === StatusCodes.OK &&
+          existingChecklists.data
+        ) {
+          const duplicateExists = existingChecklists.data.some(
+            (checklist) => checklist.title === data.title
+          );
+
+          if (duplicateExists) {
+            console.log(
+              `[AUTOMATION DEDUP] Checklist "${data.title}" already exists for card ${data.card_id}, skipping creation`
+            );
+            // Return the existing checklist instead of creating a duplicate
+            const existingChecklist = existingChecklists.data.find(
+              (checklist) => checklist.title === data.title
+            );
+            return {
+              status_code: StatusCodes.OK,
+              message: "Checklist already exists",
+              data: existingChecklist!,
+            };
+          }
+        }
+      }
+
+      const result = await this.repository_context.checklist.createChecklist({
         ...data,
         created_by: user_id,
       });
 
-      // Publish event for automation
+      // Publish event for automation (but not for automated actions to prevent infinite loops)
       if (
         result.status_code === StatusCodes.CREATED &&
         result.data &&
-        this.event_publisher
+        this.event_publisher &&
+        !isAutomatedAction // Don't publish events for automated actions
       ) {
         const event: UserActionEvent = {
           eventId: uuidv4(),
@@ -76,7 +114,9 @@ export class ChecklistController implements IChecklistController {
           user_id: user_id || "system",
           timestamp: new Date(),
           data: {
-            card: { id: data.card_id },
+            card: new CardDetail({
+              id: data.card_id,
+            }),
             checklist: result.data,
           },
         };
@@ -100,12 +140,17 @@ export class ChecklistController implements IChecklistController {
   ): Promise<ResponseData<ChecklistDTO>> {
     try {
       // Get previous state
-      const prevRes = await this.checklistRepo.getChecklistById(id);
+      const prevRes = await this.repository_context.checklist.getChecklistById(
+        id
+      );
 
-      const updateRes = await this.checklistRepo.updateChecklist(id, {
-        ...data,
-        updated_by: user_id,
-      });
+      const updateRes = await this.repository_context.checklist.updateChecklist(
+        id,
+        {
+          ...data,
+          updated_by: user_id,
+        }
+      );
 
       if (
         updateRes.status_code === StatusCodes.OK &&
@@ -126,7 +171,7 @@ export class ChecklistController implements IChecklistController {
         if (prevCompleted !== newCompleted) {
           // Determine all checklist completion status for the card
           const allChecklistsRes =
-            await this.checklistRepo.getChecklistsByCardId(
+            await this.repository_context.checklist.getChecklistsByCardId(
               updateRes.data.card_id
             );
           let allCompletedFlag = false;
@@ -338,9 +383,12 @@ export class ChecklistController implements IChecklistController {
   ): Promise<ResponseData<null>> {
     try {
       // Fetch checklist details before deletion for event context
-      const checklistRes = await this.checklistRepo.getChecklistById(id);
+      const checklistRes =
+        await this.repository_context.checklist.getChecklistById(id);
 
-      const result = await this.checklistRepo.deleteChecklist(id);
+      const result = await this.repository_context.checklist.deleteChecklist(
+        id
+      );
 
       if (result === StatusCodes.NOT_FOUND) {
         return {
@@ -372,7 +420,7 @@ export class ChecklistController implements IChecklistController {
           user_id: user_id || "system",
           timestamp: new Date(),
           data: {
-            card: { id: checklistRes.data.card_id },
+            card: new CardDetail({ id: checklistRes.data.card_id }),
             checklist: {
               id: checklistRes.data.id,
               title: checklistRes.data.title,
@@ -401,7 +449,8 @@ export class ChecklistController implements IChecklistController {
     data: CreateChecklistDTO[]
   ): Promise<ResponseData<ChecklistDTO[]>> {
     try {
-      const result = await this.checklistRepo.createBulkChecklist(data);
+      const result =
+        await this.repository_context.checklist.createBulkChecklist(data);
       return result;
     } catch (error) {
       console.error("Error in ChecklistController.CreateBulkChecklist:", error);

@@ -3,12 +3,13 @@ import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
 import { AccessControlControllerI, AccessControlCreateData, AccessControlFilter, AccessControlResponse, CreateAccessControlResponse, fromRoleDetailToAccessControlResponse, fromRoleDetailToAccessControlResponseList, UpdateAccessControlData } from "./access_control_interfaces";
 import { RoleRepositoryI, filterRoleDetail  } from "@/repository/role_access/role_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class AccessControlController implements AccessControlControllerI {
-  private access_control_repo: RoleRepositoryI
+  private repository_context: RepositoryContext
 
-  constructor(access_control_repo: RoleRepositoryI) {
-    this.access_control_repo = access_control_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
 
     this.GetAccessControl = this.GetAccessControl.bind(this);
     this.GetAccessControlList = this.GetAccessControlList.bind(this);
@@ -33,7 +34,7 @@ export class AccessControlController implements AccessControlControllerI {
       })
     }
 
-    let checkAccessControl = await this.access_control_repo.getRole({ name: data.name });
+    let checkAccessControl = await this.repository_context.role.getRole({ name: data.name });
     if (checkAccessControl.status_code == StatusCodes.OK) {
       return new ResponseData({
         message: "the name already taken by others",
@@ -41,7 +42,7 @@ export class AccessControlController implements AccessControlControllerI {
       })
     }
 
-    let createResponse = await this.access_control_repo.createRole(data.toRoleDetail());
+    let createResponse = await this.repository_context.role.createRole(data.toRoleDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
         message: "internal server error",
@@ -59,7 +60,7 @@ export class AccessControlController implements AccessControlControllerI {
   }
 
   async GetAccessControl(filter: AccessControlFilter): Promise<ResponseData<AccessControlResponse>> {
-    let checkAccessControl = await this.access_control_repo.getRole(filter.toFilterRoleDetail());
+    let checkAccessControl = await this.repository_context.role.getRole(filter.toFilterRoleDetail());
     if (checkAccessControl.status_code == StatusCodes.NOT_FOUND){
       return new ResponseData({
         message: checkAccessControl.message,
@@ -74,7 +75,7 @@ export class AccessControlController implements AccessControlControllerI {
   }
 
   async GetAccessControlList(filter: AccessControlFilter, paginate: Paginate): Promise<ResponseListData<Array<AccessControlResponse>>> {
-    let access_controls = await this.access_control_repo.getRoleList(filter.toFilterRoleDetail(), paginate);
+    let access_controls = await this.repository_context.role.getRoleList(filter.toFilterRoleDetail(), paginate);
     return new ResponseListData({
       message: "access_control list",
       status_code: StatusCodes.OK,
@@ -83,7 +84,7 @@ export class AccessControlController implements AccessControlControllerI {
   }
 
   async DeleteAccessControl(filter: AccessControlFilter): Promise<ResponseData<null>> {
-    let checkAccessControl = await this.access_control_repo.getRole(filter.toFilterRoleDetail());
+    let checkAccessControl = await this.repository_context.role.getRole(filter.toFilterRoleDetail());
     if (checkAccessControl.status_code == StatusCodes.NOT_FOUND){
       return new ResponseData({
         message: checkAccessControl.message,
@@ -96,7 +97,7 @@ export class AccessControlController implements AccessControlControllerI {
         status_code: StatusCodes.FORBIDDEN,
       })  
     }
-    const deleteResponse = await this.access_control_repo.deleteRole(filter);
+    const deleteResponse = await this.repository_context.role.deleteRole(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Role is not found",
@@ -131,7 +132,7 @@ export class AccessControlController implements AccessControlControllerI {
     }
 
     if (filter.id) {
-      let currentAccessControl = await this.access_control_repo.getRole({ id: filter.id });
+      let currentAccessControl = await this.repository_context.role.getRole({ id: filter.id });
       if (currentAccessControl.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: "AccessControl is not found",
@@ -139,7 +140,7 @@ export class AccessControlController implements AccessControlControllerI {
         })
       }
 
-      let checkAccessControl = await this.access_control_repo.getRole({ __notId: filter.id, __orName: data.name });
+      let checkAccessControl = await this.repository_context.role.getRole({ __notId: filter.id, __orName: data.name });
       if (checkAccessControl.status_code == StatusCodes.OK) {
         return new ResponseData({
           message: "this access_control name already taken by others",
@@ -148,7 +149,7 @@ export class AccessControlController implements AccessControlControllerI {
       }
     }
 
-    const updateResponse = await this.access_control_repo.updateRole(filter.toFilterRoleDetail(), data.toRoleDetailUpdate());
+    const updateResponse = await this.repository_context.role.updateRole(filter.toFilterRoleDetail(), data.toRoleDetailUpdate());
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "AccessControl is not found",

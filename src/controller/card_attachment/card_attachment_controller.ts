@@ -1,18 +1,17 @@
 import { CardAttachmentControllerI, CardAttachmentCreateData, CardAttachmentFilter, CardAttachmentResponse, CardAttachmentUpdateData } from "./card_attachment_interface";
 import { CardAttachmentDetail, CardAttachmentDetailUpdate, CardAttachmentRepositoryI, filterCardAttachmentDetail } from "@/repository/card_attachment/card_attachment_interface";
 import { FileRepositoryI, filterFileDetail  } from "@/repository/file/file_interface";
+import { RepositoryContext } from "@/repository/repository_context";
 import { Paginate } from "@/utils/data_utils";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { validate as isValidUUID } from 'uuid';
 
 export class CardAttachmentController implements CardAttachmentControllerI {
-  private card_attachment_repository: CardAttachmentRepositoryI;
-  private file_repository: FileRepositoryI;
+  private repository_context: RepositoryContext;
   
-  constructor(card_attachment_repository: CardAttachmentRepositoryI, file_repository: FileRepositoryI) {
-    this.card_attachment_repository = card_attachment_repository;
-    this.file_repository = file_repository;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
   
   async CreateCardAttachment(userId: string, data: CardAttachmentCreateData): Promise<ResponseData<CardAttachmentResponse>> {
@@ -44,7 +43,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       });
       
       // Save to repository
-      const saveResult = await this.card_attachment_repository.createCardAttachment(attachmentDetail);
+      const saveResult = await this.repository_context.card_attachment.createCardAttachment(attachmentDetail);
       
       if (saveResult.status_code !== StatusCodes.CREATED || !saveResult.data) {
         return {
@@ -112,7 +111,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       };
       
       // Get card attachment from repository
-      const result = await this.card_attachment_repository.getCardAttachment(repoFilter);
+      const result = await this.repository_context.card_attachment.getCardAttachment(repoFilter);
       
       if (result.status_code !== StatusCodes.OK || !result.data) {
         return {
@@ -174,7 +173,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       };
       
       // Get card attachments from repository
-      const result = await this.card_attachment_repository.getCardAttachmentList(repoFilter, paginate);
+      const result = await this.repository_context.card_attachment.getCardAttachmentList(repoFilter, paginate);
       
       if (result.status_code !== StatusCodes.OK || !result.data) {
         return {
@@ -249,7 +248,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       });
       
       // Update the attachment
-      const status = await this.card_attachment_repository.updateCardAttachment(repoFilter, updateData);
+      const status = await this.repository_context.card_attachment.updateCardAttachment(repoFilter, updateData);
       
       if (status !== StatusCodes.OK) {
         return {
@@ -303,7 +302,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       };
       
       // Delete the attachment
-      const status = await this.card_attachment_repository.deleteCardAttachment(repoFilter);
+      const status = await this.repository_context.card_attachment.deleteCardAttachment(repoFilter);
       
       if (status !== StatusCodes.NO_CONTENT) {
         return {
@@ -339,7 +338,7 @@ export class CardAttachmentController implements CardAttachmentControllerI {
       }
       
       // Get the cover attachment from repository
-      const result = await this.card_attachment_repository.getCoverAttachment(cardId);
+      const result = await this.repository_context.card_attachment.getCoverAttachment(cardId);
       
       if (result.status_code !== StatusCodes.OK || !result.data) {
         return {

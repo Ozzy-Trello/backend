@@ -281,7 +281,29 @@ export class LabelRepository implements LabelRepositoryI {
           ),
         ] as const)
         .where("l.workspace_id", "=", workspace_id)
-        .orderBy("l.created_at", "asc")
+        .orderBy([
+          // First, sort assigned labels to the top
+          sql<number>`CASE WHEN cl.id IS NOT NULL THEN 0 ELSE 1 END`,
+          // Then sort by color hue/saturation for better visual grouping
+          sql<number>`
+            CASE 
+              WHEN l.value IS NULL OR l.value = '' THEN 999
+              WHEN l.value LIKE '#B9FBC0%' OR l.value LIKE '#A3D9A5%' OR l.value LIKE '#2A9D8F%' THEN 1  -- Greens
+              WHEN l.value LIKE '#FAEDCD%' OR l.value LIKE '#FFE066%' OR l.value LIKE '#B08968%' THEN 2  -- Yellows/Browns
+              WHEN l.value LIKE '#FCD5CE%' OR l.value LIKE '#FDBA74%' OR l.value LIKE '#E76F51%' THEN 3  -- Oranges
+              WHEN l.value LIKE '#FEC5BB%' OR l.value LIKE '#FF6B6B%' OR l.value LIKE '#E63946%' THEN 4  -- Reds
+              WHEN l.value LIKE '#E0BBE4%' OR l.value LIKE '#B39CD0%' OR l.value LIKE '#D291BC%' THEN 5  -- Purples/Pinks
+              WHEN l.value LIKE '#7C83FD%' OR l.value LIKE '#007BFF%' OR l.value LIKE '#3182CE%' THEN 6  -- Blues
+              WHEN l.value LIKE '#AEDFF7%' OR l.value LIKE '#C4F1F9%' OR l.value LIKE '#4DA8DA%' THEN 7  -- Light Blues
+              WHEN l.value LIKE '#6DD3CE%' OR l.value LIKE '#90BE6D%' OR l.value LIKE '#2F855A%' THEN 8  -- Teals/Greens
+              WHEN l.value LIKE '#C1E1C1%' OR l.value LIKE '#F9C6D3%' OR l.value LIKE '#D3D3D3%' THEN 9  -- Light colors
+              WHEN l.value LIKE '#6C757D%' OR l.value LIKE '#C53030%' OR l.value LIKE '#2D3748%' THEN 10 -- Dark colors
+              ELSE 11
+            END
+          `,
+          // Finally, sort by name within each color group
+          "l.name",
+        ])
         .offset(paginate.getOffset())
         .limit(paginate.limit)
         .execute();
@@ -330,7 +352,27 @@ export class LabelRepository implements LabelRepositoryI {
         ] as const)
         .where("l.workspace_id", "=", workspace_id)
         .where("cl.card_id", "=", card_id)
-        .orderBy("l.created_at", "asc")
+        .orderBy([
+          // Sort by color hue/saturation for better visual grouping
+          sql<number>`
+            CASE 
+              WHEN l.value IS NULL OR l.value = '' THEN 999
+              WHEN l.value LIKE '#B9FBC0%' OR l.value LIKE '#A3D9A5%' OR l.value LIKE '#2A9D8F%' THEN 1  -- Greens
+              WHEN l.value LIKE '#FAEDCD%' OR l.value LIKE '#FFE066%' OR l.value LIKE '#B08968%' THEN 2  -- Yellows/Browns
+              WHEN l.value LIKE '#FCD5CE%' OR l.value LIKE '#FDBA74%' OR l.value LIKE '#E76F51%' THEN 3  -- Oranges
+              WHEN l.value LIKE '#FEC5BB%' OR l.value LIKE '#FF6B6B%' OR l.value LIKE '#E63946%' THEN 4  -- Reds
+              WHEN l.value LIKE '#E0BBE4%' OR l.value LIKE '#B39CD0%' OR l.value LIKE '#D291BC%' THEN 5  -- Purples/Pinks
+              WHEN l.value LIKE '#7C83FD%' OR l.value LIKE '#007BFF%' OR l.value LIKE '#3182CE%' THEN 6  -- Blues
+              WHEN l.value LIKE '#AEDFF7%' OR l.value LIKE '#C4F1F9%' OR l.value LIKE '#4DA8DA%' THEN 7  -- Light Blues
+              WHEN l.value LIKE '#6DD3CE%' OR l.value LIKE '#90BE6D%' OR l.value LIKE '#2F855A%' THEN 8  -- Teals/Greens
+              WHEN l.value LIKE '#C1E1C1%' OR l.value LIKE '#F9C6D3%' OR l.value LIKE '#D3D3D3%' THEN 9  -- Light colors
+              WHEN l.value LIKE '#6C757D%' OR l.value LIKE '#C53030%' OR l.value LIKE '#2D3748%' THEN 10 -- Dark colors
+              ELSE 11
+            END
+          `,
+          // Then sort by name within each color group
+          "l.name",
+        ])
         .execute();
 
       return new ResponseData({

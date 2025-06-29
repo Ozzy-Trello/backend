@@ -1,25 +1,19 @@
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import {
-  AutomationRuleDetail,
-  AutomationRuleRepositoryI,
-} from "@/repository/automation_rule/automation_rule_interface";
+import { AutomationRuleDetail } from "@/repository/automation_rule/automation_rule_interface";
 import {
   AutomationRuleControllerI,
   AutomationRuleCreateData,
   AutomationRuleFilter,
 } from "./automation_rule_interface";
+import { AutomationRuleActionDetail } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import {
-  AutomationRuleActionDetail,
-  AutomationRuleActionRepositoryI,
-} from "@/repository/automation_rule_action/automation_rule_action_interface";
-import {
-  CardControllerI,
   CardCreateData,
   CardFilter,
   CardMoveData,
   CopyCardData,
+  UpdateCardData,
 } from "../card/card_interfaces";
 import {
   EnumActions,
@@ -34,51 +28,36 @@ import {
   TriggerType,
 } from "@/types/automation_rule";
 import {
-  EnumOptionPosition,
   EnumOptionsNumberComparisonOperators,
-  EnumOptionsSubject,
+  EnumOptionBySubject,
   EnumOptionsSet,
+  EnumOptionPosition,
 } from "@/types/options";
-import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
-import { WhatsAppController } from "../whatsapp/whatsapp_controller";
-import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
-import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import { CardCustomFieldValueUpdate } from "@/repository/custom_field/custom_field_interfaces";
+import { CreateChecklistDTO } from "../checklist/checklist_interfaces";
+import { broadcastToWebSocket } from "@/server";
+import { AutomationRuleFilterDetail } from "@/repository/automation_rule_filter/automation_rule_filter_interface";
+import { AutomationRuleFilterService } from "../automation/automation_filter_evaluator";
+import { RepositoryContext } from "@/repository/repository_context";
+import { ControllerContext } from "../controller_context";
 import { CardType } from "@/types/card";
-import { ListControllerI, ListFilter } from "../list/list_interfaces";
-import { CardMemberControllerI } from "../card/card_member_interfaces";
-import { ChecklistController } from "../checklist/checklist_controller";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
-  private automation_rule_repo: AutomationRuleRepositoryI;
-  private automation_rule_action_repo: AutomationRuleActionRepositoryI;
-  private card_controller: CardControllerI;
-  private whatsapp_controller: WhatsAppController;
-  private custom_field_repo: CustomFieldRepositoryI;
-  private user_repo: UserRepositoryI;
-  private card_member_controller: CardMemberControllerI;
-  private checklist_controller: ChecklistController;
+  private repository_context: RepositoryContext;
+  private controller_context: ControllerContext | null = null;
 
-  constructor(
-    automation_rule_repo: AutomationRuleRepositoryI,
-    automation_rule_action_repo: AutomationRuleActionRepositoryI,
-    card_controller: CardControllerI,
-    whatsapp_controller: WhatsAppController,
-    custom_field_repo: CustomFieldRepositoryI,
-    user_repo: UserRepositoryI,
-    card_member_controller: CardMemberControllerI,
-    checklist_controller: ChecklistController
-  ) {
-    this.automation_rule_repo = automation_rule_repo;
-    this.automation_rule_action_repo = automation_rule_action_repo;
-    this.card_controller = card_controller;
-    this.whatsapp_controller = whatsapp_controller;
-    this.custom_field_repo = custom_field_repo;
-    this.user_repo = user_repo;
-    this.card_member_controller = card_member_controller;
-    this.checklist_controller = checklist_controller;
-
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
+    // this.card_controller = card_controller;
+    // this.whatsapp_controller = whatsapp_controller;
+    // this.checklist_controller = checklist_controller;
+    // this.card_member_controller = card_member_controller;
     this.CreateAutomationRule = this.CreateAutomationRule.bind(this);
     this.GetListAutomationRule = this.GetListAutomationRule.bind(this);
+  }
+
+  public SetControllerContext(controller_context: ControllerContext) {
+    this.controller_context = controller_context;
   }
 
   async CreateAutomationRule(
@@ -94,7 +73,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
 
     data.created_by = user_id;
-    let result = await this.automation_rule_repo.createRule(
+    let result = await this.repository_context.automation_rule.createRule(
       data.toAutomationRuleDetail()
     );
     if (result.status_code != StatusCodes.OK) {
@@ -105,16 +84,33 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       });
     }
 
+    // bulk create filter
+    if (data?.filter) {
+      let data_filter = [];
+      for (let filter of data?.filter) {
+        let filterData = new AutomationRuleFilterDetail({
+          ...filter,
+          rule_id: result?.data?.id,
+        });
+        data_filter.push(filterData);
+      }
+      this.repository_context.automation_rule_filter.bulkCreateFilters(
+        data_filter
+      );
+    }
+
+    // bulk create actions
     let data_actions = [];
     for (let action of data?.action) {
-      // bulk create automation rule action
       let actionData = new AutomationRuleActionDetail({
         ...action,
         rule_id: result?.data?.id,
       });
       data_actions.push(actionData);
     }
-    this.automation_rule_action_repo.bulkCreateActions(data_actions);
+    this.repository_context.automation_rule_action.bulkCreateActions(
+      data_actions
+    );
 
     return new ResponseData({
       message: "AutomationRule created successfully",
@@ -127,7 +123,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     filter: AutomationRuleFilter,
     paginate: Paginate
   ): Promise<ResponseListData<Array<AutomationRuleDetail>>> {
-    let result = await this.automation_rule_repo.getRuleList(
+    let result = await this.repository_context.automation_rule.getRuleList(
       filter.toFilterAutomationRuleDetail(),
       paginate
     );
@@ -137,12 +133,37 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         (id): id is string => id !== undefined
       );
       if (rule_ids.length > 0) {
+        // getting filters
+        const resultFilter =
+          await this.repository_context.automation_rule_filter.getFilterList(
+            { rule_ids: rule_ids },
+            paginate
+          );
+        if (resultFilter && resultFilter.data) {
+          // Map actions to their respective rules
+          const filtersMap = new Map<string, AutomationRuleActionDetail[]>();
+          for (const action of resultFilter.data) {
+            if (!filtersMap.has(action.rule_id)) {
+              filtersMap.set(action.rule_id, []);
+            }
+            filtersMap.get(action.rule_id)?.push(action);
+          }
+
+          // Attach actions to each rule
+          for (const rule of result?.data) {
+            if (rule?.id) {
+              rule.action = filtersMap.get(rule?.id) || [];
+            }
+          }
+        }
+
+        // getting actions
         const resultAction =
-          await this.automation_rule_action_repo.getActionList(
+          await this.repository_context.automation_rule_action.getActionList(
             {
               rule_ids: rule_ids,
             },
-            paginate
+            new Paginate(1, paginate.limit) // fresh paginate so it doesn't overwrite
           );
 
         if (resultAction && resultAction.data) {
@@ -185,7 +206,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         recentUserAction
       );
 
-      const rules = await this.automation_rule_repo.matchRules(filter);
+      const rules = await this.repository_context.automation_rule.matchRules(
+        filter
+      );
 
       if (rules.status_code !== StatusCodes.OK) {
         return new ResponseData({
@@ -196,6 +219,11 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
       console.log("filter are: %o", filter);
       console.log("rules are: %o", rules);
+      console.log(
+        `[AUTOMATION DEBUG] Found ${
+          rules.data?.length || 0
+        } potential matching rules`
+      );
 
       if (rules?.data) {
         // Process rules in parallel for better performance
@@ -204,15 +232,39 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             console.log("rule: is: %o", rule);
             let isPermsissable = true;
 
-            // if (rule.condition?.[EnumSelectionType.Board]) {
-            //   console.log("rule has board dependency");
-            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
-            // }
+            // trigger filter
+            rule.filter?.map(async (f: AutomationRuleFilterDetail) => {
+              let res = AutomationRuleFilterService.evaluate(
+                f.type,
+                f.condition,
+                recentUserAction,
+                rule.created_by
+              );
+              console.log("Evaluate filter: res: %o", res);
+              if (!res.matches) {
+                isPermsissable = false;
+                return isPermsissable;
+              }
+            });
 
-            // if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
-            //   console.log("rule has board dependency");
-            //   if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.OptionalBoard]) isPermsissable = false;
-            // }
+            // trigger condition
+            if (rule.condition?.[EnumSelectionType.Board]) {
+              console.log("rule has board dependency");
+              if (
+                recentUserAction?.data?.board?.id !==
+                rule.condition?.[EnumSelectionType.Board]
+              )
+                isPermsissable = false;
+            }
+
+            if (rule.condition?.[EnumSelectionType.OptionalBoard]) {
+              console.log("rule has board dependency");
+              if (
+                recentUserAction?.data?.board?.id !==
+                rule.condition?.[EnumSelectionType.OptionalBoard]
+              )
+                isPermsissable = false;
+            }
 
             // list
             if (rule.condition?.[EnumSelectionType.List]) {
@@ -234,7 +286,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               // by me
               if (
                 rule.condition?.[EnumSelectionType.OptionalBySubject]
-                  ?.operator == EnumOptionsSubject.ByMe
+                  ?.operator == EnumOptionBySubject.ByMe
               ) {
                 if (rule.created_by !== recentUserAction?.user_id) {
                   isPermsissable = false;
@@ -244,7 +296,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               // by anyone, except me
               if (
                 rule.condition?.[EnumSelectionType.OptionalBySubject]
-                  ?.operator == EnumOptionsSubject.ByAnyoneExceptMe
+                  ?.operator == EnumOptionBySubject.ByAnyoneExceptMe
               ) {
                 if (rule.created_by === recentUserAction?.user_id) {
                   isPermsissable = false;
@@ -258,7 +310,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 // by specific user - baru bisa single user
                 if (
                   rule.condition?.[EnumSelectionType.OptionalBySubject]
-                    ?.operator == EnumOptionsSubject.BySpecificUser
+                    ?.operator == EnumOptionBySubject.BySpecificUser
                 ) {
                   if (
                     !rule.condition?.[
@@ -272,7 +324,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 // anyone, except specific user
                 if (
                   rule.condition?.[EnumSelectionType.OptionalBySubject]
-                    ?.operator == EnumOptionsSubject.ByAnyoneExceptSpecificUser
+                    ?.operator == EnumOptionBySubject.ByAnyoneExceptSpecificUser
                 ) {
                   if (
                     rule.condition?.[
@@ -294,7 +346,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               // by me
               if (
                 rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-                EnumOptionsSubject.ByMe
+                EnumOptionBySubject.ByMe
               ) {
                 if (rule.created_by !== recentUserAction?.user_id) {
                   isPermsissable = false;
@@ -304,7 +356,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               // by anyone, except me
               if (
                 rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-                EnumOptionsSubject.ByAnyoneExceptMe
+                EnumOptionBySubject.ByAnyoneExceptMe
               ) {
                 if (rule.created_by === recentUserAction?.user_id) {
                   isPermsissable = false;
@@ -317,7 +369,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 // by specific user
                 if (
                   rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-                  EnumOptionsSubject.BySpecificUser
+                  EnumOptionBySubject.BySpecificUser
                 ) {
                   if (
                     !rule.condition?.[
@@ -331,7 +383,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
                 // anyone, except specific user
                 if (
                   rule.condition?.[EnumSelectionType.BySubject]?.operator ==
-                  EnumOptionsSubject.ByAnyoneExceptSpecificUser
+                  EnumOptionBySubject.ByAnyoneExceptSpecificUser
                 ) {
                   if (
                     rule.condition?.[
@@ -390,16 +442,16 @@ export class AutomationRuleController implements AutomationRuleControllerI {
               ) {
                 isPermsissable = false;
               } else {
-                const result = await this.card_controller.GetListCard(
+                const result = await this.controller_context?.card.GetListCard(
                   new CardFilter({
                     list_id: rule.condition?.[EnumSelectionType.List],
                   }),
                   new Paginate(0, 0)
                 );
                 console.log("COMPARE RESULT: %o", result);
-                if (result.status_code !== StatusCodes.OK && !result.data)
+                if (result?.status_code !== StatusCodes.OK && !result?.data)
                   isPermsissable = false;
-                const cardCount = result.data?.length || 0;
+                const cardCount = result?.data?.length || 0;
                 const numberToCompare = rule.condition?.[EnumInputType.Number];
 
                 if (
@@ -943,7 +995,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             }
 
             if (isPermsissable) {
-              console.log("passed permissable actually");
+              console.log(
+                `[AUTOMATION DEBUG] Rule ${rule.id} passed permissible check and will execute actions`
+              );
               return this.ProcessAutomationAction(
                 recentUserAction,
                 new AutomationRuleFilter({
@@ -990,10 +1044,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           status_code: StatusCodes.BAD_REQUEST,
         });
       }
-
-      // const actions = await this.automation_rule_action_repo.getByRuleId(
-      //   filter.id
-      // );
 
       if (filter.action) {
         // Process actions in parallel
@@ -1058,6 +1108,142 @@ export class AutomationRuleController implements AutomationRuleControllerI {
           console.log(`executeAutomationAction: ${EnumActions.CopyCard}`);
           await this.handleCopyCardAction(action, recentUserAction);
           break;
+        case EnumActions.ClearCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.ClearCustomField}`
+          );
+          await this.handleClearCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.SetCustomField:
+          console.log(`executeAutomationAction: ${EnumActions.SetCustomField}`);
+          await this.handleSetCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.CheckCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.CheckCustomField}`
+          );
+          await this.handleToggleCheckboxFieldAction(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.UncheckCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.UncheckCustomField}`
+          );
+          await this.handleToggleCheckboxFieldAction(
+            action,
+            recentUserAction,
+            false
+          );
+          break;
+        case EnumActions.IncreaseNumberCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.IncreaseNumberCustomField}`
+          );
+          await this.handleIncrementNumberFieldAction(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.DecreaseNumberCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.DecreaseNumberCustomField}`
+          );
+          await this.handleIncrementNumberFieldAction(
+            action,
+            recentUserAction,
+            false
+          );
+          break;
+        case EnumActions.MoveDateCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.MoveDateCustomField}`
+          );
+          await this.handleMoveDateCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.SetDateCustomField:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetDateCustomField}`
+          );
+          await this.handleSetDateCustomFieldAction(action, recentUserAction);
+          break;
+        case EnumActions.RenameCard:
+          console.log(`executeAutomationAction: ${EnumActions.RenameCard}`);
+          await this.handleRenameCardAction(action, recentUserAction);
+          break;
+        case EnumActions.SetCardDescription:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetCardDescription}`
+          );
+          await this.handleSetCardDescriptionAction(action, recentUserAction);
+          break;
+        case EnumActions.AddChecklist:
+          console.log(`executeAutomationAction: ${EnumActions.AddChecklist}`);
+          await this.handleAddChecklistAction(action, recentUserAction);
+          break;
+        case EnumActions.AddChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.AddChecklistItem}`
+          );
+          await this.handleAddChecklistItemAction(action, recentUserAction);
+          break;
+        case EnumActions.RemoveChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.RemoveChecklistItem}`
+          );
+          await this.handleRemoveChecklistItemAction(action, recentUserAction);
+          break;
+        case EnumActions.MoveChecklistItemDueDate:
+          console.log(
+            `executeAutomationAction: ${EnumActions.MoveChecklistItemDueDate}`
+          );
+          await this.handleMoveChecklistItemDueDateAction(
+            action,
+            recentUserAction
+          );
+          break;
+        case EnumActions.SetChecklistItemDueDate:
+          console.log(
+            `executeAutomationAction: ${EnumActions.SetChecklistItemDueDate}`
+          );
+          await this.handleSetChecklistItemDueDateAction(
+            action,
+            recentUserAction
+          );
+          break;
+        case EnumActions.CheckChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.CheckChecklistItem}`
+          );
+          await this.handleToggleChecklistItemChecked(
+            action,
+            recentUserAction,
+            true
+          );
+          break;
+        case EnumActions.UncheckChecklistItem:
+          console.log(
+            `executeAutomationAction: ${EnumActions.UncheckChecklistItem}`
+          );
+          await this.handleToggleChecklistItemChecked(
+            action,
+            recentUserAction,
+            false
+          );
+          break;
+        case EnumActions.AddCardMember:
+          console.log(`executeAutomationAction: ${EnumActions.AddCardMember}`);
+          await this.handleAddCardMemberAction(action, recentUserAction);
+          break;
+        case EnumActions.RemoveCardMember:
+          console.log(
+            `executeAutomationAction: ${EnumActions.RemoveCardMember}`
+          );
+          await this.handleRemoveCardMemberAction(action, recentUserAction);
+          break;
         default:
           console.warn(
             `Unknown automation action: ${action?.condition?.action}`
@@ -1084,7 +1270,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
 
     switch (action?.condition?.channel) {
       case "whatsapp":
-        await this.whatsapp_controller.sendNotification(
+        await this.controller_context?.whatsapp.sendNotification(
           // This is for handling if the user is selecte through field change in the trigger instead of selecting it in action
           action.type.includes("selected_user")
             ? recentUserAction.data.value_user_id
@@ -1105,17 +1291,17 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     recentUserAction: UserActionEvent
   ): Promise<void> {
     const moveData = new CardMoveData({
-      id: recentUserAction.data.card.id,
-      previous_list_id: recentUserAction.data.card.list_id,
+      id: recentUserAction?.data?.card?.id,
+      previous_list_id: recentUserAction?.data?._previous_data?.card?.id,
       target_list_id:
         action.condition?.[EnumSelectionType.List] ||
         action.condition?.[EnumSelectionType.OptionalList],
-      previous_position: recentUserAction.data.card.order,
+      previous_position: recentUserAction?.data?.card?.order,
       target_position_top_or_bottom:
         action.condition?.[EnumSelectionType.Position],
     });
 
-    await this.card_controller.MoveCard(
+    await this.controller_context?.card.MoveCard(
       "recentUserAction.user_id",
       moveData,
       EnumTriggeredBy.OzzyAutomation
@@ -1126,9 +1312,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.ArchiveCard(
+    await this.controller_context?.card.ArchiveCard(
       recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
+      recentUserAction?.data?.card?.id || "",
       EnumTriggeredBy.OzzyAutomation
     );
   }
@@ -1137,9 +1323,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.UnArchiveCard(
+    await this.controller_context?.card.UnArchiveCard(
       recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
+      recentUserAction?.data?.card?.id || "",
       EnumTriggeredBy.OzzyAutomation
     );
   }
@@ -1148,7 +1334,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     action: AutomationRuleActionDetail,
     recentUserAction: UserActionEvent
   ): Promise<void> {
-    await this.card_controller.CopyCard(
+    await this.controller_context?.card.CopyCard(
       recentUserAction?.user_id || "",
       new CopyCardData({
         card_id: recentUserAction?.data?.card?.id,
@@ -1182,12 +1368,14 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     const multiUsers = action.condition.multi_users ?? [];
     const multiChecklists = action.condition.multi_checklists ?? [];
 
-    const { data: cards } = await this.card_controller.GetListCard(
+    const result = await this.controller_context?.card.GetListCard(
       new CardFilter({
         list_id: listId,
       }),
       new Paginate(1, 1000)
     );
+
+    const cards = result?.data ?? [];
 
     let order = 10000;
 
@@ -1203,7 +1391,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     }
 
-    const { data } = await this.card_controller.CreateCard(
+    const resultCreateCard = await this.controller_context?.card.CreateCard(
       recentUserAction.user_id,
       new CardCreateData({
         name: title,
@@ -1216,8 +1404,13 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       EnumTriggeredBy.OzzyAutomation
     );
 
+    const data = resultCreateCard?.data;
+
     if (multiUsers.length > 0 && data) {
-      await this.card_member_controller.addMembers(data.id, multiUsers);
+      await this.controller_context?.card_member.addMembers(
+        data.id,
+        multiUsers
+      );
     }
 
     if (multiChecklists.length > 0 && data) {
@@ -1227,8 +1420,691 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         data: [],
       }));
 
-      await this.checklist_controller.CreateBulkChecklist(dataChecklist);
+      await this.controller_context?.checklist.CreateBulkChecklist(
+        dataChecklist
+      );
     }
+  }
+
+  private async handleClearCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    if (!cardId || !customFieldId) {
+      console.warn("Missing card ID or custom field ID for clear action");
+      return;
+    }
+
+    try {
+      console.log("Clearing custom field:", {
+        cardId,
+        customFieldId,
+      });
+
+      // Clear all custom field values by using the clearAllFields method
+      const clearData = new CardCustomFieldValueUpdate({});
+      clearData.clearAllFields();
+
+      const updateResult =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          clearData
+        );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "", // workspace_id will be filled from the field data
+            cardId,
+            customFieldId
+          );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field clear
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId: cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field cleared successfully");
+      } else {
+        console.warn("Failed to clear custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error clearing custom field:", error);
+    }
+  }
+
+  private async handleSetCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    const fieldValueRaw = action.condition?.["field_value"];
+
+    // Unwrap if object
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const fieldValue = (() => {
+      if (
+        fieldValueRaw &&
+        typeof fieldValueRaw === "object" &&
+        "value" in fieldValueRaw
+      ) {
+        return fieldValueRaw;
+      }
+      return fieldValueRaw;
+    })();
+
+    if (!cardId || !customFieldId || fieldValue === undefined) {
+      console.warn(
+        "Missing card ID, custom field ID, or field value for set action"
+      );
+      return;
+    }
+
+    try {
+      console.log("Setting custom field:", {
+        cardId,
+        customFieldId,
+        fieldValue,
+      });
+
+      // Create update data with the specific field value
+      const updateData = new CardCustomFieldValueUpdate({});
+
+      // Set the appropriate field based on the value type
+      if (typeof fieldValue === "string") {
+        updateData.value_string = fieldValue;
+      } else if (typeof fieldValue === "number") {
+        updateData.value_number = fieldValue;
+      } else if (typeof fieldValue === "boolean") {
+        updateData.value_checkbox = fieldValue;
+      } else if (fieldValue instanceof Date) {
+        updateData.value_date = fieldValue;
+      } else {
+        // For option values or user IDs, treat as string
+        if (fieldValue && typeof fieldValue === "object" && fieldValue.value) {
+          // Handle dropdown option objects
+          updateData.value_option = fieldValue.value;
+        } else {
+          // Handle user IDs or other string values
+          updateData.value_user_id = fieldValue;
+        }
+      }
+
+      const updateResult =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "", // workspace_id will be filled from the field data
+            cardId,
+            customFieldId
+          );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field update
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field set successfully");
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        // No existing record – create it
+        const createRes =
+          await this.repository_context.custom_field.createCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField =
+            await this.repository_context.custom_field.getCardCustomField(
+              "",
+              cardId,
+              customFieldId
+            );
+          if (newField.status_code === 200 && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        } else {
+          console.warn("Failed to create card custom field", createRes.message);
+        }
+      } else {
+        console.warn("Failed to set custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error setting custom field:", error);
+    }
+  }
+
+  private async handleToggleCheckboxFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    checked: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    if (!cardId || !customFieldId) {
+      console.warn("Missing card ID or custom field ID for toggle action");
+      return;
+    }
+
+    try {
+      console.log("Toggling custom field:", {
+        cardId,
+        customFieldId,
+        checked,
+      });
+
+      // Create update data with the specific field value
+      const updateData = new CardCustomFieldValueUpdate({});
+
+      // Always set checkbox value
+      updateData.value_checkbox = checked;
+
+      const updateResult =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        // Get the updated custom field data for WebSocket broadcast
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "", // workspace_id will be filled from the field data
+            cardId,
+            customFieldId
+          );
+
+        if (updatedField.status_code === 200 && updatedField.data) {
+          // Broadcast WebSocket event for custom field update
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+
+        console.log("Custom field toggled successfully");
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        const createRes =
+          await this.repository_context.custom_field.createCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField =
+            await this.repository_context.custom_field.getCardCustomField(
+              "",
+              cardId,
+              customFieldId
+            );
+          if (newField.status_code === 200 && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      } else {
+        console.warn("Failed to toggle custom field:", updateResult.message);
+      }
+    } catch (error) {
+      console.error("Error toggling custom field:", error);
+    }
+  }
+
+  private async handleIncrementNumberFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    isIncrease: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const deltaRaw = action.condition?.[EnumInputType.Number] ?? "1";
+    const delta = Number(deltaRaw);
+
+    if (!cardId || !customFieldId || isNaN(delta)) {
+      console.warn(
+        "Missing card, field, or invalid delta for increment action"
+      );
+      return;
+    }
+
+    const signedDelta = isIncrease ? delta : -delta;
+
+    try {
+      // Fetch current value
+      const currentResp =
+        await this.repository_context.custom_field.getCardCustomField(
+          "",
+          cardId,
+          customFieldId
+        );
+      let currentNumber = 0;
+      if (
+        currentResp.status_code === StatusCodes.OK &&
+        currentResp.data &&
+        currentResp.data.value_number !== null &&
+        currentResp.data.value_number !== undefined
+      ) {
+        currentNumber = Number(currentResp.data.value_number) || 0;
+      }
+
+      const newValue = currentNumber + signedDelta;
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_number: newValue,
+      });
+
+      const updateResult =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+
+      if (updateResult.status_code === StatusCodes.NO_CONTENT) {
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+      } else if (updateResult.status_code === StatusCodes.NOT_FOUND) {
+        // create record
+        const createRes =
+          await this.repository_context.custom_field.createCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          const newField =
+            await this.repository_context.custom_field.getCardCustomField(
+              "",
+              cardId,
+              customFieldId
+            );
+          if (newField.status_code === StatusCodes.OK && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      } else {
+        console.warn("Failed to update number field", updateResult.message);
+      }
+    } catch (e) {
+      console.error("Error incrementing number field", e);
+    }
+  }
+
+  private async handleMoveDateCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const rawDateVal: any = action.condition?.["date_value"];
+    let expr: any = null;
+    if (
+      rawDateVal &&
+      typeof rawDateVal === "object" &&
+      Array.isArray(rawDateVal.expressions)
+    ) {
+      expr = rawDateVal.expressions[0] || null;
+    } else if (rawDateVal) {
+      expr = { value: rawDateVal, text: String(rawDateVal) };
+    }
+
+    if (!cardId || !customFieldId || !expr) {
+      console.warn("Missing data for move date action");
+      return;
+    }
+
+    try {
+      const baseDate = new Date();
+      const newDate = this.computeMovedDate(baseDate, expr.value);
+      if (!newDate) {
+        console.warn("Unable to compute new date for expression", expr);
+        return;
+      }
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_date: newDate,
+      });
+      const updateRes =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+      console.log("MoveDateCustomField update result:", updateRes.status_code);
+
+      if (updateRes.status_code === StatusCodes.NO_CONTENT) {
+        console.log(
+          "Update successful, fetching updated field for WebSocket broadcast..."
+        );
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+        console.log(
+          "Updated field fetch result:",
+          updatedField.status_code,
+          updatedField.data ? "has data" : "no data"
+        );
+
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          console.log("Broadcasting WebSocket event for date field update");
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        } else {
+          console.warn("Failed to fetch updated field for WebSocket broadcast");
+        }
+      } else {
+        // Update failed (likely no existing record), try creating new record
+        console.log("Update failed, attempting to create new record...");
+        const createRes =
+          await this.repository_context.custom_field.createCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+        console.log("Create result:", createRes.status_code);
+
+        if (createRes.status_code === StatusCodes.CREATED) {
+          console.log("Create successful, now updating with date value...");
+
+          // After creating the record, update it with the actual date value
+          const updateAfterCreate =
+            await this.repository_context.custom_field.updateCardCustomField(
+              customFieldId,
+              cardId,
+              updateData
+            );
+          console.log(
+            "Update after create result:",
+            updateAfterCreate.status_code
+          );
+
+          if (updateAfterCreate.status_code === StatusCodes.NO_CONTENT) {
+            console.log("Fetching updated field for WebSocket broadcast...");
+            const newField =
+              await this.repository_context.custom_field.getCardCustomField(
+                "",
+                cardId,
+                customFieldId
+              );
+            if (newField.status_code === StatusCodes.OK && newField.data) {
+              console.log("Broadcasting WebSocket event for new date field");
+              broadcastToWebSocket("custom_field:updated", {
+                customField: newField.data,
+                cardId,
+                workspaceId: newField.data.workspace_id,
+              });
+            } else {
+              console.warn(
+                "Failed to fetch updated field for WebSocket broadcast"
+              );
+            }
+          } else {
+            console.warn(
+              "Failed to update newly created field with date value"
+            );
+          }
+        } else {
+          console.warn(
+            "Failed to create date field:",
+            createRes.status_code,
+            createRes.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Error moving date field", err);
+    }
+  }
+
+  private computeMovedDate(base: Date, meta: any): Date | null {
+    const result = new Date(base);
+    const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+
+    const addDays = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setDate(copy.getDate() + n);
+      return copy;
+    };
+
+    const addWeeks = (d: Date, n: number) => addDays(d, n * 7);
+    const addMonths = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setMonth(copy.getMonth() + n);
+      return copy;
+    };
+    const addYears = (d: Date, n: number) => {
+      const copy = new Date(d);
+      copy.setFullYear(copy.getFullYear() + n);
+      return copy;
+    };
+
+    // Simple string presets
+    if (typeof meta === "string") {
+      switch (meta) {
+        case "today":
+          return new Date();
+        case "tomorrow":
+          return addDays(new Date(), 1);
+        case "yesterday":
+          return addDays(new Date(), -1);
+        case "the_previous_working_day": {
+          let d = addDays(base, -1);
+          while (isWeekend(d)) d = addDays(d, -1);
+          return d;
+        }
+        case "the_same_day_next_week":
+          return addWeeks(base, 1);
+        case "the_same_day_next_month":
+          return addMonths(base, 1);
+        case "the_same_day_next_year":
+          return addYears(base, 1);
+        default:
+          return null;
+      }
+    }
+
+    // Offset object { by, unit }
+    if (meta && typeof meta === "object" && "by" in meta && "unit" in meta) {
+      const num = Number(meta.by);
+      if (isNaN(num)) return null;
+      if (meta.unit === "days") return addDays(base, num);
+      if (meta.unit === "weeks") return addWeeks(base, num);
+    }
+
+    // Next weekday { weekday }
+    if (meta && typeof meta === "object" && "weekday" in meta) {
+      const target = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ].indexOf((meta.weekday as string).toLowerCase());
+      if (target < 0) return null;
+      const current = base.getDay();
+      const diff = (target + 7 - current) % 7 || 7; // at least 1 day ahead
+      return addDays(base, diff);
+    }
+
+    // Day of month { day, of }
+    if (meta && typeof meta === "object" && "day" in meta && "of" in meta) {
+      let ref = new Date(base);
+      if (meta.of === "next_month") {
+        ref.setMonth(ref.getMonth() + 1);
+      }
+      ref.setHours(
+        base.getHours(),
+        base.getMinutes(),
+        base.getSeconds(),
+        base.getMilliseconds()
+      );
+
+      const setOrdinalDay = (dayStr: string): Date | null => {
+        if (dayStr.startsWith("the_") && dayStr.endsWith("st")) {
+          const num = parseInt(dayStr.slice(4));
+          if (!isNaN(num)) {
+            ref.setDate(Math.min(num, 31));
+            return ref;
+          }
+        }
+        if (dayStr === "the_last_day" || dayStr === "the_last") {
+          ref.setMonth(ref.getMonth() + 1, 0); // move to last day of previous month
+          return ref;
+        }
+        if (dayStr === "the_last_working_day") {
+          ref.setMonth(ref.getMonth() + 1, 0);
+          while (isWeekend(ref)) ref.setDate(ref.getDate() - 1);
+          return ref;
+        }
+        return null;
+      };
+      return setOrdinalDay(meta.day as string);
+    }
+
+    // Nth weekday of month { nth, weekday, of }
+    if (
+      meta &&
+      typeof meta === "object" &&
+      "nth" in meta &&
+      "weekday" in meta &&
+      "of" in meta
+    ) {
+      const targetWeekday = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ].indexOf((meta.weekday as string).toLowerCase());
+      if (targetWeekday < 0) return null;
+      const nthStr: string = meta.nth;
+      let nth = 1;
+      if (nthStr.includes("_")) {
+        const numPart = nthStr.split("_")[1];
+        nth = parseInt(numPart) || 1;
+      }
+      let ref = new Date(base);
+      if (meta.of === "next_month") {
+        ref.setMonth(ref.getMonth() + 1, 1);
+      } else {
+        ref.setDate(1);
+      }
+      let count = 0;
+      while (true) {
+        if (ref.getDay() === targetWeekday) {
+          count += 1;
+          if (nthStr === "the_last") {
+            // go to last matching weekday
+            const temp = new Date(ref);
+            while (temp.getMonth() === ref.getMonth()) {
+              ref = new Date(temp);
+              temp.setDate(temp.getDate() + 7);
+            }
+            break;
+          }
+          if (count === nth) {
+            break;
+          }
+        }
+        ref.setDate(ref.getDate() + 1);
+      }
+      return ref;
+    }
+
+    return null;
   }
 
   private evaluateDateExpression(actual: Date, meta: any): boolean {
@@ -1329,6 +2205,686 @@ export class AutomationRuleController implements AutomationRuleControllerI {
       }
     } catch (_) {
       return false;
+    }
+  }
+
+  /**
+   * Handle SetDateCustomField – sets the date in a custom field to a target date expression.
+   *   Logic is similar to MoveDateCustomField but the base date for computation is NOW, not the current field value.
+   */
+  private async handleSetDateCustomFieldAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    let customFieldId: any = action.condition?.[EnumSelectionType.Fields];
+    if (
+      customFieldId &&
+      typeof customFieldId === "object" &&
+      "value" in customFieldId
+    ) {
+      customFieldId = customFieldId.value;
+    }
+
+    const rawDateVal: any = action.condition?.["date_value"];
+    let expr: any = null;
+    if (
+      rawDateVal &&
+      typeof rawDateVal === "object" &&
+      Array.isArray(rawDateVal.expressions)
+    ) {
+      expr = rawDateVal.expressions[0] || null;
+    } else if (rawDateVal) {
+      expr = { value: rawDateVal, text: String(rawDateVal) };
+    }
+
+    if (!cardId || !customFieldId || !expr) {
+      console.warn("Missing data for set date action");
+      return;
+    }
+
+    try {
+      const baseDate = new Date();
+      const newDate = this.computeMovedDate(baseDate, expr.value);
+      if (!newDate) {
+        console.warn("Unable to compute target date for expression", expr);
+        return;
+      }
+
+      const updateData = new CardCustomFieldValueUpdate({
+        value_date: newDate,
+      });
+
+      // Reuse move handler logic for update/create + broadcast
+      const updateRes =
+        await this.repository_context.custom_field.updateCardCustomField(
+          customFieldId,
+          cardId,
+          updateData
+        );
+
+      if (updateRes.status_code === StatusCodes.NO_CONTENT) {
+        const updatedField =
+          await this.repository_context.custom_field.getCardCustomField(
+            "",
+            cardId,
+            customFieldId
+          );
+        if (updatedField.status_code === StatusCodes.OK && updatedField.data) {
+          broadcastToWebSocket("custom_field:updated", {
+            customField: updatedField.data,
+            cardId,
+            workspaceId: updatedField.data.workspace_id,
+          });
+        }
+      } else {
+        // create then update (same pattern)
+        const createRes =
+          await this.repository_context.custom_field.createCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+        if (createRes.status_code === StatusCodes.CREATED) {
+          // if creation succeeded but value not set, update it
+          await this.repository_context.custom_field.updateCardCustomField(
+            customFieldId,
+            cardId,
+            updateData
+          );
+          const newField =
+            await this.repository_context.custom_field.getCardCustomField(
+              "",
+              cardId,
+              customFieldId
+            );
+          if (newField.status_code === StatusCodes.OK && newField.data) {
+            broadcastToWebSocket("custom_field:updated", {
+              customField: newField.data,
+              cardId,
+              workspaceId: newField.data.workspace_id,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error setting date field", err);
+    }
+  }
+
+  private async handleRenameCardAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const newTitle = action.condition?.text_input;
+
+    if (!cardId || !newTitle) {
+      console.warn("Missing card ID or new title for rename action");
+      return;
+    }
+
+    try {
+      console.log("Renaming card:", {
+        cardId,
+        newTitle,
+      });
+
+      // Use the card controller to update the card name
+      const updateResult = await this.controller_context?.card.UpdateCard(
+        recentUserAction.user_id || "",
+        new CardFilter({ id: cardId }),
+        new UpdateCardData({ name: newTitle }),
+        EnumTriggeredBy.OzzyAutomation
+      );
+
+      if (updateResult?.status_code === StatusCodes.NO_CONTENT) {
+        console.log("Card renamed successfully");
+      } else {
+        console.warn("Failed to rename card:", updateResult?.message);
+      }
+    } catch (error) {
+      console.error("Error renaming card:", error);
+    }
+  }
+
+  private async handleSetCardDescriptionAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const newDescription = action.condition?.text_input;
+
+    if (!cardId || !newDescription) {
+      console.warn("Missing card ID or description for set description action");
+      return;
+    }
+  }
+
+  private async handleAddChecklistAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const checklistName = action.condition?.text_input;
+
+    if (!cardId || !checklistName) {
+      console.warn(
+        "Missing card ID or checklist name for add checklist action"
+      );
+      return;
+    }
+
+    try {
+      const checklistData: CreateChecklistDTO = {
+        card_id: cardId,
+        title: `${checklistName}`,
+        data: [],
+      };
+      const createResult =
+        await this.controller_context?.checklist.CreateChecklist(
+          recentUserAction.user_id || "system",
+          checklistData,
+          true
+        );
+
+      if (createResult?.status_code === StatusCodes.CREATED) {
+        console.log("Checklist added successfully:", createResult?.data?.id);
+      } else {
+        console.warn("Failed to add checklist:", createResult?.message);
+      }
+    } catch (error) {
+      console.error("Error adding checklist to card:", error);
+    }
+  }
+
+  private async handleAddChecklistItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+
+    // Extract item name and checklist name from the action condition
+    // The action format is: add item <item_name> to checklist <checklist_name>
+    // We expect two text_input values in the condition
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.checklist_name || action.condition?.text_input_2;
+
+    if (!cardId || !itemName || !checklistName) {
+      console.warn(
+        "Missing card ID, item name, or checklist name for add checklist item action",
+        { cardId, itemName, checklistName }
+      );
+      return;
+    }
+
+    try {
+      const timestampStr = new Date().toISOString();
+      console.log(`[${timestampStr}] AUTOMATION: Adding item to checklist:`, {
+        cardId,
+        itemName,
+        checklistName,
+        actionId: action.id,
+        ruleId: action.rule_id,
+        eventId: recentUserAction.eventId,
+      });
+
+      // First, get all checklists for the card
+      const checklistsResult =
+        await this.controller_context?.checklist.GetChecklistsByCardId(cardId);
+
+      if (
+        checklistsResult?.status_code !== StatusCodes.OK ||
+        !checklistsResult?.data
+      ) {
+        console.warn(
+          "Failed to get checklists for card:",
+          checklistsResult?.message
+        );
+        return;
+      }
+
+      // Find the checklist with the matching name
+      const targetChecklist = checklistsResult.data.find(
+        (checklist) => checklist.title === checklistName
+      );
+
+      if (!targetChecklist) {
+        console.log(
+          `[AUTOMATION] Checklist "${checklistName}" not found for card ${cardId}, skipping item addition`
+        );
+        return;
+      }
+
+      // Check if the item already exists in the checklist
+      const existingItems = targetChecklist.data || [];
+      const itemExists = existingItems.some((item) => item.label === itemName);
+
+      if (itemExists) {
+        console.log(
+          `[AUTOMATION] Item "${itemName}" already exists in checklist "${checklistName}", skipping`
+        );
+        return;
+      }
+
+      // Add the new item to the checklist
+      const updatedItems = [
+        ...existingItems,
+        {
+          label: itemName,
+          checked: false,
+        },
+      ];
+
+      // Update the checklist
+      const updateResult =
+        await this.controller_context?.checklist.UpdateChecklist(
+          recentUserAction.user_id || "system",
+          targetChecklist.id,
+          {
+            data: updatedItems,
+          }
+        );
+
+      if (updateResult?.status_code === StatusCodes.OK) {
+        console.log(
+          `Item "${itemName}" added successfully to checklist "${checklistName}"`
+        );
+      } else {
+        console.warn("Failed to add item to checklist:", updateResult?.message);
+      }
+    } catch (error) {
+      console.error("Error adding item to checklist:", error);
+    }
+  }
+
+  private async handleRemoveChecklistItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+
+    // Extract item name and checklist name from the action condition
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.checklist_name || action.condition?.text_input_2;
+
+    if (!cardId || !itemName || !checklistName) {
+      console.warn(
+        "Missing card ID, item name, or checklist name for remove checklist item action",
+        { cardId, itemName, checklistName }
+      );
+      return;
+    }
+
+    try {
+      const timestampStr = new Date().toISOString();
+      console.log(
+        `[${timestampStr}] AUTOMATION: Removing item from checklist:`,
+        {
+          cardId,
+          itemName,
+          checklistName,
+          actionId: action.id,
+          ruleId: action.rule_id,
+          eventId: recentUserAction.eventId,
+        }
+      );
+
+      // First, get all checklists for the card
+      const checklistsResult =
+        await this.controller_context?.checklist.GetChecklistsByCardId(cardId);
+
+      if (
+        checklistsResult?.status_code !== StatusCodes.OK ||
+        !checklistsResult?.data
+      ) {
+        console.warn(
+          "Failed to get checklists for card:",
+          checklistsResult?.message
+        );
+        return;
+      }
+
+      // Find the checklist with the matching name
+      const targetChecklist = checklistsResult.data.find(
+        (checklist) => checklist.title === checklistName
+      );
+
+      if (!targetChecklist) {
+        console.log(
+          `[AUTOMATION] Checklist "${checklistName}" not found for card ${cardId}, skipping item removal`
+        );
+        return;
+      }
+
+      // Check if the item exists in the checklist
+      const existingItems = targetChecklist.data || [];
+      const itemExists = existingItems.some((item) => item.label === itemName);
+
+      if (!itemExists) {
+        console.log(
+          `[AUTOMATION] Item "${itemName}" not found in checklist "${checklistName}", skipping`
+        );
+        return;
+      }
+
+      // Remove the item from the checklist
+      const updatedItems = existingItems.filter(
+        (item) => item.label !== itemName
+      );
+
+      // Update the checklist
+      const updateResult =
+        await this.controller_context?.checklist.UpdateChecklist(
+          recentUserAction.user_id || "system",
+          targetChecklist.id,
+          {
+            data: updatedItems,
+          }
+        );
+
+      if (updateResult?.status_code === StatusCodes.OK) {
+        console.log(
+          `Item "${itemName}" removed successfully from checklist "${checklistName}"`
+        );
+      } else {
+        console.warn(
+          "Failed to remove item from checklist:",
+          updateResult?.message
+        );
+      }
+    } catch (error) {
+      console.error("Error removing item from checklist:", error);
+    }
+  }
+
+  private async handleSetChecklistItemDueDateAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+    const dateExpr =
+      action.condition?.[EnumInputType.DateValue] ||
+      (action.condition as any)?.date_value;
+
+    if (!cardId || !itemName || !dateExpr) {
+      console.warn("Missing data for set checklist item due date", {
+        cardId,
+        itemName,
+        dateExpr,
+      });
+      return;
+    }
+
+    try {
+      // compute target date relative to now using helper
+      const targetDate = this.computeMovedDate(
+        new Date(),
+        dateExpr?.value ?? dateExpr
+      );
+      if (!targetDate) {
+        console.warn("Unable to compute target date", dateExpr);
+        return;
+      }
+
+      await this.updateChecklistItemDueDate(
+        cardId,
+        itemName,
+        checklistName,
+        targetDate
+      );
+    } catch (err) {
+      console.error("Error setting checklist item due date", err);
+    }
+  }
+
+  private async handleMoveChecklistItemDueDateAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+    const dateExpr =
+      action.condition?.[EnumInputType.DateValue] ||
+      (action.condition as any)?.date_value;
+
+    if (!cardId || !itemName || !dateExpr) {
+      console.warn("Missing data for move checklist item due date", {
+        cardId,
+        itemName,
+        dateExpr,
+      });
+      return;
+    }
+
+    try {
+      // fetch checklists to get current due date
+      const clRes =
+        await this.controller_context?.checklist.GetChecklistsByCardId(cardId);
+      if (clRes?.status_code !== 200 || !clRes?.data) return;
+      let currentDue: Date | null = null;
+      let targetChecklist: any = null;
+      let itemIndex = -1;
+      for (const cl of clRes.data) {
+        if (checklistName && cl.title !== checklistName) continue;
+        const idx = (cl.data || []).findIndex(
+          (it: any) => it.label === itemName
+        );
+        if (idx >= 0) {
+          currentDue = cl.data[idx].due_date
+            ? new Date(cl.data[idx].due_date)
+            : new Date();
+          targetChecklist = cl;
+          itemIndex = idx;
+          break;
+        }
+      }
+      if (!targetChecklist) {
+        console.warn("Checklist/item not found for move due date");
+        return;
+      }
+
+      const newDate = this.computeMovedDate(
+        currentDue!,
+        dateExpr?.value ?? dateExpr
+      );
+      if (!newDate) {
+        console.warn("Failed computing moved date", dateExpr);
+        return;
+      }
+
+      await this.updateChecklistItemDueDate(
+        cardId,
+        itemName,
+        checklistName,
+        newDate
+      );
+    } catch (err) {
+      console.error("Error moving checklist item due date", err);
+    }
+  }
+
+  private async updateChecklistItemDueDate(
+    cardId: string,
+    itemName: string,
+    checklistName: string | undefined,
+    newDate: Date
+  ): Promise<void> {
+    // fetch checklists
+    const clRes =
+      await this.controller_context?.checklist.GetChecklistsByCardId(cardId);
+    if (clRes?.status_code !== 200 || !clRes?.data) return;
+    for (const cl of clRes.data) {
+      if (checklistName && cl.title !== checklistName) continue;
+      const items = cl.data || [];
+      const idx = items.findIndex((it: any) => it.label === itemName);
+      if (idx < 0) continue;
+      // update due_date
+      items[idx] = { ...items[idx], due_date: newDate.toISOString() };
+      await this.controller_context?.checklist.UpdateChecklist(
+        "system",
+        cl.id,
+        {
+          data: items,
+        }
+      );
+      break;
+    }
+  }
+
+  private async handleToggleChecklistItemChecked(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent,
+    checked: boolean
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const itemName = action.condition?.text_input;
+    const checklistName =
+      action.condition?.[EnumSelectionType.ChecklistName] ||
+      (action.condition as any)?.checklist_name;
+
+    if (!cardId || !itemName) {
+      console.warn("Missing data for toggle checklist item", {
+        cardId,
+        itemName,
+      });
+      return;
+    }
+
+    try {
+      await this.updateChecklistItemChecked(
+        cardId,
+        itemName,
+        checklistName,
+        checked
+      );
+    } catch (err) {
+      console.error("Error toggling checklist item", err);
+    }
+  }
+
+  private async updateChecklistItemChecked(
+    cardId: string,
+    itemName: string,
+    checklistName: string | undefined,
+    checked: boolean
+  ): Promise<void> {
+    const clRes =
+      await this.controller_context?.checklist.GetChecklistsByCardId(cardId);
+    if (clRes?.status_code !== 200 || !clRes?.data) return;
+    for (const cl of clRes.data) {
+      if (checklistName && cl.title !== checklistName) continue;
+      const items = cl.data || [];
+      const idx = items.findIndex((it: any) => it.label === itemName);
+      if (idx < 0) continue;
+      if (items[idx].checked === checked) return; // already desired state
+      items[idx] = { ...items[idx], checked };
+      await this.controller_context?.checklist.UpdateChecklist(
+        "system",
+        cl.id,
+        {
+          data: items,
+        }
+      );
+      break;
+    }
+  }
+
+  private async handleAddCardMemberAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = action.condition?.user;
+    if (!cardId || !userId) {
+      console.warn("AddCardMember missing card or user", { cardId, userId });
+      return;
+    }
+    try {
+      const addRes = await this.controller_context?.card_member.addMembers(
+        cardId,
+        [userId]
+      );
+      if (addRes?.status_code === 200) {
+        const mems = await this.controller_context?.card_member.getMembers(
+          cardId
+        );
+        if (mems?.status_code === 200) {
+          broadcastToWebSocket("card_member:updated", {
+            cardId,
+            members: (mems as any).data || [],
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error adding member", e);
+    }
+  }
+
+  private async handleRemoveCardMemberAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const cardId = recentUserAction.data.card?.id;
+    const userId = action.condition?.user;
+    if (!cardId) {
+      console.warn("RemoveCardMember missing card", { cardId });
+      return;
+    }
+    try {
+      if (userId) {
+        // remove specific user
+        const remRes = await this.controller_context?.card_member.removeMember(
+          cardId,
+          userId
+        );
+        if (remRes?.status_code === 200) {
+          const memsAfter =
+            await this.controller_context?.card_member.getMembers(cardId);
+          if (memsAfter?.status_code === 200) {
+            broadcastToWebSocket("card_member:updated", {
+              cardId,
+              members: (memsAfter as any).data || [],
+            });
+          }
+        }
+      } else {
+        // remove all members
+        const membersRes =
+          await this.controller_context?.card_member.getMembers(cardId);
+        const memList: any[] =
+          (membersRes as any).data || (membersRes as any).members || [];
+        if (membersRes?.status_code === 200 && memList.length) {
+          for (const m of memList) {
+            const remRes =
+              await this.controller_context?.card_member.removeMember(
+                cardId,
+                m.id || m.user_id
+              );
+            if (remRes?.status_code === 200) {
+              const memsAfter =
+                await this.controller_context?.card_member.getMembers(cardId);
+              if (memsAfter?.status_code === 200) {
+                broadcastToWebSocket("card_member:updated", {
+                  cardId,
+                  members: (memsAfter as any).data || [],
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error removing member", e);
     }
   }
 }

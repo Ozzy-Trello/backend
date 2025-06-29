@@ -20,6 +20,7 @@ export interface filterUserDetail {
   email?: string;
   phone?: string;
   withPassword?: boolean;
+  roleIds?: string[];
 
   __orId?: string;
   __orUsername?: string;

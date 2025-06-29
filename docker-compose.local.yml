@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -12,12 +12,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      
+
   nats:
     image: nats:latest
     container_name: ozzy_nats
     ports:
       - "4222:4222"
-      - "8222:8222"   # Monitoring endpoint
+      - "8222:8222" # Monitoring endpoint
 volumes:
   postgres_data:

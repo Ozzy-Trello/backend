@@ -117,6 +117,7 @@ export class AccountFilter {
   email?: string;
   username?: string;
   phone?: string;
+  roleIds?: string[];
 
   constructor(payload: Partial<AccountFilter>) {
     Object.assign(this, payload);
@@ -126,10 +127,11 @@ export class AccountFilter {
 
   toFilterUserDetail(): filterUserDetail {
     return {
+      id: this.user_id,
       email: this.email,
       username: this.username,
-      id: this.user_id,
       phone: this.phone,
+      roleIds: this.roleIds,
     };
   }
 
@@ -138,7 +140,8 @@ export class AccountFilter {
       this.user_id == undefined &&
       this.email == undefined &&
       this.username == undefined &&
-      this.phone == undefined
+      this.phone == undefined &&
+      this.roleIds == undefined
     );
   }
 }
