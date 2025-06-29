@@ -156,7 +156,7 @@ export enum EnumTiggerCarFilterType {
   LabelInclusionInCard = `<${EnumSelectionType.Inclusion}>-the-<${EnumSelectionType.CardLabel}>-label`,
   CardAssignment = `<${EnumSelectionType.Assignment}>-<${EnumSelectionType.AssignmentSubject}>`,
 
-  CardDueDates = `<${EnumSelectionType.Inclusion}>-a-date`,
+  CardDueDates = `<${EnumSelectionType.Inclusion}>-a-due-date`,
   CardStartDate = `<${EnumSelectionType.Inclusion}>-a-start-date`,
   CardDateStatus = `<${EnumSelectionType.DateStatus}>-<${EnumSelectionType.TimeRange}>`,
   CardDateStatusWithSpecificDays = `<${EnumSelectionType.DateStatus}>-<${EnumSelectionType.TimeComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.TimeUnit}>`,
