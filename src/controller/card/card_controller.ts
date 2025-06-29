@@ -29,7 +29,7 @@ import {
   ListDashcardDataResponse,
   DashCardConfig,
 } from "@/controller/card/card_interfaces";
-import { ListRepositoryI } from "@/repository/list/list_interfaces";
+import { ListDetail, ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
   CustomFieldCardDetail,
   CustomFieldRepositoryI,
@@ -164,10 +164,7 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: {
-            id: checkCard.data.id,
-            list_id: checkCard.data.list_id,
-          },
+          card: checkCard.data,
         },
       };
       console.log("Trying to publish event: %s", event.eventId);
@@ -231,10 +228,7 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: {
-            id: checkCard.data.id,
-            list_id: checkCard.data.list_id,
-          },
+          card: checkCard.data,
         },
       };
       console.log("Trying to publish event: %s", event.eventId);
@@ -654,13 +648,8 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: {
-            id: cardResponse.id,
-            list_id: cardResponse.listId,
-          },
-          list: {
-            id: cardResponse.listId,
-          },
+          card: createResponse.data,
+          list: new ListDetail({id: data.list_id}),
         },
       };
       console.log("Trying to publish event: %s", event.eventId);
@@ -770,13 +759,10 @@ export class CardController implements CardControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          card: {
-            id: createCardResult.data,
-            list_id: copyCardData.target_list_id,
-          },
-          list: {
+          card: createCardResult.data,
+          list: new ListDetail({
             id: copyCardData.target_list_id,
-          },
+          }),
         },
       };
 
@@ -1018,19 +1004,11 @@ export class CardController implements CardControllerI {
           user_id: user_id,
           timestamp: new Date(),
           data: {
-            card: {
-              id: cardResponse.id,
-              description: cardResponse.description!,
-              type: CardType.Regular,
-              list_id: cardResponse.list_id!,
-              is_mirror: cardResponse.is_mirror!,
-            },
-            list: {
-              id: targetListId,
-            },
-            previous_data: {
-              list_id: card.data?.list_id,
-              order: card.data?.order,
+            card: moveResponse.data,
+            list: new ListDetail({id: moveResponse?.data?.list_id}),
+            _previous_data: {
+              list: new ListDetail({id: card.data?.list_id}),
+              card: card.data,
             },
           },
         };
@@ -1443,21 +1421,6 @@ export class CardController implements CardControllerI {
       }
     }
 
-    if (filter.id) {
-      // let checkList = await this.card_repo.getCard({ __notId: filter.id, __orName: data.name, __orListId: filter.list_id});
-      // if (checkList.status_code == StatusCodes.OK) {
-      //   return new ResponseData({
-      //     message: "this card name already taken by others",
-      //     status_code: StatusCodes.NOT_FOUND,
-      //   })
-      // }
-    } else {
-      return new ResponseData({
-        message: "Update card without card id is not support right now",
-        status_code: StatusCodes.NOT_ACCEPTABLE,
-      });
-    }
-
     const updateResponse = await this.card_repo.updateCard(
       filter.toFilterCardDetail(),
       data.toCardDetailUpdate()
@@ -1552,13 +1515,9 @@ export class CardController implements CardControllerI {
           user_id: user_id,
           timestamp: new Date(),
           data: {
-            card: {
-              id: selectedCard.data?.id,
-              name: data.name,
-              list_id: selectedCard.data?.list_id,
-            },
-            previous_data: {
-              name: selectedCard.data?.name,
+            card: new CardDetail({id: filter.id}),
+            _previous_data: {
+              card: selectedCard.data
             },
           },
         };
