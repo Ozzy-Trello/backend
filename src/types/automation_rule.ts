@@ -69,13 +69,18 @@ export enum EnumSelectionType {
   ChecklistConditionOperator = "checklists_condition_oerator", // with all complete, with an incomplete, etc
   CardContentType = "card_content_type",
   CustomField = "custom_field",
-  CustomFieldAction = "custom_field_action" // set, cleared
+  CustomFieldAction = "custom_field_action", // set, cleared
+  TaskType = "task_type",
+  SetTask = "set_task",
+  CardContentText = "card_content_text",
 }
 
 export enum EnumInputType {
   Number = "number",
   Text = "text",
   DateValue = "date_value",
+  TextDescription = "text_description",
+  TextTitle = "text_title",
 }
 
 export enum TriggerType {
@@ -134,6 +139,15 @@ export enum ActionType {
   SetChecklistItemDueDate = `set_the_item_due_<${EnumInputType.DateValue}>`,
   MoveChecklistItemDueDate = `move_the_item_due_date_to_<${EnumInputType.DateValue}>`,
   ToggleChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_in_checklist_<${EnumSelectionType.ChecklistName}>`,
+
+  // create a <CardType> <CardTypeItem> card with title <TextTitle> <TextDescription> <Position> <List> <Board> <MultiLabels> <MultiChecklists> <MultiUsers> <MultiDates>
+  CreateItem = `create-a-<${EnumSelectionType.CreateType}>-card-with-title-<${EnumInputType.TextTitle}>-<${EnumInputType.TextDescription}>-<${EnumSelectionType.Position}>-<${EnumSelectionType.List}>-<${EnumSelectionType.Board}>-<${EnumSelectionType.MultiLabels}>-<${EnumSelectionType.MultiChecklists}>-<${EnumSelectionType.MultiUsers}>-<${EnumSelectionType.MultiDates}>`,
+
+  // <AddRemove> the <CardLabel> label to the card
+  AddRemoveLabel = `<${EnumSelectionType.AddRemove}>-the-<${EnumSelectionType.CardLabel}>-label-to-the-card`,
+
+  // remove <RemoveFromCard> from the card
+  RemoveFromCard = `remove-<${EnumSelectionType.RemoveFromCard}>-from-the-card`,
   //add more..
 }
 

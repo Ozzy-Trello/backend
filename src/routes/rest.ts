@@ -445,6 +445,7 @@ export default async function (): Promise<Router> {
   {
     router_label.post("/", restJwt, label_rest_view.CreateLabel);
     router_label.get("/", restJwt, label_rest_view.GetLabels);
+    router_label.get("/workspace", restJwt, label_rest_view.GetAllLabels);
     router_label.get("/:id", restJwt, label_rest_view.GetLabel);
     router_label.put("/:id", restJwt, label_rest_view.UpdateLabel);
     router_label.delete("/:id", restJwt, label_rest_view.DeleteLabel);

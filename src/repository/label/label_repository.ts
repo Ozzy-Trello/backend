@@ -387,4 +387,28 @@ export class LabelRepository implements LabelRepositoryI {
       );
     }
   }
+
+  async getAllLabels(
+    workspace_id: string
+  ): Promise<ResponseData<LabelAttributes[]>> {
+    try {
+      const result = await db
+        .selectFrom("label")
+        .selectAll()
+        .where("workspace_id", "=", workspace_id)
+        .orderBy("created_at", "asc")
+        .execute();
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "label list",
+        data: result,
+      });
+    } catch (e) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
 }

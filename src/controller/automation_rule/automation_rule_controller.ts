@@ -13,6 +13,7 @@ import {
   AutomationRuleActionDetail,
 } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import {
+  CardCreateData,
   CardFilter,
   CardMoveData,
   CopyCardData,
@@ -33,6 +34,7 @@ import {
   EnumOptionsNumberComparisonOperators,
   EnumOptionBySubject,
   EnumOptionsSet,
+  EnumOptionPosition,
 } from "@/types/options";
 import {
   CardCustomFieldValueUpdate,
@@ -45,6 +47,8 @@ import { AutomationRuleFilterDetail } from "@/repository/automation_rule_filter/
 import { AutomationRuleFilterService } from "../automation/automation_filter_evaluator";
 import { RepositoryContext } from "@/repository/repository_context";
 import { ControllerContext } from "../controller_context";
+import { ActionType } from "@/types/automation_rule";
+import { CardType } from "@/types/card";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private repository_context: RepositoryContext;
@@ -1059,6 +1063,15 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     recentUserAction: UserActionEvent
   ): Promise<void> {
     try {
+      switch (action.type) {
+        case ActionType.CreateItem:
+          await this.handleCreateItemAction(action, recentUserAction);
+          break;
+
+        default:
+          break;
+      }
+
       switch (action?.condition?.action) {
         case EnumActions.MoveCard:
           console.log("executeAutomationAction: move.card");
@@ -1988,6 +2001,68 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     }
 
     return null;
+  }
+
+  private async handleCreateItemAction(
+    action: AutomationRuleActionDetail,
+    recentUserAction: UserActionEvent
+  ): Promise<void> {
+    const boardId = action.condition.board;
+    const listId = action.condition.list;
+    const title = action.condition.text_title;
+    const description = action.condition.text_description;
+    const position = action.condition.position;
+    const multiUsers = action.condition.multi_users ?? [];
+    const multiChecklists = action.condition.multi_checklists ?? [];
+
+    const { data: cards } = await this.repository_context.card.getListCard(
+      new CardFilter({
+        list_id: listId,
+      }),
+      new Paginate(1, 1000)
+    );
+
+    let order = 10000;
+
+    if (cards && cards.length > 0 && position !== EnumOptionPosition.InList) {
+      const card = cards.sort((a, b) => a.order! - b.order!);
+
+      if (position === EnumOptionPosition.TopOfList) {
+        order = (card[cards.length - 1]?.order || order) - 1000;
+      }
+
+      if (position === EnumOptionPosition.BottomOfList) {
+        order = (card[0]?.order || order) + 10000;
+      }
+    }
+
+    const createCardResult = await this.controller_context?.card.CreateCard(
+      recentUserAction.user_id,
+      new CardCreateData({
+        name: title,
+        description: description,
+        list_id: listId,
+        type: CardType.Regular,
+        order,
+        dash_config: undefined,
+      }),
+      EnumTriggeredBy.OzzyAutomation
+    );
+    const data = createCardResult?.data;
+
+    if (multiUsers.length > 0 && data) {
+      await this.controller_context?.card_member.addMembers(data.id, multiUsers);
+    }
+
+    if (multiChecklists.length > 0 && data) {
+      const dataChecklist = multiChecklists.map((item: any) => ({
+        card_id: data.id,
+        title: item.name,
+        data: [],
+      }));
+
+      await this.controller_context?.checklist.CreateBulkChecklist(dataChecklist);
+    }
   }
 
   private evaluateDateExpression(actual: Date, meta: any): boolean {

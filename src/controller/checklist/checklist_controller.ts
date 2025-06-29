@@ -432,4 +432,20 @@ export class ChecklistController implements IChecklistController {
       };
     }
   }
+
+  async CreateBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>> {
+    try {
+      const result = await this.repository_context.checklist.createBulkChecklist(data);
+      return result;
+    } catch (error) {
+      console.error("Error in ChecklistController.CreateBulkChecklist:", error);
+      return {
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: "Failed to create bulk checklist",
+        data: [],
+      };
+    }
+  }
 }
