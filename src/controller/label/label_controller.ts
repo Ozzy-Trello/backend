@@ -1,17 +1,16 @@
-import { LabelRepository } from '@/repository/label/label_repository';
-import { ResponseData, ResponseListData } from '@/utils/response_utils';
+import { ResponseData } from '@/utils/response_utils';
 import { LabelAttributes } from '@/database/schemas/label';
 import { Paginate } from '@/utils/data_utils';
 import { StatusCodes } from 'http-status-codes';
-import { CardLabelDetail, CreateCardLabelData, filterLabelDetail, LabelRepositoryI } from '@/repository/label/label_interfaces';
+import { CardLabelDetail, CreateCardLabelData, filterLabelDetail } from '@/repository/label/label_interfaces';
 import { LabelControllerI } from '@/controller/label/label_interfaces';
-import { filterWorkspaceDetail, WorkspaceRepositoryI } from '@/repository/workspace/workspace_interfaces';
+import { filterWorkspaceDetail } from '@/repository/workspace/workspace_interfaces';
+import { RepositoryContext } from '@/repository/repository_context';
 
 export class LabelController implements LabelControllerI {
-  private repo: LabelRepositoryI;
-  constructor(repo: LabelRepositoryI, private workspace_repo: WorkspaceRepositoryI) {
-    this.repo = repo;
-    this.workspace_repo = workspace_repo;
+  private repository_context: RepositoryContext;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.CreateLabel = this.CreateLabel.bind(this);
     this.GetLabel = this.GetLabel.bind(this);
     this.GetLabels = this.GetLabels.bind(this);
@@ -26,7 +25,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
+    const workspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
     if (workspace.status_code != StatusCodes.OK) {
       let msg = "internal server error"
       if (workspace.status_code == StatusCodes.NOT_FOUND){
@@ -37,7 +36,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
-    const result = await this.repo.createLabel(data);
+    const result = await this.repository_context.label.createLabel(data);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -58,7 +57,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.getLabel(filter);
+    const result = await this.repository_context.label.getLabel(filter);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -105,7 +104,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: filter.workspace_id}))
+    const workspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({id: filter.workspace_id}))
     if (workspace.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: workspace.message,
@@ -114,7 +113,7 @@ export class LabelController implements LabelControllerI {
     }
 
     if (data.workspace_id) {
-      const workspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
+      const workspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({id: data.workspace_id}))
       if (workspace.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: workspace.message,
@@ -130,7 +129,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.updateLabel(filter.id, data);
+    const result = await this.repository_context.label.updateLabel(filter.id, data);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -163,7 +162,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.deleteLabel(filter.id);
+    const result = await this.repository_context.label.deleteLabel(filter.id);
     if (result.status_code !== StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: result.message,
@@ -183,7 +182,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.addLabelToCard(data);
+    const result = await this.repository_context.label.addLabelToCard(data);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -198,7 +197,7 @@ export class LabelController implements LabelControllerI {
   }
 
   async RemoveLabelFromCard(label_id: string, card_id: string): Promise<ResponseData<null>> {
-    const result = await this.repo.removeLabelFromCard(label_id, card_id);
+    const result = await this.repository_context.label.removeLabelFromCard(label_id, card_id);
     if (result.status_code !== StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: result.message,
@@ -218,7 +217,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.getLabels(workspace_id, card_id, paginate);
+    const result = await this.repository_context.label.getLabels(workspace_id, card_id, paginate);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,
@@ -239,7 +238,7 @@ export class LabelController implements LabelControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    const result = await this.repo.getAssignedLabelInCard(workspace_id, card_id);
+    const result = await this.repository_context.label.getAssignedLabelInCard(workspace_id, card_id);
     if (result.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: result.message,

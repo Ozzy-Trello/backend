@@ -19,20 +19,13 @@ import {
   WorkspaceRepositoryI,
 } from "@/repository/workspace/workspace_interfaces";
 import { RoleRepositoryI } from "@/repository/role_access/role_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class BoardController implements BoardControllerI {
-  private board_repo: BoardRepositoryI;
-  private role_access_repo: RoleRepositoryI;
-  private workspace_repo: WorkspaceRepositoryI;
+  private repository_context: RepositoryContext;
 
-  constructor(
-    board_repo: BoardRepositoryI,
-    workspace_repo: WorkspaceRepositoryI,
-    role_access_repo: RoleRepositoryI
-  ) {
-    this.board_repo = board_repo;
-    this.workspace_repo = workspace_repo;
-    this.role_access_repo = role_access_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.GetBoard = this.GetBoard.bind(this);
     this.GetListBoard = this.GetListBoard.bind(this);
     this.DeleteBoard = this.DeleteBoard.bind(this);
@@ -58,7 +51,7 @@ export class BoardController implements BoardControllerI {
       workspaceFilter.slug = data.workspace_id;
     }
 
-    let workspace = await this.workspace_repo.getWorkspace(workspaceFilter);
+    let workspace = await this.repository_context.workspace.getWorkspace(workspaceFilter);
     if (workspace.status_code != StatusCodes.OK) {
       let msg = "internal server error";
       if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -71,7 +64,7 @@ export class BoardController implements BoardControllerI {
     }
     data.workspace_id = workspace.data?.id!;
 
-    let checkBoard = await this.board_repo.getBoard({
+    let checkBoard = await this.repository_context.board.getBoard({
       workspace_id: workspace.data?.id!,
       name: data.name,
     });
@@ -107,7 +100,7 @@ export class BoardController implements BoardControllerI {
     const boardDetail = data.toBoardDetail();
     (boardDetail as any).roleIds = roleIds;
 
-    const createResponse = await this.board_repo.createBoard(boardDetail);
+    const createResponse = await this.repository_context.board.createBoard(boardDetail);
     if (createResponse.status_code !== StatusCodes.OK) {
       return new ResponseData({
         message: createResponse.message || "Failed to create board",
@@ -158,7 +151,7 @@ export class BoardController implements BoardControllerI {
         delete filter.workspace_user_id_owner;
       }
 
-      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter);
+      let workspace = await this.repository_context.workspace.getWorkspace(workspaceFilter);
       if (workspace.status_code != StatusCodes.OK) {
         let msg = "internal server error";
         if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -181,7 +174,7 @@ export class BoardController implements BoardControllerI {
       }
     }
 
-    let board = await this.board_repo.getBoard(filter);
+    let board = await this.repository_context.board.getBoard(filter);
     if (board.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: board.message,
@@ -239,7 +232,7 @@ export class BoardController implements BoardControllerI {
         delete filter.workspace_user_id_owner;
       }
 
-      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter);
+      let workspace = await this.repository_context.workspace.getWorkspace(workspaceFilter);
       if (workspace.status_code != StatusCodes.OK) {
         let msg = "internal server error";
         if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -261,7 +254,7 @@ export class BoardController implements BoardControllerI {
     if (userId) {
       (boardFilter as any).userId = userId;
     }
-    let boards = await this.board_repo.getBoardList(boardFilter, paginate);
+    let boards = await this.repository_context.board.getBoardList(boardFilter, paginate);
     return new ResponseListData(
       {
         message: "board list",
@@ -303,7 +296,7 @@ export class BoardController implements BoardControllerI {
         delete filter.workspace_user_id_owner;
       }
 
-      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter);
+      let workspace = await this.repository_context.workspace.getWorkspace(workspaceFilter);
       if (workspace.status_code != StatusCodes.OK) {
         let msg = "internal server error";
         if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -316,7 +309,7 @@ export class BoardController implements BoardControllerI {
       }
       filter.workspace_id = workspace.data?.id!;
     }
-    const deleteResponse = await this.board_repo.deleteBoard(filter);
+    const deleteResponse = await this.repository_context.board.deleteBoard(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Board is not found",
@@ -370,7 +363,7 @@ export class BoardController implements BoardControllerI {
         delete filter.workspace_user_id_owner;
       }
 
-      let workspace = await this.workspace_repo.getWorkspace(workspaceFilter);
+      let workspace = await this.repository_context.workspace.getWorkspace(workspaceFilter);
       if (workspace.status_code != StatusCodes.OK) {
         let msg = "internal server error";
         if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -385,7 +378,7 @@ export class BoardController implements BoardControllerI {
     }
 
     if (filter.id) {
-      let currentBoard = await this.board_repo.getBoard({ id: filter.id });
+      let currentBoard = await this.repository_context.board.getBoard({ id: filter.id });
       if (currentBoard.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: "Board is not found",
@@ -396,7 +389,7 @@ export class BoardController implements BoardControllerI {
 
     console.log(data, "<< in idata");
 
-    const updateResponse = await this.board_repo.updateBoard(
+    const updateResponse = await this.repository_context.board.updateBoard(
       filter.toFilterBoardDetail(),
       data.toBoardDetailUpdate()
     );

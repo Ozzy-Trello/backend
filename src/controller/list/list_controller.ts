@@ -14,22 +14,20 @@ import {
   ListResponse,
   UpdateListData,
 } from "@/controller/list/list_interfaces";
-import { BoardRepositoryI } from "@/repository/board/board_interfaces";
 import { broadcastToWebSocket } from "@/server";
 import { EnumTriggeredBy, EnumUserActionEvent, UserActionEvent } from "@/types/event";
 import { AutomationRuleControllerI } from "../automation_rule/automation_rule_interface";
 import { EventPublisher } from "@/event_publisher";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class ListController implements ListControllerI {
-  private list_repo: ListRepositoryI;
-  private board_repo: BoardRepositoryI;
+  private repository_context: RepositoryContext;
   private event_publisher: EventPublisher | undefined;
   private automation_rule_controller: AutomationRuleControllerI | undefined;
 
 
-  constructor(list_repo: ListRepositoryI, board_repo: BoardRepositoryI) {
-    this.list_repo = list_repo;
-    this.board_repo = board_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.GetList = this.GetList.bind(this);
     this.GetListList = this.GetListList.bind(this);
     this.DeleteList = this.DeleteList.bind(this);
@@ -69,7 +67,7 @@ export class ListController implements ListControllerI {
       });
     }
 
-    let workspace = await this.board_repo.getBoard({ id: data.board_id });
+    let workspace = await this.repository_context.board.getBoard({ id: data.board_id });
     if (workspace.status_code != StatusCodes.OK) {
       let msg = "internal server error";
       if (workspace.status_code == StatusCodes.NOT_FOUND) {
@@ -81,7 +79,7 @@ export class ListController implements ListControllerI {
       });
     }
 
-    let checkBoard = await this.list_repo.getList({
+    let checkBoard = await this.repository_context.list.getList({
       board_id: data.board_id,
       name: data.name,
     });
@@ -92,7 +90,7 @@ export class ListController implements ListControllerI {
       });
     }
     data.created_by = user_id;
-    let createResponse = await this.list_repo.createList(data.toListDetail());
+    let createResponse = await this.repository_context.list.createList(data.toListDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
         message: "internal server error",
@@ -159,7 +157,7 @@ export class ListController implements ListControllerI {
     }
 
     if (filter.board_id) {
-      let checkBoard = await this.board_repo.getBoard({ id: filter.board_id });
+      let checkBoard = await this.repository_context.board.getBoard({ id: filter.board_id });
       if (checkBoard.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: checkBoard.message,
@@ -168,7 +166,7 @@ export class ListController implements ListControllerI {
       }
     }
 
-    let checkBoard = await this.list_repo.getList(filter.toFilterListDetail());
+    let checkBoard = await this.repository_context.list.getList(filter.toFilterListDetail());
     if (checkBoard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkBoard.message,
@@ -199,7 +197,7 @@ export class ListController implements ListControllerI {
     }
 
     if (filter.board_id) {
-      let checkBoard = await this.board_repo.getBoard({ id: filter.board_id });
+      let checkBoard = await this.repository_context.board.getBoard({ id: filter.board_id });
       if (checkBoard.status_code != StatusCodes.OK) {
         return new ResponseListData(
           {
@@ -211,7 +209,7 @@ export class ListController implements ListControllerI {
       }
     }
 
-    let boards = await this.list_repo.getListList(
+    let boards = await this.repository_context.list.getListList(
       filter.toFilterListDetail(),
       paginate
     );
@@ -240,7 +238,7 @@ export class ListController implements ListControllerI {
       });
     }
     if (filter.board_id) {
-      let checkBoard = await this.board_repo.getBoard({ id: filter.board_id });
+      let checkBoard = await this.repository_context.board.getBoard({ id: filter.board_id });
       if (checkBoard.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: checkBoard.message,
@@ -248,7 +246,7 @@ export class ListController implements ListControllerI {
         });
       }
     }
-    const deleteResponse = await this.list_repo.deleteList(filter);
+    const deleteResponse = await this.repository_context.list.deleteList(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "List is not found",
@@ -286,7 +284,7 @@ export class ListController implements ListControllerI {
     }
 
     if (filter.board_id) {
-      let checkBoard = await this.board_repo.getBoard({ id: filter.board_id });
+      let checkBoard = await this.repository_context.board.getBoard({ id: filter.board_id });
       if (checkBoard.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: checkBoard.message,
@@ -296,7 +294,7 @@ export class ListController implements ListControllerI {
     }
 
     if (filter.id) {
-      let currentBoard = await this.list_repo.getList({ id: filter.id });
+      let currentBoard = await this.repository_context.list.getList({ id: filter.id });
       if (currentBoard.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: "List is not found",
@@ -304,7 +302,7 @@ export class ListController implements ListControllerI {
         });
       }
 
-      let checkBoard = await this.list_repo.getList({
+      let checkBoard = await this.repository_context.list.getList({
         __notId: filter.id,
         __orName: data.name,
       });
@@ -316,7 +314,7 @@ export class ListController implements ListControllerI {
       }
     }
 
-    const updateResponse = await this.list_repo.updateList(
+    const updateResponse = await this.repository_context.list.updateList(
       filter.toFilterListDetail(),
       data.toListDetailUpdate()
     );
@@ -346,7 +344,7 @@ export class ListController implements ListControllerI {
       }
 
       // 2. Get the current list information before move
-      const card = await this.list_repo.getList({ id: filter.id });
+      const card = await this.repository_context.list.getList({ id: filter.id });
       if (card.status_code !== StatusCodes.OK) {
         return new ResponseData({
           message: card.message,
@@ -355,7 +353,7 @@ export class ListController implements ListControllerI {
       }
 
       // 3. Call the repository's moveList function
-      const moveResponse = await this.list_repo.moveList({
+      const moveResponse = await this.repository_context.list.moveList({
         id: filter.id,
         previous_position: filter.previous_position,
         target_position: filter.target_position,

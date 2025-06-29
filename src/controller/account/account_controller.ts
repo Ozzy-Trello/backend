@@ -8,12 +8,13 @@ import {
 } from "@/controller/account/account_interfaces";
 import {StatusCodes} from "http-status-codes";
 import {Paginate} from "@/utils/data_utils";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class AccountController implements AccountControllerI {
-	private user_repo: UserRepositoryI
+	private repository_context: RepositoryContext
 
-	constructor(user_repo: UserRepositoryI) {
-		this.user_repo = user_repo;
+	constructor(repository_context: RepositoryContext) {
+		this.repository_context = repository_context;
 		this.GetAccount = this.GetAccount.bind(this);
 		this.GetAccountList = this.GetAccountList.bind(this);
 		this.DeleteAccount = this.DeleteAccount.bind(this);
@@ -21,7 +22,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async GetAccount(filter: AccountFilter): Promise<ResponseData<AccountResponse>> {
-		let checkAccount = await this.user_repo.getUser(filter.toFilterUserDetail());
+		let checkAccount = await this.repository_context.user.getUser(filter.toFilterUserDetail());
 		if (checkAccount.status_code != StatusCodes.OK){
 			return new ResponseData({
 				message: checkAccount.message,
@@ -36,7 +37,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async GetAccountList(filter: AccountFilter, paginate: Paginate): Promise<ResponseListData<Array<AccountResponse>>> {
-		let accounts = await this.user_repo.getUserList(filter.toFilterUserDetail(), paginate);
+		let accounts = await this.repository_context.user.getUserList(filter.toFilterUserDetail(), paginate);
 		return new ResponseListData({
 			message: "account list",
 			status_code: StatusCodes.OK,
@@ -45,7 +46,7 @@ export class AccountController implements AccountControllerI {
 	}
 
 	async DeleteAccount(filter: AccountFilter): Promise<ResponseData<null>> {
-		const deleteResponse = await this.user_repo.deleteUser(filter);
+		const deleteResponse = await this.repository_context.user.deleteUser(filter);
 		if (deleteResponse == StatusCodes.NOT_FOUND) {
 			return new ResponseData({
 				message: "Account is not found",
@@ -73,7 +74,7 @@ export class AccountController implements AccountControllerI {
 		}
 		
     if (filter.user_id){
-      let currentAccount = await this.user_repo.getUser({id: filter.user_id});
+      let currentAccount = await this.repository_context.user.getUser({id: filter.user_id});
       if (currentAccount.status_code == StatusCodes.NOT_FOUND){
 				return new ResponseData({
 					message: "Account is not found",
@@ -81,7 +82,7 @@ export class AccountController implements AccountControllerI {
 				})
       }
 
-      let checkAccount = await this.user_repo.getUser({__notId: filter.user_id, __orEmail:data.email, __orUsername: data.username, __orPhone:data.phone});
+      let checkAccount = await this.repository_context.user.getUser({__notId: filter.user_id, __orEmail:data.email, __orUsername: data.username, __orPhone:data.phone});
       if (checkAccount.status_code == StatusCodes.OK){
 				let msg = "this email already taken by others";
 				if (!(data.email && currentAccount.data?.email == data.email)){
@@ -98,7 +99,7 @@ export class AccountController implements AccountControllerI {
 			}
 		};
 
-		const updateResponse = await this.user_repo.updateUser(filter.toFilterUserDetail(), data.toUserDetailUpdate());
+		const updateResponse = await this.repository_context.user.updateUser(filter.toFilterUserDetail(), data.toUserDetailUpdate());
 		if (updateResponse == StatusCodes.NOT_FOUND) {
 			return new ResponseData({
 				message: "Account is not found",

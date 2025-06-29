@@ -4,11 +4,8 @@ import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
 import { Paginate } from "@/utils/data_utils";
 import {
-  CardActivity,
-  CardActivityAction,
   CardDetail,
   CardDetailUpdate,
-  CardRepositoryI,
   filterMoveCard,
 } from "@/repository/card/card_interfaces";
 import {
@@ -25,27 +22,21 @@ import {
   CardMoveData,
   CardSearch,
   CopyCardData,
-  FilterConfig,
   ListDashcardDataResponse,
   DashCardConfig,
 } from "@/controller/card/card_interfaces";
-import { ListDetail, ListRepositoryI } from "@/repository/list/list_interfaces";
+import { ListDetail } from "@/repository/list/list_interfaces";
 import {
   CustomFieldCardDetail,
-  CustomFieldRepositoryI,
 } from "@/repository/custom_field/custom_field_interfaces";
-import { CardActivityType } from "@/types/custom_field";
 import {
   CardAttachmentDetail,
-  CardAttachmentRepositoryI,
 } from "@/repository/card_attachment/card_attachment_interface";
 import {
   CardListTimeDetail,
-  CardListTimeRepositoryI,
 } from "@/repository/card_list_time/card_list_time_interface";
 import {
   CardBoardTimeDetail,
-  CardBoardTimeRepositoryI,
 } from "@/repository/card_board_time/card_board_time_interface";
 import { CardType } from "@/types/card";
 import {
@@ -62,15 +53,11 @@ import {
   UserActionEvent,
 } from "@/types/event";
 import { EnumOptionPosition } from "@/types/options";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
-  private card_repo: CardRepositoryI;
-  private list_repo: ListRepositoryI;
-  private custom_field_repo: CustomFieldRepositoryI;
-  private card_attachmment_repo: CardAttachmentRepositoryI;
-  private card_list_time_repo: CardListTimeRepositoryI;
-  private card_board_time_repo: CardBoardTimeRepositoryI;
+  private repository_context: RepositoryContext;
   private automation_rule_controller: AutomationRuleControllerI | undefined;
   private whatsapp_controller: WhatsAppControllerI;
 
@@ -78,20 +65,10 @@ export class CardController implements CardControllerI {
   private mentionProcessingCache: Set<string> = new Set();
 
   constructor(
-    card_repo: CardRepositoryI,
-    list_repo: ListRepositoryI,
-    custom_field_repo: CustomFieldRepositoryI,
-    card_attachmment_repo: CardAttachmentRepositoryI,
-    card_list_time_repo: CardListTimeRepositoryI,
-    card_board_time_repo: CardBoardTimeRepositoryI,
+    repository_context: RepositoryContext,
     whatsapp_controller: WhatsAppControllerI
   ) {
-    this.card_repo = card_repo;
-    this.list_repo = list_repo;
-    this.custom_field_repo = custom_field_repo;
-    this.card_attachmment_repo = card_attachmment_repo;
-    this.card_list_time_repo = card_list_time_repo;
-    this.card_board_time_repo = card_board_time_repo;
+    this.repository_context = repository_context;
     this.whatsapp_controller = whatsapp_controller;
     this.ArchiveCard = this.ArchiveCard.bind(this);
     this.UnArchiveCard = this.UnArchiveCard.bind(this);
@@ -129,7 +106,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     console.log("hasil checking.. archiving the card nih...", checkCard);
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
@@ -171,7 +148,7 @@ export class CardController implements CardControllerI {
       this.event_publisher.publishUserAction(event);
     }
 
-    const updateResponse = await this.card_repo.updateCard(
+    const updateResponse = await this.repository_context.card.updateCard(
       new CardFilter({ id: card_id }),
       new CardDetailUpdate({ archive: true })
     );
@@ -198,7 +175,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -235,7 +212,7 @@ export class CardController implements CardControllerI {
       this.event_publisher.publishUserAction(event);
     }
 
-    const updateResponse = await this.card_repo.updateCard(
+    const updateResponse = await this.repository_context.card.updateCard(
       new CardFilter({ id: card_id }),
       new CardDetailUpdate({ archive: false })
     );
@@ -274,7 +251,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -282,7 +259,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCustomField = await this.custom_field_repo.getAssignCard(
+    let checkCustomField = await this.repository_context.custom_field.getAssignCard(
       custom_field_id,
       card_id
     );
@@ -311,7 +288,7 @@ export class CardController implements CardControllerI {
     //   }
     // }
 
-    let assignCustomFieldRes = await this.custom_field_repo.updateAssignedCard(
+    let assignCustomFieldRes = await this.repository_context.custom_field.updateAssignedCard(
       custom_field_id,
       card_id,
       new CustomFieldCardDetail({
@@ -354,7 +331,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -362,7 +339,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCustomField = await this.custom_field_repo.getCustomField({
+    let checkCustomField = await this.repository_context.custom_field.getCustomField({
       id: custom_field_id,
     });
     if (checkCustomField.status_code != StatusCodes.OK) {
@@ -398,7 +375,7 @@ export class CardController implements CardControllerI {
     //   }
     // }
 
-    let assignCustomFieldRes = await this.custom_field_repo.assignToCard(
+    let assignCustomFieldRes = await this.repository_context.custom_field.assignToCard(
       custom_field_id,
       data
     );
@@ -417,7 +394,7 @@ export class CardController implements CardControllerI {
     }
 
     if (checkCustomField.status_code == StatusCodes.OK && value) {
-      let selectedCustomField = await this.custom_field_repo.getAssignCard(
+      let selectedCustomField = await this.repository_context.custom_field.getAssignCard(
         custom_field_id,
         card_id
       );
@@ -460,7 +437,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -468,7 +445,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCustomField = await this.custom_field_repo.getCustomField({
+    let checkCustomField = await this.repository_context.custom_field.getCustomField({
       id: custom_field_id,
     });
     if (checkCustomField.status_code != StatusCodes.OK) {
@@ -478,7 +455,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let assignCustomFieldRes = await this.custom_field_repo.unAssignFromCard(
+    let assignCustomFieldRes = await this.repository_context.custom_field.unAssignFromCard(
       custom_field_id,
       card_id
     );
@@ -515,7 +492,7 @@ export class CardController implements CardControllerI {
       );
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseListData(
         {
@@ -526,7 +503,7 @@ export class CardController implements CardControllerI {
       );
     }
 
-    let res = await this.custom_field_repo.getListAssignCard(card_id, paginate);
+    let res = await this.repository_context.custom_field.getListAssignCard(card_id, paginate);
     if (res.status_code != StatusCodes.OK) {
       return new ResponseListData(
         {
@@ -568,7 +545,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let listCheck = await this.list_repo.getList({ id: data.list_id });
+    let listCheck = await this.repository_context.list.getList({ id: data.list_id });
     if (listCheck.status_code != StatusCodes.OK) {
       let msg = "internal server error";
       if (listCheck.status_code == StatusCodes.NOT_FOUND) {
@@ -588,7 +565,7 @@ export class CardController implements CardControllerI {
     //   })
     // }
 
-    let createResponse = await this.card_repo.createCard(data.toCardDetail());
+    let createResponse = await this.repository_context.card.createCard(data.toCardDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
         message: "internal server error",
@@ -605,7 +582,7 @@ export class CardController implements CardControllerI {
        */
 
       // insert time tracking record for inserted card in related list
-      this.card_list_time_repo.createCardTimeInList(
+      this.repository_context.card_list_time_history.createCardTimeInList(
         new CardListTimeDetail({
           card_id: createResponse.data?.id!,
           list_id: data.list_id,
@@ -614,7 +591,7 @@ export class CardController implements CardControllerI {
       );
 
       // insert time tracking record for inserted card in related board
-      this.card_board_time_repo.createCardTimeInBoard(
+      this.repository_context.card_board_time_history.createCardTimeInBoard(
         new CardBoardTimeDetail({
           card_id: createResponse.data?.id!,
           board_id: listCheck.data?.board_id!,
@@ -701,7 +678,7 @@ export class CardController implements CardControllerI {
     }
 
     // find source card
-    let checkedData = await this.card_repo.getListCard(
+    let checkedData = await this.repository_context.card.getListCard(
       { id: copyCardData?.card_id },
       new Paginate(0, 0)
     );
@@ -726,7 +703,7 @@ export class CardController implements CardControllerI {
     if (!cardToCopied.type) cardToCopied.type = CardType.Regular;
 
     // insert the data
-    const createCardResult = await this.card_repo.createCard(cardToCopied);
+    const createCardResult = await this.repository_context.card.createCard(cardToCopied);
     if (checkedData.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: createCardResult.message,
@@ -795,11 +772,11 @@ export class CardController implements CardControllerI {
         moveCardParams.target_position = copyCardData?.position as number;
       }
 
-      this.card_repo.moveCard(moveCardParams);
+      this.repository_context.card.moveCard(moveCardParams);
     }
 
     // insert time tracking record for inserted card in related list
-    this.card_list_time_repo.createCardTimeInList(
+    this.repository_context.card_list_time_history.createCardTimeInList(
       new CardListTimeDetail({
         card_id: createCardResult?.data?.id!,
         list_id: copyCardData?.target_list_id,
@@ -807,12 +784,12 @@ export class CardController implements CardControllerI {
       })
     );
 
-    this.list_repo
+    this.repository_context.list
       .getList({ id: copyCardData?.target_list_id })
       .then((result) => {
         if (result.status_code == StatusCodes.OK) {
           // insert time tracking record for inserted card in related board
-          this.card_board_time_repo.createCardTimeInBoard(
+          this.repository_context.card_board_time_history.createCardTimeInBoard(
             new CardBoardTimeDetail({
               card_id: createCardResult.data?.id!,
               board_id: result?.data?.board_id!,
@@ -824,7 +801,7 @@ export class CardController implements CardControllerI {
 
     // insert attachment
     if (copyCardData.is_with_attachments) {
-      this.card_attachmment_repo
+      this.repository_context.card_attachment
         .getCardAttachmentList(
           { card_id: copyCardData?.card_id },
           new Paginate(0, 0)
@@ -837,7 +814,7 @@ export class CardController implements CardControllerI {
             }));
 
             // insert in bulk
-            this.card_attachmment_repo
+            this.repository_context.card_attachment
               .createCardAttachmentInBulk(attachments)
               .then((result) =>
                 console.log("insert attachment in bulk: %o", result)
@@ -887,7 +864,7 @@ export class CardController implements CardControllerI {
     }
 
     if (filter.list_id) {
-      let checkList = await this.list_repo.getList({ id: filter.list_id });
+      let checkList = await this.repository_context.list.getList({ id: filter.list_id });
       if (checkList.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: checkList.message,
@@ -896,7 +873,7 @@ export class CardController implements CardControllerI {
       }
     }
 
-    let checkList = await this.card_repo.getCard(filter.toFilterCardDetail());
+    let checkList = await this.repository_context.card.getCard(filter.toFilterCardDetail());
     if (checkList.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkList.message,
@@ -934,7 +911,7 @@ export class CardController implements CardControllerI {
       }
 
       // 2. Get the current card information before move
-      const card = await this.card_repo.getCard({ id: filter.id });
+      const card = await this.repository_context.card.getCard({ id: filter.id });
       if (card.status_code !== StatusCodes.OK) {
         return new ResponseData({
           message: card.message,
@@ -943,7 +920,7 @@ export class CardController implements CardControllerI {
       }
 
       // 3. Call the repository's moveCard function
-      const moveResponse = await this.card_repo.moveCard({
+      const moveResponse = await this.repository_context.card.moveCard({
         id: filter.id,
         previous_list_id: filter.previous_list_id,
         target_list_id: filter.target_list_id,
@@ -966,14 +943,14 @@ export class CardController implements CardControllerI {
       // Do async procedures
       if (sourceListId !== targetListId) {
         // Update time tracking record of previous list
-        const u = await this.card_list_time_repo.updateTimeTrackingRecord({
+        const u = await this.repository_context.card_list_time_history.updateTimeTrackingRecord({
           card_id: filter.id,
           list_id: filter.previous_list_id,
           exited_at: new Date(),
         });
 
         // Insert time tracking record for moved card in new list
-        this.card_list_time_repo.createCardTimeInList(
+        this.repository_context.card_list_time_history.createCardTimeInList(
           new CardListTimeDetail({
             card_id: filter.id,
             list_id: filter.target_list_id,
@@ -1069,7 +1046,7 @@ export class CardController implements CardControllerI {
     }
 
     if (filter.list_id) {
-      let checkList = await this.list_repo.getList({ id: filter.list_id });
+      let checkList = await this.repository_context.list.getList({ id: filter.list_id });
       if (checkList.status_code != StatusCodes.OK) {
         return new ResponseListData(
           {
@@ -1081,7 +1058,7 @@ export class CardController implements CardControllerI {
       }
     }
 
-    let cards = await this.card_repo.getListCard(
+    let cards = await this.repository_context.card.getListCard(
       filter.toFilterCardDetail(),
       paginate
     );
@@ -1097,7 +1074,7 @@ export class CardController implements CardControllerI {
 
     const cardIds = cards.data?.map((card) => card.id) || [];
     const attachmentCovers =
-      await this.card_attachmment_repo.getCoverAttachmentList(cardIds);
+      await this.repository_context.card_attachment.getCoverAttachmentList(cardIds);
     if (attachmentCovers.status_code != StatusCodes.OK) {
       return new ResponseListData(
         {
@@ -1116,7 +1093,7 @@ export class CardController implements CardControllerI {
     const timeInBoardMap = new Map();
     if (filter.board_id) {
       if (isValidUUID(filter.board_id)) {
-        const result = await this.card_board_time_repo.getCardTimeInBoardList(
+        const result = await this.repository_context.card_board_time_history.getCardTimeInBoardList(
           cardIds,
           filter?.board_id
         );
@@ -1141,7 +1118,7 @@ export class CardController implements CardControllerI {
     let timeInLists = [];
     const timeInListMap = new Map();
     if (filter.list_id) {
-      const result = await this.card_list_time_repo.getCardTimeInListByCardList(
+      const result = await this.repository_context.card_list_time_history.getCardTimeInListByCardList(
         cardIds,
         filter?.list_id
       );
@@ -1195,14 +1172,14 @@ export class CardController implements CardControllerI {
     filter: CardSearch,
     paginate: Paginate
   ): Promise<ResponseListData<Array<CardResponse>>> {
-    let cards = await this.card_repo.getListCard(
+    let cards = await this.repository_context.card.getListCard(
       filter.toFilterCardDetail(),
       paginate
     );
 
     const cardIds = cards.data?.map((card) => card.id) || [];
     const attachmentCovers =
-      await this.card_attachmment_repo.getCoverAttachmentList(cardIds);
+      await this.repository_context.card_attachment.getCoverAttachmentList(cardIds);
     const attachmentCoversMap = new Map();
     attachmentCovers?.data?.forEach((attachment) => {
       attachmentCoversMap.set(attachment.card_id, attachment);
@@ -1272,7 +1249,7 @@ export class CardController implements CardControllerI {
         paginate
       );
     }
-    let cardCheck = await this.card_repo.getCard({ id: card_id });
+    let cardCheck = await this.repository_context.card.getCard({ id: card_id });
     if (cardCheck.status_code != StatusCodes.OK) {
       return new ResponseListData(
         {
@@ -1283,7 +1260,7 @@ export class CardController implements CardControllerI {
       );
     }
 
-    let cardsActivity = await this.card_repo.getCardActivities(
+    let cardsActivity = await this.repository_context.card.getCardActivities(
       card_id,
       paginate
     );
@@ -1315,7 +1292,7 @@ export class CardController implements CardControllerI {
       });
     }
     if (filter.list_id) {
-      let checkList = await this.list_repo.getList({ id: filter.list_id });
+      let checkList = await this.repository_context.list.getList({ id: filter.list_id });
       if (checkList.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: checkList.message,
@@ -1323,7 +1300,7 @@ export class CardController implements CardControllerI {
         });
       }
     }
-    const deleteResponse = await this.card_repo.deleteCard(filter);
+    const deleteResponse = await this.repository_context.card.deleteCard(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Card is not found",
@@ -1372,7 +1349,7 @@ export class CardController implements CardControllerI {
     }
 
     if (filter.list_id) {
-      let checkList = await this.list_repo.getList({ id: filter.list_id });
+      let checkList = await this.repository_context.list.getList({ id: filter.list_id });
       if (checkList.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: checkList.message,
@@ -1381,7 +1358,7 @@ export class CardController implements CardControllerI {
       }
     }
 
-    let selectedCard = await this.card_repo.getCard(
+    let selectedCard = await this.repository_context.card.getCard(
       filter.toFilterCardDetail()
     );
     if (selectedCard.status_code == StatusCodes.NOT_FOUND) {
@@ -1399,7 +1376,7 @@ export class CardController implements CardControllerI {
         });
       }
 
-      let currentList = await this.list_repo.getList({
+      let currentList = await this.repository_context.list.getList({
         id: selectedCard.data?.list_id!,
       });
       if (currentList.status_code != StatusCodes.OK) {
@@ -1408,7 +1385,7 @@ export class CardController implements CardControllerI {
           status_code: StatusCodes.INTERNAL_SERVER_ERROR,
         });
       }
-      let targetList = await this.list_repo.getList({ id: data.list_id! });
+      let targetList = await this.repository_context.list.getList({ id: data.list_id! });
       if (targetList.status_code != StatusCodes.OK) {
         return new ResponseData({
           message: "target list error " + targetList.message,
@@ -1421,7 +1398,7 @@ export class CardController implements CardControllerI {
       }
     }
 
-    const updateResponse = await this.card_repo.updateCard(
+    const updateResponse = await this.repository_context.card.updateCard(
       filter.toFilterCardDetail(),
       data.toCardDetailUpdate()
     );
@@ -1543,7 +1520,7 @@ export class CardController implements CardControllerI {
     if (data.list_id && selectedCard.data?.list_id! != data.list_id!) {
       if (move_to_other_board) {
         let assignRes =
-          await this.custom_field_repo.assignAllBoardCustomFieldToCard(
+          await this.repository_context.custom_field.assignAllBoardCustomFieldToCard(
             data.list_id!,
             selectedCard.data?.id!
           );
@@ -1573,7 +1550,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -1586,7 +1563,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.NOT_ACCEPTABLE,
       });
     }
-    const updateResponse = await this.card_repo.updateCard(
+    const updateResponse = await this.repository_context.card.updateCard(
       { id: card_id },
       new CardDetailUpdate({ is_complete: true, completed_at: new Date() })
     );
@@ -1613,7 +1590,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       });
     }
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -1626,7 +1603,7 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.NOT_ACCEPTABLE,
       });
     }
-    const updateResponse = await this.card_repo.updateCard(
+    const updateResponse = await this.repository_context.card.updateCard(
       { id: card_id },
       new CardDetailUpdate({ is_complete: false, completed_at: undefined })
     );
@@ -1652,7 +1629,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -1660,7 +1637,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let res = await this.card_list_time_repo.getCardTimeInList(card_id);
+    let res = await this.repository_context.card_list_time_history.getCardTimeInList(card_id);
     if (res.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: res.message,
@@ -1692,7 +1669,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let checkCard = await this.card_repo.getCard({ id: card_id });
+    let checkCard = await this.repository_context.card.getCard({ id: card_id });
     if (checkCard.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: checkCard.message,
@@ -1700,7 +1677,7 @@ export class CardController implements CardControllerI {
       });
     }
 
-    let res = await this.card_board_time_repo.getCardTimeInBoard(
+    let res = await this.repository_context.card_board_time_history.getCardTimeInBoard(
       card_id,
       board_id
     );
@@ -1724,7 +1701,7 @@ export class CardController implements CardControllerI {
   ): Promise<ResponseData<number>> {
     try {
       // Get the dashcard
-      const dashcardResponse = await this.card_repo.getCard({ id: dashcardId });
+      const dashcardResponse = await this.repository_context.card.getCard({ id: dashcardId });
 
       if (
         dashcardResponse.status_code !== StatusCodes.OK ||
@@ -1739,7 +1716,7 @@ export class CardController implements CardControllerI {
 
       const dashConfig = dashcardResponse.data.getDashConfig();
 
-      const count = await this.card_repo.countCardsWithFilters(
+      const count = await this.repository_context.card.countCardsWithFilters(
         dashConfig?.filters ?? [],
         workspaceId
       );
@@ -1778,7 +1755,7 @@ export class CardController implements CardControllerI {
       });
     }
     // Optionally: validasi card utama dan list target exist (bisa pakai repo)
-    const result = await this.card_repo.copyCardWithMirror(
+    const result = await this.repository_context.card.copyCardWithMirror(
       card_id,
       target_list_id
     );
@@ -1790,7 +1767,7 @@ export class CardController implements CardControllerI {
     workspace_id: string
   ): Promise<ResponseData<ListDashcardDataResponse>> {
     try {
-      const result = await this.card_repo.getListDashcard(id, workspace_id);
+      const result = await this.repository_context.card.getListDashcard(id, workspace_id);
       return new ResponseData({
         message: "Dashcard list retrieved successfully",
         status_code: StatusCodes.OK,

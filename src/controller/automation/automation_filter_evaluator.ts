@@ -1,8 +1,10 @@
-import CardLabel, { CardLabelAttributes } from "@/database/schemas/card_label";
+import { CardRepositoryI } from "@/repository/card/card_interfaces";
+import { CustomFieldRepositoryI } from "@/repository/custom_field/custom_field_interfaces";
 import { CardLabelDetail } from "@/repository/label/label_interfaces";
-import { UserDetail } from "@/repository/user/user_interfaces";
+import { UserDetail, UserRepositoryI } from "@/repository/user/user_interfaces";
 import { EnumTiggerCarFilterType } from "@/types/automation_rule";
 import { UserActionEvent } from "@/types/event";
+import { EnumCardContentType, EnumOptionsNumberComparisonOperators, EnumOptionTextComparisonOperator } from "@/types/options";
 
 type FilterCondition = {
   [key: string]: any;
@@ -48,22 +50,22 @@ abstract class BaseAutomationRuleFilterEvaluator {
     const expectedLower = expected.toLowerCase();
     
     switch (operator) {
-      case 'starting-with': return actualLower.startsWith(expectedLower);
-      case 'ending-with': return actualLower.endsWith(expectedLower);
-      case 'containing': return actualLower.includes(expectedLower);
-      case 'not-starting-with': return !actualLower.startsWith(expectedLower);
-      case 'not-ending-with': return !actualLower.endsWith(expectedLower);
-      case 'not-containing': return !actualLower.includes(expectedLower);
+      case EnumOptionTextComparisonOperator.StartingWith: return actualLower.startsWith(expectedLower);
+      case EnumOptionTextComparisonOperator.EndingWith: return actualLower.endsWith(expectedLower);
+      case EnumOptionTextComparisonOperator.Containing: return actualLower.includes(expectedLower);
+      case EnumOptionTextComparisonOperator.NotStartingWith: return !actualLower.startsWith(expectedLower);
+      case EnumOptionTextComparisonOperator.NotEndingWith: return !actualLower.endsWith(expectedLower);
+      case EnumOptionTextComparisonOperator.NotContaining: return !actualLower.includes(expectedLower);
       default: return actualLower === expectedLower;
     }
   }
 
   protected compareNumber(actual: number, expected: number, operator: string): boolean {
     switch (operator) {
-      case 'more-than': return actual > expected;
-      case 'more-or-equal': return actual >= expected;
-      case 'fewer-than': return actual < expected;
-      case 'fewer-or-equal': return actual <= expected;
+      case EnumOptionsNumberComparisonOperators.MoreThan: return actual > expected;
+      case EnumOptionsNumberComparisonOperators.MoreOrEqual: return actual >= expected;
+      case EnumOptionsNumberComparisonOperators.FewerThan: return actual < expected;
+      case EnumOptionsNumberComparisonOperators.FewerOrEqual: return actual <= expected;
       default: return actual === expected;
     }
   }
@@ -375,13 +377,13 @@ class CardContentTitleDescriptionEvaluator extends BaseAutomationRuleFilterEvalu
       let targetText = '';
       
       switch (contentType) {
-        case 'a-name':
+        case EnumCardContentType.AName:
           targetText = event.data?.card?.name || '';
           break;
-        case 'a-description':
+        case EnumCardContentType.ADescription:
           targetText = event.data?.card?.description || '';
           break;
-        case 'a-name-or-description':
+        case EnumCardContentType.ANameOrDescription:
           targetText = (event.data?.card?.name || '') + ' ' + (event.data?.card?.description || '');
           break;
         default:
@@ -435,6 +437,21 @@ class AutomationRuleTriggerFilterEvaluatorFactory {
 
 // Main service class
 class AutomationRuleFilterService {
+
+  private card_repo: CardRepositoryI;
+  private custom_field_repo: CustomFieldRepositoryI;
+  private user_repo: UserRepositoryI;
+
+  constructor(
+    card_repo: CardRepositoryI,
+    custom_field_repo: CustomFieldRepositoryI,
+    user_repo: UserRepositoryI
+  ) {
+    this.card_repo = card_repo;
+    this.custom_field_repo = custom_field_repo;
+    this.user_repo = user_repo;
+  }
+
   static evaluate(filterType: string, condition: FilterCondition, event: UserActionEvent, createdBy?: string): FilterEvaluationResult {
     try {
       const evaluator = AutomationRuleTriggerFilterEvaluatorFactory.create(filterType);
