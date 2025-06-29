@@ -130,12 +130,8 @@ export enum ActionType {
   // 
 }
 
-export interface MoveListValue {
-  origin_list_id: string;
-  destination_list_id: string;
-}
 
-export type CardActionValue = MoveListValue | undefined
+
 
 export enum CardActivityType {
   Action = 'action',

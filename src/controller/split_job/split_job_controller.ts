@@ -11,20 +11,13 @@ import {
 import { ResponseData } from "@/utils/response_utils";
 import { WorkspaceRepositoryI, filterWorkspaceDetail } from "@/repository/workspace/workspace_interfaces";
 import { CustomFieldRepositoryI, filterCustomFieldDetail } from "@/repository/custom_field/custom_field_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class SplitJobController implements ISplitJobController {
-  private splitJobRepo: ISplitJobRepository;
-  private workspaceRepo: WorkspaceRepositoryI;
-  private customFieldRepo: CustomFieldRepositoryI;
+  private repository_context: RepositoryContext;
 
-  constructor(
-    splitJobRepo: ISplitJobRepository,
-    workspaceRepo: WorkspaceRepositoryI,
-    customFieldRepo: CustomFieldRepositoryI
-  ) {
-    this.splitJobRepo = splitJobRepo;
-    this.workspaceRepo = workspaceRepo;
-    this.customFieldRepo = customFieldRepo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   // Split Job Template methods
@@ -43,7 +36,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Verify workspace exists
       const workspaceFilter = new filterWorkspaceDetail({ id: workspace_id });
-      const workspaceResponse = await this.workspaceRepo.getWorkspace(workspaceFilter);
+      const workspaceResponse = await this.repository_context.workspace.getWorkspace(workspaceFilter);
       if (workspaceResponse.status_code !== StatusCodes.OK || !workspaceResponse.data) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
@@ -54,7 +47,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Verify custom field exists and is a number type
       const customFieldFilter: filterCustomFieldDetail = { id: custom_field_id };
-      const customFieldResponse = await this.customFieldRepo.getCustomField(customFieldFilter);
+      const customFieldResponse = await this.repository_context.custom_field.getCustomField(customFieldFilter);
       if (customFieldResponse.status_code !== StatusCodes.OK || !customFieldResponse.data) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
@@ -80,7 +73,7 @@ export class SplitJobController implements ISplitJobController {
         description,
       };
 
-      return await this.splitJobRepo.createSplitJobTemplate(templateData);
+      return await this.repository_context.split_job.createSplitJobTemplate(templateData);
     } catch (error) {
       console.error("Error creating split job template:", error);
       return {
@@ -104,7 +97,7 @@ export class SplitJobController implements ISplitJobController {
       }
 
       const filter: filterSplitJobTemplateDetail = { id };
-      return await this.splitJobRepo.getSplitJobTemplate(filter);
+      return await this.repository_context.split_job.getSplitJobTemplate(filter);
     } catch (error) {
       console.error("Error retrieving split job template:", error);
       return {
@@ -129,7 +122,7 @@ export class SplitJobController implements ISplitJobController {
         filter.custom_field_id = custom_field_id as string;
       }
 
-      return await this.splitJobRepo.getSplitJobTemplates(filter);
+      return await this.repository_context.split_job.getSplitJobTemplates(filter);
     } catch (error) {
       console.error("Error retrieving split job templates:", error);
       return {
@@ -155,7 +148,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Check if template exists
       const templateFilter: filterSplitJobTemplateDetail = { id };
-      const templateResponse = await this.splitJobRepo.getSplitJobTemplate(templateFilter);
+      const templateResponse = await this.repository_context.split_job.getSplitJobTemplate(templateFilter);
       if (templateResponse.status_code !== StatusCodes.OK || !templateResponse.data) {
         return {
           status_code: StatusCodes.NOT_FOUND,
@@ -169,7 +162,7 @@ export class SplitJobController implements ISplitJobController {
       if (name !== undefined) updateData.name = name;
       if (description !== undefined) updateData.description = description;
 
-      return await this.splitJobRepo.updateSplitJobTemplate(id, updateData);
+      return await this.repository_context.split_job.updateSplitJobTemplate(id, updateData);
     } catch (error) {
       console.error("Error updating split job template:", error);
       return {
@@ -194,7 +187,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Check if template exists
       const templateFilter: filterSplitJobTemplateDetail = { id };
-      const templateResponse = await this.splitJobRepo.getSplitJobTemplate(templateFilter);
+      const templateResponse = await this.repository_context.split_job.getSplitJobTemplate(templateFilter);
       if (templateResponse.status_code !== StatusCodes.OK || !templateResponse.data) {
         return {
           status_code: StatusCodes.NOT_FOUND,
@@ -204,7 +197,7 @@ export class SplitJobController implements ISplitJobController {
       }
 
       // Delete the template (this will also delete associated values)
-      return await this.splitJobRepo.deleteSplitJobTemplate(id);
+      return await this.repository_context.split_job.deleteSplitJobTemplate(id);
     } catch (error) {
       console.error("Error deleting split job template:", error);
       return {
@@ -231,7 +224,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Verify template exists
       const templateFilter: filterSplitJobTemplateDetail = { id: split_job_template_id };
-      const templateResponse = await this.splitJobRepo.getSplitJobTemplate(templateFilter);
+      const templateResponse = await this.repository_context.split_job.getSplitJobTemplate(templateFilter);
       if (templateResponse.status_code !== StatusCodes.OK || !templateResponse.data) {
         return {
           status_code: StatusCodes.BAD_REQUEST,
@@ -249,7 +242,7 @@ export class SplitJobController implements ISplitJobController {
         value: Number(value),
       };
 
-      return await this.splitJobRepo.createSplitJobValue(valueData);
+      return await this.repository_context.split_job.createSplitJobValue(valueData);
     } catch (error) {
       console.error("Error creating split job value:", error);
       return {
@@ -273,7 +266,7 @@ export class SplitJobController implements ISplitJobController {
       }
 
       const filter: filterSplitJobValueDetail = { id };
-      return await this.splitJobRepo.getSplitJobValue(filter);
+      return await this.repository_context.split_job.getSplitJobValue(filter);
     } catch (error) {
       console.error("Error retrieving split job value:", error);
       return {
@@ -302,7 +295,7 @@ export class SplitJobController implements ISplitJobController {
         filter.custom_field_id = custom_field_id as string;
       }
 
-      return await this.splitJobRepo.getSplitJobValues(filter);
+      return await this.repository_context.split_job.getSplitJobValues(filter);
     } catch (error) {
       console.error("Error retrieving split job values:", error);
       return {
@@ -328,7 +321,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Check if value exists
       const valueFilter: filterSplitJobValueDetail = { id };
-      const valueResponse = await this.splitJobRepo.getSplitJobValue(valueFilter);
+      const valueResponse = await this.repository_context.split_job.getSplitJobValue(valueFilter);
       if (valueResponse.status_code !== StatusCodes.OK || !valueResponse.data) {
         return {
           status_code: StatusCodes.NOT_FOUND,
@@ -342,7 +335,7 @@ export class SplitJobController implements ISplitJobController {
       if (name !== undefined) updateData.name = name;
       if (value !== undefined) updateData.value = Number(value);
 
-      return await this.splitJobRepo.updateSplitJobValue(id, updateData);
+      return await this.repository_context.split_job.updateSplitJobValue(id, updateData);
     } catch (error) {
       console.error("Error updating split job value:", error);
       return {
@@ -367,7 +360,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Check if value exists
       const valueFilter: filterSplitJobValueDetail = { id };
-      const valueResponse = await this.splitJobRepo.getSplitJobValue(valueFilter);
+      const valueResponse = await this.repository_context.split_job.getSplitJobValue(valueFilter);
       if (valueResponse.status_code !== StatusCodes.OK || !valueResponse.data) {
         return {
           status_code: StatusCodes.NOT_FOUND,
@@ -377,7 +370,7 @@ export class SplitJobController implements ISplitJobController {
       }
 
       // Delete the value
-      return await this.splitJobRepo.deleteSplitJobValue(id);
+      return await this.repository_context.split_job.deleteSplitJobValue(id);
     } catch (error) {
       console.error("Error deleting split job value:", error);
       return {
@@ -402,7 +395,7 @@ export class SplitJobController implements ISplitJobController {
 
       // Get all split job values for this card
       const filter: filterSplitJobValueDetail = { card_id: card_id as string };
-      const valuesResponse = await this.splitJobRepo.getSplitJobValues(filter);
+      const valuesResponse = await this.repository_context.split_job.getSplitJobValues(filter);
 
       if (valuesResponse.status_code !== StatusCodes.OK || !valuesResponse.data) {
         return {
@@ -419,7 +412,7 @@ export class SplitJobController implements ISplitJobController {
       for (const value of values) {
         // Get custom field details
         const customFieldFilter = { id: value.custom_field_id };
-        const customFieldResponse = await this.customFieldRepo.getCustomField(customFieldFilter);
+        const customFieldResponse = await this.repository_context.custom_field.getCustomField(customFieldFilter);
         
         if (customFieldResponse.status_code === StatusCodes.OK && customFieldResponse.data) {
           const customFieldName = customFieldResponse.data.name || 'Unknown Field';

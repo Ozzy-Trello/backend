@@ -11,19 +11,20 @@ import {
   RoleRepositoryI, 
   filterRoleDetail 
 } from "@/repository/role_access/role_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class RoleController implements RoleControllerI {
-  private role_repo: RoleRepositoryI;
+  private repository_context: RepositoryContext;
 
-  constructor(role_repo: RoleRepositoryI) {
-    this.role_repo = role_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.GetRole = this.GetRole.bind(this);
     this.GetRoleList = this.GetRoleList.bind(this);
   }
 
   async GetRole(id: string): Promise<ResponseData<RoleResponse>> {
     try {
-      const roleResponse = await this.role_repo.getRole(
+      const roleResponse = await this.repository_context.role.getRole(
         { id }
       );
 
@@ -67,7 +68,7 @@ export class RoleController implements RoleControllerI {
         default: filter.default,
       };
 
-      const roleListResponse = await this.role_repo.getRoleList(repoFilter, paginate);
+      const roleListResponse = await this.repository_context.role.getRoleList(repoFilter, paginate);
 
       if (roleListResponse.status_code !== StatusCodes.OK) {
         return new ResponseListData({

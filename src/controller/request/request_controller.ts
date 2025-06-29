@@ -1,8 +1,8 @@
-import { IRequestRepository, RequestDTO } from "./request_interfaces";
+import { RequestDTO } from "./request_interfaces";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
-import { IAccurateRepository } from "../accurate/accurate_interfaces";
 import { AdjustmentType } from "@/repository/accurate/enum";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class RequestController {
   async GetRequestsByCardId(req: Request, res: Response): Promise<void> {
@@ -17,7 +17,7 @@ export class RequestController {
         return;
       }
 
-      const requests = await this.requestRepo.getRequestsByCardId(cardId);
+      const requests = await this.repository_context.request.getRequestsByCardId(cardId);
       console.log(requests, "<< ini si requests");
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
@@ -34,15 +34,10 @@ export class RequestController {
     }
   }
 
-  private requestRepo: IRequestRepository;
-  private accurateRepo: IAccurateRepository;
+  private repository_context: RepositoryContext;
 
-  constructor(
-    requestRepo: IRequestRepository,
-    accurateRepo: IAccurateRepository
-  ) {
-    this.requestRepo = requestRepo;
-    this.accurateRepo = accurateRepo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   public async Create(req: Request, res: Response): Promise<void> {
@@ -62,7 +57,7 @@ export class RequestController {
       // Get the user ID from the JWT token
       const userId = req.auth?.user_id;
 
-      const newRequest = await this.requestRepo.createRequest({
+      const newRequest = await this.repository_context.request.createRequest({
         card_id,
         request_type,
         requested_item_id,
@@ -103,7 +98,7 @@ export class RequestController {
         }
       }
 
-      const { requests, total } = await this.requestRepo.getAllRequests(
+      const { requests, total } = await this.repository_context.request.getAllRequests(
         page,
         limit,
         filterData
@@ -133,7 +128,7 @@ export class RequestController {
   public async Verify(req: Request, res: Response): Promise<void> {
     try {
       const id = +req.params.id;
-      const updated = await this.requestRepo.verifyRequest(+id);
+      const updated = await this.repository_context.request.verifyRequest(+id);
       // const formattedDate = new Date()
       //   .toISOString()
       //   .slice(0, 10)
@@ -214,7 +209,7 @@ export class RequestController {
       const isBeingMarkedAsDone = patch.is_done === true;
 
       // First update the request in the database
-      const updatedRequest = await this.requestRepo.patchRequest(id, patch);
+      const updatedRequest = await this.repository_context.request.patchRequest(id, patch);
 
       if (!updatedRequest) {
         res.status(StatusCodes.NOT_FOUND).json({
@@ -238,13 +233,13 @@ export class RequestController {
           console.log(updatedRequest, "<< ini updated");
 
           // Call saveItemAdjustment to record the adjustment in Accurate
-          const adjustItem = await this.accurateRepo.saveItemAdjustment({
+          const adjustItem = await this.repository_context.accurate.saveItemAdjustment({
             adjustmentAccountNo: updatedRequest.adjustment_no || "",
             description: `${updatedRequest.request_type}_${
               updatedRequest.card_name || ""
             }_${
-              updatedRequest.request_sent -
-              updatedRequest.warehouse_final_used_amount
+              (updatedRequest?.request_sent ?? 0) -
+              (updatedRequest?.warehouse_final_used_amount ?? 0)
             } ${updatedRequest.satuan || "PCS"}_${
               updatedRequest.description || ""
             }`,
@@ -252,10 +247,10 @@ export class RequestController {
               {
                 itemAdjustmentType: AdjustmentType.OUT,
                 quantity:
-                  updatedRequest.request_sent -
-                  updatedRequest.warehouse_final_used_amount,
+                  (updatedRequest?.request_sent ?? 0) -
+                  (updatedRequest?.warehouse_final_used_amount ?? 0),
                 itemNo: updatedRequest.requested_item_id,
-                itemUnitName: updatedRequest.satuan,
+                itemUnitName: updatedRequest.satuan ?? "",
               },
             ],
             transDate: formattedDate,

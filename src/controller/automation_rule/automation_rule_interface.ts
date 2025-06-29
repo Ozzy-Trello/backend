@@ -122,6 +122,7 @@ export class AutomationRuleCreateData {
   created_by?: string;
   updated_by?: string;
   condition!: Record<string, any>;
+  filter?: AutomationRuleActionData[];
   action!: AutomationRuleActionData[];
 
   constructor(payload: Partial<AutomationRuleCreateData>) {
@@ -158,6 +159,7 @@ export class AutomationRuleCreateData {
       group_type: this.group_type,
       type: this.type,
       condition: this.condition,
+      filter: this.filter,
       action: this.action,
       created_by: this.created_by,
       updated_by: this.updated_by,

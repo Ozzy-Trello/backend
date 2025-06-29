@@ -1,0 +1,88 @@
+import CardBoardTimeHistory from "@/database/schemas/card_board_time_history.ts";
+import { AccurateRepository } from "./accurate/accurate_repository";
+import { AdditionalFieldRepository } from "./additional-field/additional_field_repository";
+import { AutomationRuleRepository } from "./automation_rule/automation_rule_repository";
+import { BoardRepositoryI } from "./board/board_interfaces";
+import { BoardRepository } from "./board/board_repository";
+import { CardRepositoryI } from "./card/card_interfaces";
+import { CardMemberRepository } from "./card/card_member_repository";
+import { CardRepository } from "./card/card_repository";
+import { CardAttachmentRepositoryI } from "./card_attachment/card_attachment_interface";
+import { CardAttachmentRepository } from "./card_attachment/card_attachment_repository";
+import { CardBoardTimeRepository } from "./card_board_time/card_board_time_repository";
+import { CardListTimeRepositoryI } from "./card_list_time/card_list_time_interface";
+import { CardListTimeRepository } from "./card_list_time/card_list_time_repository";
+import { ChecklistRepository } from "./checklist/checklist_repository";
+import { CustomFieldRepositoryI } from "./custom_field/custom_field_interfaces";
+import { CustomFieldRepository } from "./custom_field/custom_field_repository";
+import { FileRepositoryI } from "./file/file_interface";
+import { FileRepository } from "./file/file_repository";
+import { LabelRepository } from "./label/label_repository";
+import { ListRepositoryI } from "./list/list_interfaces";
+import { ListRepository } from "./list/list_repository";
+import { RequestRepository } from "./request/request_repository";
+import { RoleRepositoryI } from "./role_access/role_interfaces";
+import { RoleRepository } from "./role_access/role_repository";
+import { UserRepositoryI } from "./user/user_interfaces";
+import { UserRepository } from "./user/user_repository";
+import { WorkspaceRepositoryI } from "./workspace/workspace_interfaces";
+import { WorkspaceRepository } from "./workspace/workspace_repository";
+import { CardBoardTimeRepositoryI } from "./card_board_time/card_board_time_interface";
+import { AutomationRuleFilterRepository } from "./automation_rule_filter/automation_rule_filter_repository";
+import { AutomationRuleActionRepository } from "./automation_rule_action/automation_rule_action_repository";
+import { AccurateRepositoryI } from "./accurate/accurate_interfaces";
+import { LabelRepositoryI } from "./label/label_interfaces";
+import { CardMemberRepositoryI } from "./card/card_member_interfaces";
+import { AutomationRuleRepositoryI } from "./automation_rule/automation_rule_interface";
+import { AutomationRuleActionRepositoryI } from "./automation_rule_action/automation_rule_action_interface";
+import { AutomationRuleFilterRepositoryI } from "./automation_rule_filter/automation_rule_filter_interface";
+import { SplitJobRepository } from "./split_job/split_job_repository";
+
+export class RepositoryContext {
+
+  public user: UserRepositoryI;
+  public role: RoleRepositoryI;
+  public workspace: WorkspaceRepositoryI;
+  public board: BoardRepositoryI;
+  public list: ListRepositoryI;
+  public card: CardRepositoryI;
+  public custom_field: CustomFieldRepositoryI;
+  public file: FileRepositoryI;
+  public card_attachment: CardAttachmentRepositoryI;
+  public checklist: ChecklistRepository;
+  public additional_field: AdditionalFieldRepository;
+  public card_list_time_history: CardListTimeRepositoryI;
+  public card_board_time_history: CardBoardTimeRepositoryI;
+  public accurate: AccurateRepositoryI;
+  public request: RequestRepository;
+  public label: LabelRepositoryI;
+  public card_member: CardMemberRepositoryI;
+  public automation_rule: AutomationRuleRepositoryI;
+  public automation_rule_filter: AutomationRuleFilterRepositoryI;
+  public automation_rule_action: AutomationRuleActionRepositoryI;
+  public split_job: SplitJobRepository;
+
+	constructor() {
+    this.user= new UserRepository();
+    this.role= new RoleRepository();
+    this.workspace= new WorkspaceRepository();
+    this.board= new BoardRepository();
+    this.list= new ListRepository();
+    this.card= new CardRepository();
+    this.custom_field= new CustomFieldRepository();
+    this.file= new FileRepository();
+    this.card_attachment= new CardAttachmentRepository();
+    this.checklist= new ChecklistRepository();
+    this.additional_field= new AdditionalFieldRepository();
+    this.card_list_time_history= new CardListTimeRepository();
+    this.card_board_time_history= new CardBoardTimeRepository();
+    this.accurate= new AccurateRepository();
+    this.request= new RequestRepository();
+    this.label= new LabelRepository();
+    this.card_member= new CardMemberRepository();
+    this.automation_rule= new AutomationRuleRepository();
+    this.automation_rule_filter= new AutomationRuleFilterRepository();
+    this.automation_rule_action= new AutomationRuleActionRepository();
+    this.split_job = new SplitJobRepository();
+  }
+}

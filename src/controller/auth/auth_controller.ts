@@ -14,27 +14,20 @@ import { Config } from "@/config";
 import { InternalServerError } from "@/utils/errors";
 import { WorkspaceRepositoryI } from "@/repository/workspace/workspace_interfaces";
 import { RoleRepositoryI } from "@/repository/role_access/role_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class AuthController implements AuthControllerI {
-  private user_repo: UserRepositoryI;
-  private workspace_repo: WorkspaceRepositoryI;
-  private role_access_repo: RoleRepositoryI;
+  private repository_context: RepositoryContext;
 
-  constructor(
-    user_repo: UserRepositoryI,
-    workspace_repo: WorkspaceRepositoryI,
-    role_access_repo: RoleRepositoryI
-  ) {
-    this.user_repo = user_repo;
-    this.workspace_repo = workspace_repo;
-    this.role_access_repo = role_access_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.Login = this.Login.bind(this);
     this.Register = this.Register.bind(this);
     this.RefreshToken = this.RefreshToken.bind(this);
   }
 
   async Register(data: RegisterData): Promise<ResponseData<RegisterResponse>> {
-    let checkAccount = await this.user_repo.getUser(
+    let checkAccount = await this.repository_context.user.getUser(
       new UserDetail({ username: data.username })
     );
     if (checkAccount.status_code == StatusCodes.OK) {
@@ -44,7 +37,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    checkAccount = await this.user_repo.getUser(
+    checkAccount = await this.repository_context.user.getUser(
       new UserDetail({ phone: data.phone })
     );
     if (checkAccount.status_code == StatusCodes.OK) {
@@ -54,7 +47,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    checkAccount = await this.user_repo.getUser(
+    checkAccount = await this.repository_context.user.getUser(
       new UserDetail({ email: data.email })
     );
     if (checkAccount.status_code == StatusCodes.OK) {
@@ -64,7 +57,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let account = await this.user_repo.createUser(
+    let account = await this.repository_context.user.createUser(
       new UserDetail({
         username: data.username,
         password: data.password,
@@ -79,7 +72,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let workspaceResponse = await this.workspace_repo.createWorkspace({
+    let workspaceResponse = await this.repository_context.workspace.createWorkspace({
       description: `${data.username}'s Default Workspace`,
       name: data.username,
       slug: data.username,
@@ -91,7 +84,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let defaultRole = await this.role_access_repo.getRole({
+    let defaultRole = await this.repository_context.role.getRole({
       default: true,
       createDefaultWhenNone: true,
     });
@@ -107,7 +100,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let workspaceMemberResponse = await this.workspace_repo.addMember(
+    let workspaceMemberResponse = await this.repository_context.workspace.addMember(
       workspaceResponse.data?.id!,
       account.data?.id!,
       defaultRole.data?.id!
@@ -147,7 +140,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let account = await this.user_repo.getUser({
+    let account = await this.repository_context.user.getUser({
       identify: data.identity,
       withPassword: true,
     });
@@ -223,7 +216,7 @@ export class AuthController implements AuthControllerI {
       });
     }
 
-    let account = await this.user_repo.getUser({ id: tokenData.user_id });
+    let account = await this.repository_context.user.getUser({ id: tokenData.user_id });
     if (account.status_code !== StatusCodes.OK) {
       switch (account.status_code) {
         case StatusCodes.NOT_FOUND: {

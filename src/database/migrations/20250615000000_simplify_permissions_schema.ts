@@ -16,10 +16,18 @@ export default {
         });
 
         // Update the enum type name to be more generic
-        await queryInterface.sequelize.query(
-          `ALTER TYPE "enum_board_permission_level" RENAME TO "enum_permission_level";`,
-          { transaction }
-        );
+        await queryInterface.sequelize.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_type WHERE typname = 'enum_permission_level'
+            ) THEN
+              ALTER TYPE "enum_board_permission_level" RENAME TO "enum_permission_level";
+            END IF;
+          END
+          $$;
+        `, { transaction });
+
       } else {
         console.error("board_permissions table not found!");
         throw new Error("board_permissions table does not exist");

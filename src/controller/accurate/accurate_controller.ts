@@ -1,13 +1,13 @@
-import { IAccurateRepository } from "@/controller/accurate/accurate_interfaces";
 import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { SaveItemAdjustmentBody } from "../../repository/accurate/accurate_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export default class AccurateController {
-  private accurate_repo: IAccurateRepository;
+  private repository_context: RepositoryContext;
 
-  constructor(accurate_repo: IAccurateRepository) {
-    this.accurate_repo = accurate_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   public async Webhook(req: Request, res: Response): Promise<void> {
@@ -22,7 +22,7 @@ export default class AccurateController {
         return;
       }
       const expiry_date = new Date(Date.now() + Number(expires_in) * 1000);
-      const insertData = await this.accurate_repo.addToken(
+      const insertData = await this.repository_context.accurate.addToken(
         access_token,
         expiry_date
       );
@@ -52,7 +52,7 @@ export default class AccurateController {
 
   public async GetItemCategoryList(_: Request, res: Response): Promise<any> {
     try {
-      const result = await this.accurate_repo.getItemCategoryList();
+      const result = await this.repository_context.accurate.getItemCategoryList();
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
         message: "Item category list fetched successfully",
@@ -74,7 +74,7 @@ export default class AccurateController {
     res: Response
   ): Promise<any> {
     try {
-      const result = await this.accurate_repo.getItemCategoryDetail(
+      const result = await this.repository_context.accurate.getItemCategoryDetail(
         +req.params.id
       );
       res.status(StatusCodes.OK).json({
@@ -95,7 +95,7 @@ export default class AccurateController {
 
   public async GetItemDetail(req: Request, res: Response): Promise<any> {
     try {
-      const result = await this.accurate_repo.getItemDetail(+req.params.id);
+      const result = await this.repository_context.accurate.getItemDetail(+req.params.id);
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
         message: "Item detail fetched successfully",
@@ -114,7 +114,7 @@ export default class AccurateController {
 
   public async GetGlaccountList(req: Request, res: Response): Promise<any> {
     try {
-      const result = await this.accurate_repo.getGlaccountList();
+      const result = await this.repository_context.accurate.getGlaccountList();
       
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
@@ -138,7 +138,7 @@ export default class AccurateController {
       const search = req.query.search as string | undefined;
       
       // Pass the search parameter to the repository method
-      const result = await this.accurate_repo.getItemList(search);
+      const result = await this.repository_context.accurate.getItemList(search);
       
       res.status(StatusCodes.OK).json({
         status_code: StatusCodes.OK,
@@ -159,7 +159,7 @@ export default class AccurateController {
   public async SaveItemAdjustment(req: Request, res: Response): Promise<void> {
     try {
       const body: SaveItemAdjustmentBody = req.body;
-      const result = await this.accurate_repo.saveItemAdjustment(body);
+      const result = await this.repository_context.accurate.saveItemAdjustment(body);
       res.status(200).json({ data: result, message: "Item adjustment saved" });
     } catch (error: any) {
       res

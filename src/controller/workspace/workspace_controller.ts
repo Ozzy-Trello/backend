@@ -8,18 +8,13 @@ import {
   fromWorkspaceDetailToWorkspaceResponseList,
   UpdateWorkspaceData, WorkspaceControllerI, WorkspaceCreateData, WorkspaceFilter, WorkspaceResponse
 } from "./workspace_interfaces";
-import { RoleRepositoryI } from "@/repository/role_access/role_interfaces";
-import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import { RepositoryContext } from "@/repository/repository_context";
 
 export class WorkspaceController implements WorkspaceControllerI {
-  private workspace_repo: WorkspaceRepositoryI
-  private role_access_repo: RoleRepositoryI
-  private user_repo: UserRepositoryI
+  private repository_context: RepositoryContext
 
-  constructor(workspace_repo: WorkspaceRepositoryI, role_access_repo: RoleRepositoryI, user_repo: UserRepositoryI) {
-    this.workspace_repo = workspace_repo;
-    this.role_access_repo = role_access_repo;
-    this.user_repo = user_repo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
     this.GetWorkspace = this.GetWorkspace.bind(this);
     this.GetWorkspaceList = this.GetWorkspaceList.bind(this);
     this.DeleteWorkspace = this.DeleteWorkspace.bind(this);
@@ -43,7 +38,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let checkWorkspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({ slug: data.slug }));
+    let checkWorkspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({ slug: data.slug }));
     if (checkWorkspace.status_code == StatusCodes.OK) {
       return new ResponseData({
         message: "the slug is already taken by others",
@@ -51,7 +46,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let checkAccount = await this.user_repo.getUser({id: user_id});
+    let checkAccount = await this.repository_context.user.getUser({id: user_id});
     if (checkAccount.status_code != StatusCodes.OK) {
       return new ResponseData({
         message: "user is not found",
@@ -59,7 +54,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let defaultRole = await this.role_access_repo.getRole({
+    let defaultRole = await this.repository_context.role.getRole({
       default: true, 
       createDefaultWhenNone: true,
     });
@@ -70,7 +65,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let createResponse = await this.workspace_repo.createWorkspace(data.toWorkspaceDetail());
+    let createResponse = await this.repository_context.workspace.createWorkspace(data.toWorkspaceDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
       return new ResponseData({
         message: "internal server error",
@@ -78,7 +73,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       })
     }
 
-    let addMemberResponse = await this.workspace_repo.addMember(createResponse.data!.id!, user_id, defaultRole.data?.id!);
+    let addMemberResponse = await this.repository_context.workspace.addMember(createResponse.data!.id!, user_id, defaultRole.data?.id!);
     if (addMemberResponse != StatusCodes.NO_CONTENT) {
       return new ResponseData({
         message: "error to sign user as workspace owner",
@@ -103,7 +98,7 @@ export class WorkspaceController implements WorkspaceControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
-    let checkWorkspace = await this.workspace_repo.getWorkspace(filter.toFilterWorkspaceDetail());
+    let checkWorkspace = await this.repository_context.workspace.getWorkspace(filter.toFilterWorkspaceDetail());
     if (checkWorkspace.status_code == StatusCodes.NOT_FOUND){
       return new ResponseData({
         message: checkWorkspace.message,
@@ -118,7 +113,7 @@ export class WorkspaceController implements WorkspaceControllerI {
   }
 
   async GetWorkspaceList(filter: WorkspaceFilter, paginate: Paginate): Promise<ResponseListData<Array<WorkspaceResponse>>> {
-    let workspaces = await this.workspace_repo.getWorkspaceList(filter.toFilterWorkspaceDetail(), paginate);
+    let workspaces = await this.repository_context.workspace.getWorkspaceList(filter.toFilterWorkspaceDetail(), paginate);
     return new ResponseListData({
       message: "workspace list",
       status_code: StatusCodes.OK,
@@ -134,7 +129,7 @@ export class WorkspaceController implements WorkspaceControllerI {
         status_code: StatusCodes.BAD_REQUEST,
       })
     }
-    const deleteResponse = await this.workspace_repo.deleteWorkspace(filter);
+    const deleteResponse = await this.repository_context.workspace.deleteWorkspace(filter);
     if (deleteResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Workspace is not found",
@@ -180,7 +175,7 @@ export class WorkspaceController implements WorkspaceControllerI {
     }
 
     if (filter.id) {
-      let currentWorkspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({ id: filter.id }));
+      let currentWorkspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({ id: filter.id }));
       if (currentWorkspace.status_code == StatusCodes.NOT_FOUND) {
         return new ResponseData({
           message: "Workspace is not found",
@@ -188,7 +183,7 @@ export class WorkspaceController implements WorkspaceControllerI {
         })
       }
 
-      let checkWorkspace = await this.workspace_repo.getWorkspace(new filterWorkspaceDetail({ __notId: filter.id, __orName: data.name }));
+      let checkWorkspace = await this.repository_context.workspace.getWorkspace(new filterWorkspaceDetail({ __notId: filter.id, __orName: data.name }));
       if (checkWorkspace.status_code == StatusCodes.OK) {
         return new ResponseData({
           message: "this workspace name already taken by others",
@@ -197,7 +192,7 @@ export class WorkspaceController implements WorkspaceControllerI {
       }
     }
 
-    const updateResponse = await this.workspace_repo.updateWorkspace(filter.toFilterWorkspaceDetail(), data.toWorkspaceDetailUpdate());
+    const updateResponse = await this.repository_context.workspace.updateWorkspace(filter.toFilterWorkspaceDetail(), data.toWorkspaceDetailUpdate());
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Workspace is not found",
