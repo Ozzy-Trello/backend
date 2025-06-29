@@ -29,7 +29,9 @@ export class ChecklistController implements IChecklistController {
     cardId: string
   ): Promise<ResponseData<ChecklistDTO[]>> {
     try {
-      return await this.repository_context.checklist.getChecklistsByCardId(cardId);
+      return await this.repository_context.checklist.getChecklistsByCardId(
+        cardId
+      );
     } catch (error) {
       console.error(
         "Error in ChecklistController.GetChecklistsByCardId:",
@@ -65,7 +67,9 @@ export class ChecklistController implements IChecklistController {
       // to prevent duplicates from automation race conditions
       if (isAutomatedAction && data.title) {
         const existingChecklists =
-          await this.repository_context.checklist.getChecklistsByCardId(data.card_id);
+          await this.repository_context.checklist.getChecklistsByCardId(
+            data.card_id
+          );
         if (
           existingChecklists.status_code === StatusCodes.OK &&
           existingChecklists.data
@@ -111,7 +115,7 @@ export class ChecklistController implements IChecklistController {
           timestamp: new Date(),
           data: {
             card: new CardDetail({
-              id: data.card_id
+              id: data.card_id,
             }),
             checklist: result.data,
           },
@@ -136,12 +140,17 @@ export class ChecklistController implements IChecklistController {
   ): Promise<ResponseData<ChecklistDTO>> {
     try {
       // Get previous state
-      const prevRes = await this.repository_context.checklist.getChecklistById(id);
+      const prevRes = await this.repository_context.checklist.getChecklistById(
+        id
+      );
 
-      const updateRes = await this.repository_context.checklist.updateChecklist(id, {
-        ...data,
-        updated_by: user_id,
-      });
+      const updateRes = await this.repository_context.checklist.updateChecklist(
+        id,
+        {
+          ...data,
+          updated_by: user_id,
+        }
+      );
 
       if (
         updateRes.status_code === StatusCodes.OK &&
@@ -374,9 +383,12 @@ export class ChecklistController implements IChecklistController {
   ): Promise<ResponseData<null>> {
     try {
       // Fetch checklist details before deletion for event context
-      const checklistRes = await this.repository_context.checklist.getChecklistById(id);
+      const checklistRes =
+        await this.repository_context.checklist.getChecklistById(id);
 
-      const result = await this.repository_context.checklist.deleteChecklist(id);
+      const result = await this.repository_context.checklist.deleteChecklist(
+        id
+      );
 
       if (result === StatusCodes.NOT_FOUND) {
         return {
@@ -429,6 +441,23 @@ export class ChecklistController implements IChecklistController {
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
         message: "Failed to delete checklist",
         data: null,
+      };
+    }
+  }
+
+  async CreateBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>> {
+    try {
+      const result =
+        await this.repository_context.checklist.createBulkChecklist(data);
+      return result;
+    } catch (error) {
+      console.error("Error in ChecklistController.CreateBulkChecklist:", error);
+      return {
+        status_code: StatusCodes.INTERNAL_SERVER_ERROR,
+        message: "Failed to create bulk checklist",
+        data: [],
       };
     }
   }

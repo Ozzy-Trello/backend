@@ -61,6 +61,9 @@ export enum EnumSelectionType {
   MultiDates = "multi_dates",
   AddRemove = "add_remove",
   RemoveFromCard = "remove_from_card",
+  TaskType = "task_type",
+  SetTask = "set_task",
+  CardContentText = "card_content_text",
   DateStatus = "date_status",
   TimeRange = "time_range",
   TimeComparison = "time_comparison",
@@ -69,12 +72,14 @@ export enum EnumSelectionType {
   ChecklistConditionOperator = "checklists_condition_oerator", // with all complete, with an incomplete, etc
   CardContentType = "card_content_type",
   CustomField = "custom_field",
-  CustomFieldAction = "custom_field_action" // set, cleared
+  CustomFieldAction = "custom_field_action", // set, cleared
 }
 
 export enum EnumInputType {
   Number = "number",
   Text = "text",
+  TextDescription = "text_description",
+  TextTitle = "text_title",
   DateValue = "date_value",
 }
 
@@ -129,6 +134,15 @@ export enum ActionType {
   ActionTheCardToPositionInSpecificList = `<${EnumSelectionType.Action}>_the_card_to_<${EnumSelectionType.Position}>_<${EnumSelectionType.List}>`,
   ActionTheCardToPosition = `<action>_the_card_to_<${EnumSelectionType.Position}>`,
   ArchivalActionTheCard = `<${EnumSelectionType.Action}>_the_card`,
+
+  // create a <CardType> <CardTypeItem> card with title <TextTitle> <TextDescription> <Position> <List> <Board> <MultiLabels> <MultiChecklists> <MultiUsers> <MultiDates>
+  CreateItem = `create-a-<${EnumSelectionType.CreateType}>-card-with-title-<${EnumInputType.TextTitle}>-<${EnumInputType.TextDescription}>-<${EnumSelectionType.Position}>-<${EnumSelectionType.List}>-<${EnumSelectionType.Board}>-<${EnumSelectionType.MultiLabels}>-<${EnumSelectionType.MultiChecklists}>-<${EnumSelectionType.MultiUsers}>-<${EnumSelectionType.MultiDates}>`,
+
+  // <AddRemove> the <CardLabel> label to the card
+  AddRemoveLabel = `<${EnumSelectionType.AddRemove}>-the-<${EnumSelectionType.CardLabel}>-label-to-the-card`,
+
+  // remove <RemoveFromCard> from the card
+  RemoveFromCard = `remove-<${EnumSelectionType.RemoveFromCard}>-from-the-card`,
   AddChecklistToCard = `<${EnumSelectionType.Action}>_an_empty_checklist_named_<${EnumSelectionType.TextInput}>_to_the_card`,
   ManageChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_to_checklist_<${EnumSelectionType.ChecklistName}>`,
   SetChecklistItemDueDate = `set_the_item_due_<${EnumInputType.DateValue}>`,
@@ -159,7 +173,7 @@ export enum EnumTiggerCarFilterType {
   CardCustomField5 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-<${EnumSelectionType.CheckboxState}>`,
   CardCustomField6 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-number-<${EnumSelectionType.NumberComparison}>-[${EnumInputType.Number}]`,
   CardCustomField7 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-date-<${EnumSelectionType.Inclusion}>-<${EnumSelectionType.TimeRange}>`,
-  CardCustomField8 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-date-<${EnumSelectionType.TimeComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.TimeUnit}>-<${EnumSelectionType.TimeRelativeReference}>`
+  CardCustomField8 = `<${EnumSelectionType.Inclusion}>-custom-field-<${EnumSelectionType.CustomField}>-set-to-a-date-<${EnumSelectionType.TimeComparison}>-[${EnumInputType.Number}]-<${EnumSelectionType.TimeUnit}>-<${EnumSelectionType.TimeRelativeReference}>`,
 }
 
 // Triggers Map - this can be used for validation later

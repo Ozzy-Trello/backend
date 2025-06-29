@@ -13,10 +13,13 @@ export interface IChecklistRepository {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   deleteChecklist(id: string): Promise<number>;
+  createBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
 }
 
 export interface IChecklistController {
-  SetEventPublisher(event_publisher: EventPublisher): void
+  SetEventPublisher(event_publisher: EventPublisher): void;
   GetChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
   GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
   CreateChecklist(
@@ -30,6 +33,9 @@ export interface IChecklistController {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   DeleteChecklist(user_id: string, id: string): Promise<ResponseData<null>>;
+  CreateBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
 }
 
 export interface ChecklistItem {

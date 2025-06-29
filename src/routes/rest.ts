@@ -87,29 +87,44 @@ export default async function (): Promise<Router> {
   controller_context.card.SetEventPublisher(event_publisher);
   controller_context.custom_field.SetEventPublisher(event_publisher);
   controller_context.checklist.SetEventPublisher(event_publisher);
- 
 
   // Views
   const account_rest_view = new AccountRestView(controller_context.account);
-  const access_control_rest_view = new AccessControlRestView(controller_context.access_control);
+  const access_control_rest_view = new AccessControlRestView(
+    controller_context.access_control
+  );
   const auth_rest_view = new AuthRestView(controller_context.auth);
-  const workspace_rest_view = new WorkspaceRestView(controller_context.workspace);
+  const workspace_rest_view = new WorkspaceRestView(
+    controller_context.workspace
+  );
   const board_rest_view = new BoardRestView(controller_context.board);
   const list_rest_view = new ListRestView(controller_context.list);
   const card_rest_view = new CardRestView(controller_context.card);
-  const custom_field_rest_view = new CustomFieldRestView(controller_context.custom_field);
+  const custom_field_rest_view = new CustomFieldRestView(
+    controller_context.custom_field
+  );
   const file_rest_view = new FileRestView(controller_context.file);
-  const card_attachment_rest_view = new CardAttachmentRestView(controller_context.card_attachment);
+  const card_attachment_rest_view = new CardAttachmentRestView(
+    controller_context.card_attachment
+  );
   const label_rest_view = new LabelRestView(controller_context.label);
   const role_rest_view = new RoleRestView(controller_context.role);
-  const card_member_rest_view = new CardMemberRestView(controller_context.card_member);
+  const card_member_rest_view = new CardMemberRestView(
+    controller_context.card_member
+  );
 
-  const checklist_rest_view = new ChecklistRestView(controller_context.checklist);
-  const additional_field_rest_view = new AdditionalFieldRestView(controller_context.additional_field);
+  const checklist_rest_view = new ChecklistRestView(
+    controller_context.checklist
+  );
+  const additional_field_rest_view = new AdditionalFieldRestView(
+    controller_context.additional_field
+  );
 
   const accurate_rest_view = new AccurateRestView(controller_context.accurate);
   const request_rest_view = new RequestRestView(controller_context.request);
-  const automation_rule_rest_view = new AutomationRuleRestView(controller_context.automation);
+  const automation_rule_rest_view = new AutomationRuleRestView(
+    controller_context.automation
+  );
 
   const search_rest_view = new SearchRestView(controller_context.search);
 
@@ -445,6 +460,7 @@ export default async function (): Promise<Router> {
   {
     router_label.post("/", restJwt, label_rest_view.CreateLabel);
     router_label.get("/", restJwt, label_rest_view.GetLabels);
+    router_label.get("/workspace", restJwt, label_rest_view.GetAllLabels);
     router_label.get("/:id", restJwt, label_rest_view.GetLabel);
     router_label.put("/:id", restJwt, label_rest_view.UpdateLabel);
     router_label.delete("/:id", restJwt, label_rest_view.DeleteLabel);
@@ -476,7 +492,9 @@ export default async function (): Promise<Router> {
   }
 
   // Initialize split job view with controller
-  const split_job_rest_view = new SplitJobRestView(controller_context.split_job);
+  const split_job_rest_view = new SplitJobRestView(
+    controller_context.split_job
+  );
 
   root_router.use("/auth", router_auth);
   root_router.use("/account", router_account);
