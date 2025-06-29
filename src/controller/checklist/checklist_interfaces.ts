@@ -16,6 +16,7 @@ export interface IChecklistRepository {
   createBulkChecklist(
     data: CreateChecklistDTO[]
   ): Promise<ResponseData<ChecklistDTO[]>>;
+  deleteAllChecklistFromCard(card_id: string): Promise<number>;
 }
 
 export interface IChecklistController {
@@ -36,6 +37,7 @@ export interface IChecklistController {
   CreateBulkChecklist(
     data: CreateChecklistDTO[]
   ): Promise<ResponseData<ChecklistDTO[]>>;
+  DeleteAllChecklistFromCard(card_id: string): Promise<number>;
 }
 
 export interface ChecklistItem {

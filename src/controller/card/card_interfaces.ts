@@ -25,7 +25,7 @@ import { EnumOptionPosition } from "@/types/options";
 import { EventPublisher } from "@/event_publisher";
 
 export interface CardControllerI {
-  SetEventPublisher(event_publisher: EventPublisher): void
+  SetEventPublisher(event_publisher: EventPublisher): void;
   CreateCard(
     user_id: string,
     data: CardCreateData,
@@ -396,6 +396,8 @@ export class CardCreateData {
   dash_config?: DashCardConfig | string;
   is_complete?: boolean; // Added
   completed_at?: Date; // Added
+  start_date?: Date | null;
+  due_date?: Date | null;
 
   constructor(payload: Partial<CardCreateData>) {
     Object.assign(this, payload);
@@ -519,7 +521,6 @@ export class CardCommentData extends CardActivity {
   // 	})
   // }
 }
-
 
 export class TriggerDoData {
   group_type!: TriggerTypes;

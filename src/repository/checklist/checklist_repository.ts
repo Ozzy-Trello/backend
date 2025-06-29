@@ -287,4 +287,24 @@ export class ChecklistRepository implements IChecklistRepository {
       );
     }
   }
+
+  async deleteAllChecklistFromCard(card_id: string): Promise<number> {
+    try {
+      await Checklist.destroy({
+        where: { card_id },
+      });
+      return StatusCodes.NO_CONTENT;
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
+      }
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
+    }
+  }
 }

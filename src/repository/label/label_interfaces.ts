@@ -68,4 +68,5 @@ export interface LabelRepositoryI {
     card_id: string
   ): Promise<ResponseData<CardLabelDetail[]>>;
   getAllLabels(workspace_id: string): Promise<ResponseData<LabelAttributes[]>>;
+  removeAllLabelsFromCard(card_id: string): Promise<ResponseData<null>>;
 }
