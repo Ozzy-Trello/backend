@@ -54,6 +54,7 @@ import {
 import { broadcastToWebSocket } from "@/server";
 import { CardMemberControllerI } from "../card/card_member_interfaces";
 import { AutomationRuleFilterDetail, AutomationRuleFilterRepositoryI } from "@/repository/automation_rule_filter/automation_rule_filter_interface";
+import { AutomationRuleFilterService } from "../automation/automation_filter_evaluator";
 
 export class AutomationRuleController implements AutomationRuleControllerI {
   private automation_rule_repo: AutomationRuleRepositoryI;
@@ -245,9 +246,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         } potential matching rules`
       );
 
-      if (filter) {
-
-      }
 
       if (rules?.data) {
         // Process rules in parallel for better performance
@@ -256,6 +254,17 @@ export class AutomationRuleController implements AutomationRuleControllerI {
             console.log("rule: is: %o", rule);
             let isPermsissable = true;
 
+            // trigger filter
+            rule.filter?.map(async(f: AutomationRuleFilterDetail) => {
+              let res = AutomationRuleFilterService.evaluate(f.type, f.condition, recentUserAction, rule.created_by);
+              console.log("Evaluate filter: res: %o", res);
+              if (!res.matches) {
+                isPermsissable = false;
+                return isPermsissable;
+              }
+            })
+
+            // trigger condition
             if (rule.condition?.[EnumSelectionType.Board]) {
               console.log("rule has board dependency");
               if (recentUserAction?.data?.board?.id !== rule.condition?.[EnumSelectionType.Board]) isPermsissable = false;
@@ -1045,10 +1054,6 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         });
       }
 
-      // const actions = await this.automation_rule_action_repo.getByRuleId(
-      //   filter.id
-      // );
-
       if (filter.action) {
         // Process actions in parallel
         const actionPromises = filter.action.map((act) =>
@@ -1286,12 +1291,12 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     recentUserAction: UserActionEvent
   ): Promise<void> {
     const moveData = new CardMoveData({
-      id: recentUserAction.data.card.id,
-      previous_list_id: recentUserAction.data.card.list_id,
+      id: recentUserAction?.data?.card?.id,
+      previous_list_id: recentUserAction?.data?._previous_data?.card?.id,
       target_list_id:
         action.condition?.[EnumSelectionType.List] ||
         action.condition?.[EnumSelectionType.OptionalList],
-      previous_position: recentUserAction.data.card.order,
+      previous_position: recentUserAction?.data?.card?.order,
       target_position_top_or_bottom:
         action.condition?.[EnumSelectionType.Position],
     });
@@ -1309,7 +1314,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   ): Promise<void> {
     await this.card_controller.ArchiveCard(
       recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
+      recentUserAction?.data?.card?.id || "",
       EnumTriggeredBy.OzzyAutomation
     );
   }
@@ -1320,7 +1325,7 @@ export class AutomationRuleController implements AutomationRuleControllerI {
   ): Promise<void> {
     await this.card_controller.UnArchiveCard(
       recentUserAction?.data?.value_user_id || "",
-      recentUserAction?.data?.card?.id,
+      recentUserAction?.data?.card?.id || "",
       EnumTriggeredBy.OzzyAutomation
     );
   }

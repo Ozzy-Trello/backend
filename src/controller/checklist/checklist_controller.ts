@@ -10,6 +10,7 @@ import { StatusCodes } from "http-status-codes";
 import { EventPublisher } from "@/event_publisher";
 import { v4 as uuidv4 } from "uuid";
 import { UserActionEvent, EnumUserActionEvent } from "@/types/event";
+import { CardDetail } from "@/repository/card/card_interfaces";
 
 export class ChecklistController implements IChecklistController {
   private checklistRepo: IChecklistRepository;
@@ -108,7 +109,9 @@ export class ChecklistController implements IChecklistController {
           user_id: user_id || "system",
           timestamp: new Date(),
           data: {
-            card: { id: data.card_id },
+            card: new CardDetail({
+              id: data.card_id
+            }),
             checklist: result.data,
           },
         };
@@ -404,7 +407,7 @@ export class ChecklistController implements IChecklistController {
           user_id: user_id || "system",
           timestamp: new Date(),
           data: {
-            card: { id: checklistRes.data.card_id },
+            card: new CardDetail({ id: checklistRes.data.card_id }),
             checklist: {
               id: checklistRes.data.id,
               title: checklistRes.data.title,

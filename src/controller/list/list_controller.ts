@@ -2,7 +2,7 @@ import { validate as isValidUUID, v4 as uuidv4 } from "uuid";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { Paginate } from "@/utils/data_utils";
-import { ListRepositoryI } from "@/repository/list/list_interfaces";
+import { ListDetail, ListRepositoryI } from "@/repository/list/list_interfaces";
 import {
   CreateListResponse,
   fromListDetailToListResponse,
@@ -121,10 +121,10 @@ export class ListController implements ListControllerI {
         user_id: user_id,
         timestamp: new Date(),
         data: {
-          list: {
+          list: new ListDetail({
             id: createResponse?.data?.id,
             board_id: createResponse?.data?.board_id
-          },
+          }),
           board: {
             id: createResponse?.data?.board_id
           }
