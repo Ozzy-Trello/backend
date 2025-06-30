@@ -61,6 +61,8 @@ export class CardActivity {
   action?: CardActivityAction;
   comment?: CardActivityComment;
   triggered_by?: string;
+  created_at?: string;
+  sender_user_username?: string;
 
   constructor(payload: Partial<CardActivity>) {
     Object.assign(this, payload);
@@ -93,10 +95,10 @@ export class CardActivityAction {
   id?: string;
   activity_id?: string;
   action?: string;
-  old_value?: JSON;
-  new_value?: JSON;
+  old_value?: any;
+  new_value?: any;
 
-  constructor(payload: Partial<CardActivityComment>) {
+  constructor(payload: Partial<CardActivityAction>) {
     Object.assign(this, payload);
   }
 

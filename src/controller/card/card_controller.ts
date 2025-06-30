@@ -4,6 +4,8 @@ import { StatusCodes } from "http-status-codes";
 import { broadcastToWebSocket } from "@/server";
 import { Paginate } from "@/utils/data_utils";
 import {
+  CardActivity,
+  CardActivityAction,
   CardDetail,
   CardDetailUpdate,
   filterMoveCard,
@@ -54,6 +56,8 @@ import {
 } from "@/types/event";
 import { EnumOptionPosition } from "@/types/options";
 import { RepositoryContext } from "@/repository/repository_context";
+import { CardActivityType } from "@/types/custom_field";
+import { EnumSelectionType } from "@/types/automation_rule";
 
 export class CardController implements CardControllerI {
   private event_publisher: EventPublisher | undefined;
@@ -148,6 +152,15 @@ export class CardController implements CardControllerI {
       this.event_publisher.publishUserAction(event);
     }
 
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardArchived
+      })
+    }))
     const updateResponse = await this.repository_context.card.updateCard(
       new CardFilter({ id: card_id }),
       new CardDetailUpdate({ archive: true })
@@ -223,6 +236,16 @@ export class CardController implements CardControllerI {
       });
     }
 
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardUnarchived
+      })
+    }));
+
     return new ResponseData({
       message: "success",
       status_code: StatusCodes.OK,
@@ -230,6 +253,7 @@ export class CardController implements CardControllerI {
   }
 
   async UpdateCustomField(
+    user_id: string,
     card_id: string,
     custom_field_id: string,
     value: string | number,
@@ -270,24 +294,6 @@ export class CardController implements CardControllerI {
       });
     }
 
-    // let data = await this.trigger_controller.prepareDataSource(
-    //   value,
-    //   checkCustomField.data?.source!
-    // );
-    // if (data.status_code != StatusCodes.OK) {
-    //   return new ResponseData({
-    //     message: data.message,
-    //     status_code: data.status_code,
-    //   });
-    // }
-
-    // if (checkCustomField.data?.trigger_id) {
-    //   let triggerRes = await this.trigger_controller.doTrigger(checkCustomField.data.trigger_id!, value, {target_list_id: card_id} )
-    //   if (triggerRes.status_code != StatusCodes.OK){
-    //     warning = "trigger failed, error : " + triggerRes.message
-    //   }
-    // }
-
     let assignCustomFieldRes = await this.repository_context.custom_field.updateAssignedCard(
       custom_field_id,
       card_id,
@@ -303,6 +309,17 @@ export class CardController implements CardControllerI {
         status_code: StatusCodes.INTERNAL_SERVER_ERROR,
       });
     }
+
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardCustomFieldChange,
+        new_value: {"custom_field_id": value}
+      })
+    }));
 
     return new ResponseData({
       message: "Update Success",
@@ -349,32 +366,6 @@ export class CardController implements CardControllerI {
       });
     }
 
-    // if (value) {
-    //   let checkSource = await this.trigger_controller.prepareDataSource(
-    //     value,
-    //     checkCustomField.data?.source!
-    //   );
-    //   if (checkSource.status_code != StatusCodes.OK) {
-    //     return new ResponseData({
-    //       message: checkSource.message,
-    //       status_code: checkSource.status_code,
-    //     });
-    //   }
-    //   data.value_number = checkSource.data?.value_number;
-    //   data.value_string = checkSource.data?.value_string;
-    //   data.value_user_id = checkSource.data?.value_user_id;
-    // }
-
-    // if (trigger) {
-    //   let checkSourceVal = await this.trigger_controller.checkConditionalValue(trigger.conditional_value, checkCustomField.data?.source!, trigger.action)
-    //   if (checkSourceVal.status_code != StatusCodes.OK){
-    //     return new ResponseData({
-    //       message: checkSourceVal.message,
-    //       status_code: checkSourceVal.status_code,
-    //     })
-    //   }
-    // }
-
     let assignCustomFieldRes = await this.repository_context.custom_field.assignToCard(
       custom_field_id,
       data
@@ -404,13 +395,6 @@ export class CardController implements CardControllerI {
           status_code: selectedCustomField.status_code,
         });
       }
-      // let tiggerRes = await this.trigger_controller.doTrigger(selectedCustomField.data!.trigger_id!, value, {target_list_id: card_id} )
-      // if (tiggerRes.status_code != StatusCodes.OK){
-      //   return new ResponseData({
-      //     message: tiggerRes.message,
-      //     status_code: tiggerRes.status_code,
-      //   })
-      // }
     }
 
     return new ResponseData({
@@ -557,13 +541,6 @@ export class CardController implements CardControllerI {
       });
     }
 
-    // let checkList = await this.card_repo.getCard({ list_id: data.list_id, name: data.name });
-    // if (checkList.status_code == StatusCodes.OK) {
-    //   return new ResponseData({
-    //     message: "card name already exist on your board",
-    //     status_code: StatusCodes.CONFLICT,
-    //   })
-    // }
 
     let createResponse = await this.repository_context.card.createCard(data.toCardDetail());
     if (createResponse.status_code == StatusCodes.INTERNAL_SERVER_ERROR) {
@@ -636,17 +613,17 @@ export class CardController implements CardControllerI {
       event.type = EnumUserActionEvent.CreatedIn;
       console.log("Trying to publish event: %s", event.eventId);
       this.event_publisher.publishUserAction(event);
-
-      // event.eventId = uuidv4();
-      // event.type = EnumUserActionEvent.CreatedIn;
-      // console.log("Trying to publish event: %s", event.eventId);
-      // this.event_publisher.publishUserAction(event);
-
-      // event.eventId = uuidv4();
-      // event.type = EnumUserActionEvent.CardAddedTo;
-      // console.log("Trying to publish event: %s", event.eventId);
-      // this.event_publisher.publishUserAction(event); //added to
     }
+
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: createResponse.data?.id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardCreated,
+      })
+    }));
 
     return new ResponseData({
       message: "Card created successfully",
@@ -751,6 +728,17 @@ export class CardController implements CardControllerI {
       // console.log("Trying to publish event: %s", event.eventId);
       // this.event_publisher.publishUserAction(event); //added to
     }
+
+    // comment - activity
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: createCardResult.data?.id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggeredBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardCopied,
+      })
+    }));
 
     if (copyCardData?.position) {
       // re-adjust copycard data position
@@ -936,6 +924,25 @@ export class CardController implements CardControllerI {
           status_code: moveResponse.status_code,
         });
       }
+
+      // comment - activity
+      this.repository_context.card.addActivity(new CardActivity({
+        sender_user_id: user_id,
+        card_id: moveResponse.data?.id,
+        activity_type: CardActivityType.Action,
+        triggered_by: triggerdBy,
+        action: new CardActivityAction({
+          action: EnumUserActionEvent.CardMoved,
+          old_value: {
+            [EnumSelectionType.List]: filter.previous_list_id,
+            [EnumSelectionType.Position]: filter.previous_position
+          },
+          new_value: {
+            [EnumSelectionType.List]: filter.target_list_id,
+            [EnumSelectionType.Position]: filter.target_position || filter?.target_position_top_or_bottom
+          }
+        })
+      }));
 
       // 4. If moved between lists, add a card activity
       const sourceListId = card.data!.list_id;
@@ -1240,7 +1247,7 @@ export class CardController implements CardControllerI {
   async GetCardActivity(
     card_id: string,
     paginate: Paginate
-  ): Promise<ResponseListData<Array<CardResponse>>> {
+  ): Promise<ResponseListData<Array<CardActivity>>> {
     if (!isValidUUID(card_id)) {
       return new ResponseListData(
         {
@@ -1269,7 +1276,7 @@ export class CardController implements CardControllerI {
       {
         message: "Card activity",
         status_code: StatusCodes.OK,
-        data: cardsActivity.data!,
+        data: cardsActivity.data,
       },
       cardsActivity.paginate
     );
@@ -1568,6 +1575,24 @@ export class CardController implements CardControllerI {
       { id: card_id },
       new CardDetailUpdate({ is_complete: true, completed_at: new Date() })
     );
+
+    // comment - activity
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardMarkedCompleted,
+        old_value: {
+          [EnumSelectionType.Completion]:EnumUserActionEvent.CardMarkedIncompleted,
+        },
+        new_value: {
+          [EnumSelectionType.Completion]:EnumUserActionEvent.CardMarkedCompleted,
+        }
+      })
+    }));
+
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Card is not found",
@@ -1608,6 +1633,24 @@ export class CardController implements CardControllerI {
       { id: card_id },
       new CardDetailUpdate({ is_complete: false, completed_at: undefined })
     );
+
+    // comment - activity
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardMarkedCompleted,
+        old_value: {
+          [EnumSelectionType.Completion]:EnumUserActionEvent.CardMarkedCompleted,
+        },
+        new_value: {
+          [EnumSelectionType.Completion]:EnumUserActionEvent.CardMarkedIncompleted,
+        }
+      })
+    }));
+
     if (updateResponse == StatusCodes.NOT_FOUND) {
       return new ResponseData({
         message: "Card is not found",
@@ -1760,6 +1803,20 @@ export class CardController implements CardControllerI {
       card_id,
       target_list_id
     );
+
+    // comment - activity
+    this.repository_context.card.addActivity(new CardActivity({
+      sender_user_id: user_id,
+      card_id: card_id,
+      activity_type: CardActivityType.Action,
+      triggered_by: triggerdBy,
+      action: new CardActivityAction({
+        action: EnumUserActionEvent.CardMirrored,
+        new_value: {
+          card_id: result?.data?.id,
+        }
+      })
+    }));
     return result;
   }
 

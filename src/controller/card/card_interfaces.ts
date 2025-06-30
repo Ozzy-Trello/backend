@@ -3,6 +3,7 @@ import { validate as isValidUUID } from "uuid";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
 import {
+  CardActivity,
   CardDetail,
   CardDetailUpdate,
   filterCardDetail,
@@ -71,6 +72,7 @@ export interface CardControllerI {
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
   UpdateCustomField(
+    user_id: string,
     card_id: string,
     custom_field_id: string,
     value: string | number,
@@ -92,7 +94,7 @@ export interface CardControllerI {
   GetCardActivity(
     card_id: string,
     paginate: Paginate
-  ): Promise<ResponseListData<Array<CardResponse>>>;
+  ): Promise<ResponseListData<Array<CardActivity>>>;
   GetCardTimeInList(
     card_id: string
   ): Promise<ResponseData<Array<CardListTimeDetail>>>;
@@ -490,36 +492,6 @@ export class CardCreateData {
 
     return null;
   }
-}
-
-export class CardActivity {
-  sender_id!: string;
-  card_id!: string;
-  activity_type!: CardActivityType;
-
-  constructor(payload: Partial<CardActivity>) {
-    Object.assign(this, payload);
-  }
-}
-
-export class CardCommentData extends CardActivity {
-  activity_id!: string;
-  text!: string;
-
-  constructor(payload: Partial<CardCommentData>) {
-    super(payload);
-    Object.assign(this, payload);
-  }
-
-  // toCardComment(): CardComment{
-  // 	return new CardComment({
-  // 		activity_id: this.activity_id,
-  // 		activity_type: this.activity_type,
-  // 		card_id: this.card_id,
-  // 		sender_id: this.sender_id,
-  // 		text: this.text
-  // 	})
-  // }
 }
 
 export class TriggerDoData {

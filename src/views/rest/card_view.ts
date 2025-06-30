@@ -92,6 +92,7 @@ export default class CardRestView implements CardRestViewI {
 
   async UpdateCustomField(req: Request, res: Response): Promise<void> {
     let updateResponse = await this.card_controller.UpdateCustomField(
+      req.auth!.user_id,
       req.params.id?.toString(),
       req.params.custom_field_id?.toString(),
       req.body.value,
