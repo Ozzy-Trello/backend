@@ -28,6 +28,7 @@ import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
 import { FilterConfig } from "@/controller/card/card_interfaces";
 import { EnumOptionPosition } from "@/types/options";
+import { CardActivityType } from "@/types/custom_field";
 
 export class CardRepository implements CardRepositoryI {
   createFilter(filter: filterCardDetail): any {
@@ -497,7 +498,8 @@ export class CardRepository implements CardRepositoryI {
     }
 
   
-    if (data.action && data.action instanceof CardActivityAction) {
+    if (data?.action) {
+      console.log("inserting action comment");
       let item: CardActivityAction = data.action as CardActivityAction;
       const trx = await db
         .transaction()
@@ -510,6 +512,7 @@ export class CardRepository implements CardRepositoryI {
               card_id: data.card_id,
               sender_user_id: data.sender_user_id,
               triggered_by: data?.triggered_by || "",
+              created_by: data?.sender_user_id
             })
             .returning(["id"])
             .executeTakeFirst();
@@ -520,8 +523,8 @@ export class CardRepository implements CardRepositoryI {
               id: uuidv4(),
               action: item?.action || "",
               activity_id: card_activiy?.id!,
-              old_value: item.old_value,
-              new_value: item.new_value,
+              old_value: item?.old_value || {},
+              new_value: item?.new_value ?? JSON.stringify(item?.action),
             })
             .executeTakeFirst();
 
@@ -539,7 +542,8 @@ export class CardRepository implements CardRepositoryI {
           });
         });
       return trx;
-    } else if (data.comment && data.comment instanceof CardActivityComment) {
+    } else if (data.comment) {
+      console.log("inserting text comment");
       let item: CardActivityComment = data.comment as CardActivityComment;
       const trx = await db
         .transaction()
@@ -552,8 +556,18 @@ export class CardRepository implements CardRepositoryI {
               card_id: data.card_id,
               sender_user_id: data.sender_user_id,
               triggered_by: data?.triggered_by || "",
+              created_by: data?.sender_user_id
             })
             .returning(["id"])
+            .executeTakeFirst();
+
+          await tx
+            .insertInto("card_activity_text")
+            .values({
+              id: uuidv4(),
+              activity_id: card_activiy?.id!,
+              text: item?.text
+            })
             .executeTakeFirst();
 
           return new ResponseData({
@@ -592,53 +606,92 @@ export class CardRepository implements CardRepositoryI {
 
     paginate.setTotal(total?.count ?? 0);
 
-    const activities = await db
+    const rawActivities = await db
       .selectFrom("card_activity as ca")
-      .leftJoin("card_activity_action as caa", "ca.id", "caa.activity_id")
-      .leftJoin("card_activity_text as cat", "ca.id", "cat.activity_id")
       .where("ca.card_id", "=", card_id)
       .select([
-        sql<string>`ca.id`.as("activity_id"),
+        sql<string>`ca.id`.as("id"),
         sql<string>`ca.activity_type`.as('activity_type'),
         sql<string>`ca.card_id`.as("card_id"),
-        sql<string>`ca.sender_user_id`.as("sender_id"),
-        sql<string>`caa.action`.as("action_type"),
-        sql<string>`caa.old_value`.as("old_value"),
-        sql<string>`caa.new_value`.as("new_value"),
+        sql<string>`ca.sender_user_id`.as("sender_user_id"),
         sql<string>`ca.triggered_by`.as("triggered_by"),
-        sql<string>`cat.text`.as("text"),
-        sql<string>`"ca"."created_at"`.as("xcreated_at"),
+        sql<string>`"ca"."created_at"`.as("created_at"),
+        sql<string>`"user"."username"`.as("sender_user_username"),
       ])
-      .orderBy("xcreated_at", "desc")
+      .leftJoin("user", "user.id", "ca.sender_user_id")
+      .orderBy("created_at", "desc")
       .offset(paginate.getOffset())
       .limit(paginate.limit)
       .execute();
+    
+    const actvtIds = rawActivities.map((a) => a.id);
 
-    for (const row of activities) {
-      const act = {
-        id: row.activity_id,
-        card_id: row.card_id,
-        sender_id: row.sender_id,
-      };
-      if (row.action_type) {
-        const action = new CardActivityAction({});
-        // const action = new CardActionActivity({
-        // 	action_type: row.action_type as CardActionType
-        // });
-        // if (row.action_type == CardActionType.MoveList){
-        // 	action.setMoveListValue(row.source as MoveListValue);
-        // }
-        result.push(new CardActivity(act));
-      } else if (row.text) {
-        result.push(new CardActivity(act));
+    let actionsMap = new Map<string, any>();
+    let commentsMap = new Map<string, any>();
+
+    if (actvtIds.length > 0) {
+      const actions = await db
+        .selectFrom("card_activity_action as c")
+        .where("c.activity_id", "in", actvtIds)
+        .select([
+          sql<string>`c.id`.as("id"),
+          sql<string>`c.activity_id`.as("activity_id"),
+          sql<string>`c.action`.as("action"),
+          sql<string>`c.old_value`.as("old_value"),
+          sql<string>`c.new_value`.as("new_value"),
+        ])
+        .execute();
+
+      actionsMap = new Map();
+      for (const a of actions) {
+        actionsMap.set(a.activity_id, a);
+      }
+
+      const comments = await db
+        .selectFrom("card_activity_text as c")
+        .where("c.activity_id", "in", actvtIds)
+        .select([
+          sql<string>`c.id`.as("id"),
+          sql<string>`c.activity_id`.as("activity_id"),
+          sql<string>`c.text`.as("text"),
+        ])
+        .execute();
+
+      commentsMap = new Map();
+      for (const a of comments) {
+        commentsMap.set(a.activity_id, a);
       }
     }
 
+    let cardActivities: CardActivity[] = [];
+    for(let activity of rawActivities) {
+      let ca = new CardActivity({
+        id: activity.id,
+        triggered_by: activity?.triggered_by,
+        created_at: activity?.created_at,
+        sender_user_id: activity?.sender_user_id,
+        sender_user_username: activity?.sender_user_username
+      });
+
+      if (activity.activity_type == CardActivityType.Action) {
+        ca.activity_type = CardActivityType.Action;
+        const action = actionsMap.get(ca.id);
+        ca.action = action || undefined;
+        ca.data = action || undefined;
+      } else {
+        ca.activity_type = CardActivityType.Comment;
+        const comment = commentsMap.get(ca.id);
+        ca.comment = comment || undefined;
+        ca.data = comment || undefined;
+      }
+      cardActivities.push(ca);
+    }
+    
     return new ResponseListData(
       {
         status_code: StatusCodes.OK,
         message: "card activity list",
-        data: result,
+        data: cardActivities,
       },
       paginate
     );

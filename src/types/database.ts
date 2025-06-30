@@ -167,6 +167,7 @@ export interface CardActivityTable {
   card_id: string;
   activity_type: CardActivityType;
   triggered_by: string;
+  created_by: string;
   created_at?: Date;
   updated_at?: Date;
 }
