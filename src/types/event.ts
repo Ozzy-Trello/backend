@@ -101,6 +101,6 @@ export interface UserActionEvent {
       card?: CardDetail;
       list?: ListDetail;
       custom_field?: CardLabelDetail;
-    }
+    };
   };
 }

@@ -148,7 +148,6 @@ export enum ActionType {
   SetChecklistItemDueDate = `set_the_item_due_<${EnumInputType.DateValue}>`,
   MoveChecklistItemDueDate = `move_the_item_due_date_to_<${EnumInputType.DateValue}>`,
   ToggleChecklistItem = `<${EnumSelectionType.Action}>_item_<${EnumSelectionType.TextInput}>_in_checklist_<${EnumSelectionType.ChecklistName}>`,
-
   //add more..
 }
 

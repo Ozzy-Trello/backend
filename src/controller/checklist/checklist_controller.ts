@@ -449,7 +449,8 @@ export class ChecklistController implements IChecklistController {
     data: CreateChecklistDTO[]
   ): Promise<ResponseData<ChecklistDTO[]>> {
     try {
-      const result = await this.repository_context.checklist.createBulkChecklist(data);
+      const result =
+        await this.repository_context.checklist.createBulkChecklist(data);
       return result;
     } catch (error) {
       console.error("Error in ChecklistController.CreateBulkChecklist:", error);

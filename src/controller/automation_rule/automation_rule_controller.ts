@@ -39,8 +39,17 @@ import {
   EnumTimeType,
   EnumDay,
 } from "@/types/options";
-import { CardCustomFieldValueUpdate } from "@/repository/custom_field/custom_field_interfaces";
-import { CreateChecklistDTO } from "../checklist/checklist_interfaces";
+import { WhatsAppHttpService } from "@/services/whatsapp/whatsapp_http_service";
+import { WhatsAppController } from "../whatsapp/whatsapp_controller";
+import {
+  CustomFieldRepositoryI,
+  CardCustomFieldValueUpdate,
+} from "@/repository/custom_field/custom_field_interfaces";
+import { UserRepositoryI } from "@/repository/user/user_interfaces";
+import {
+  IChecklistController,
+  CreateChecklistDTO,
+} from "../checklist/checklist_interfaces";
 import { broadcastToWebSocket } from "@/server";
 import { AutomationRuleFilterDetail } from "@/repository/automation_rule_filter/automation_rule_filter_interface";
 import { AutomationRuleFilterService } from "../automation/automation_filter_evaluator";
@@ -2096,7 +2105,10 @@ export class AutomationRuleController implements AutomationRuleControllerI {
     const data = createCardResult?.data;
 
     if (multiUsers.length > 0 && data) {
-      await this.controller_context?.card_member.addMembers(data.id, multiUsers);
+      await this.controller_context?.card_member.addMembers(
+        data.id,
+        multiUsers
+      );
     }
 
     if (multiChecklists.length > 0 && data) {
@@ -2106,7 +2118,9 @@ export class AutomationRuleController implements AutomationRuleControllerI {
         data: [],
       }));
 
-      await this.controller_context?.checklist.CreateBulkChecklist(dataChecklist);
+      await this.controller_context?.checklist.CreateBulkChecklist(
+        dataChecklist
+      );
     }
   }
 
