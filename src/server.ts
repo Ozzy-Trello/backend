@@ -39,7 +39,6 @@ export class Server {
 
   constructor() {
     this.rest_router = express();
-    
     initializeAssociations();
   }
 

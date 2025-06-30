@@ -5,15 +5,14 @@ import {
   CardDetail,
   CardDetailUpdate,
   CardRepositoryI,
-  CardActionActivity,
-  CardComment,
+  CardActivityComment,
   CardActivity,
   CardActivityMoveList,
   filterMoveCard,
-  filterCount,
   IItemDashcard,
+  CardActivityAction,
 } from "@/repository/card/card_interfaces";
-import { Error, Op, Sequelize } from "sequelize";
+import { Error, Op } from "sequelize";
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 import { InternalServerError } from "@/utils/errors";
@@ -22,15 +21,12 @@ import db from "@/database";
 import { CardTable, Database } from "@/types/database";
 import {
   ExpressionBuilder,
-  SelectQueryBuilder,
   Transaction,
   sql,
 } from "kysely";
-import { CardActionValue } from "@/types/custom_field";
 import { CardType } from "@/types/card";
 import Card from "@/database/schemas/card";
-import { WhatsAppController } from "@/controller/whatsapp/whatsapp_controller";
-import { CopyCardData, FilterConfig } from "@/controller/card/card_interfaces";
+import { FilterConfig } from "@/controller/card/card_interfaces";
 import { EnumOptionPosition } from "@/types/options";
 
 export class CardRepository implements CardRepositoryI {
@@ -249,7 +245,7 @@ export class CardRepository implements CardRepositoryI {
             name: data.name!,
             list_id: data.list_id,
             description: "",
-            order: newOrder,
+            order: data.order || newOrder,
             dash_config: data.dash_config,
             type: data.type,
           })
@@ -489,10 +485,10 @@ export class CardRepository implements CardRepositoryI {
   }
 
   async addActivity(
-    filter: filterCardDetail,
     data: CardActivity
   ): Promise<ResponseData<CardActivity>> {
-    let card = await this.getCard(filter);
+    let card = await this.getCard({id: data.card_id});
+
     if (card.status_code != StatusCodes.OK) {
       return new ResponseData({
         status_code: card.status_code,
@@ -500,8 +496,9 @@ export class CardRepository implements CardRepositoryI {
       });
     }
 
-    if (data.action && data.action instanceof CardActionActivity) {
-      let item: CardActionActivity = data.action as CardActionActivity;
+  
+    if (data.action && data.action instanceof CardActivityAction) {
+      let item: CardActivityAction = data.action as CardActivityAction;
       const trx = await db
         .transaction()
         .execute(async (tx: Transaction<Database>) => {
@@ -511,7 +508,8 @@ export class CardRepository implements CardRepositoryI {
               id: uuidv4(),
               activity_type: data.activity_type,
               card_id: data.card_id,
-              sender_user_id: data.sender_id,
+              sender_user_id: data.sender_user_id,
+              triggered_by: data?.triggered_by || "",
             })
             .returning(["id"])
             .executeTakeFirst();
@@ -520,28 +518,29 @@ export class CardRepository implements CardRepositoryI {
             .insertInto("card_activity_action")
             .values({
               id: uuidv4(),
-              // action: item.action_type,
+              action: item?.action || "",
               activity_id: card_activiy?.id!,
-              source: item.source,
+              old_value: item.old_value,
+              new_value: item.new_value,
             })
             .executeTakeFirst();
 
           return new ResponseData({
             status_code: StatusCodes.OK,
-            message: "card detail",
+            message: "card activity created",
             data: new CardActivity(
               {
                 id: card_activiy?.id!,
                 card_id: data.card_id,
-                sender_id: data.sender_id,
+                sender_user_id: data.sender_user_id,
+                triggered_by: data.triggered_by
               },
-              item
             ),
           });
         });
       return trx;
-    } else if (data.comment && data.comment instanceof CardComment) {
-      let item: CardComment = data.comment as CardComment;
+    } else if (data.comment && data.comment instanceof CardActivityComment) {
+      let item: CardActivityComment = data.comment as CardActivityComment;
       const trx = await db
         .transaction()
         .execute(async (tx: Transaction<Database>) => {
@@ -551,18 +550,10 @@ export class CardRepository implements CardRepositoryI {
               id: uuidv4(),
               activity_type: data.activity_type,
               card_id: data.card_id,
-              sender_user_id: data.sender_id,
+              sender_user_id: data.sender_user_id,
+              triggered_by: data?.triggered_by || "",
             })
             .returning(["id"])
-            .executeTakeFirst();
-
-          await tx
-            .insertInto("card_activity_text")
-            .values({
-              id: uuidv4(),
-              activity_id: card_activiy?.id!,
-              text: item.text,
-            })
             .executeTakeFirst();
 
           return new ResponseData({
@@ -572,9 +563,9 @@ export class CardRepository implements CardRepositoryI {
               {
                 id: card_activiy?.id!,
                 card_id: data.card_id,
-                sender_id: data.sender_id,
+                sender_user_id: data.sender_user_id,
+                triggered_by: data.triggered_by
               },
-              item
             ),
           });
         });
@@ -608,11 +599,13 @@ export class CardRepository implements CardRepositoryI {
       .where("ca.card_id", "=", card_id)
       .select([
         sql<string>`ca.id`.as("activity_id"),
-        // sql<CardActionType>`ca.activity_type`.as('activity_type'),
+        sql<string>`ca.activity_type`.as('activity_type'),
         sql<string>`ca.card_id`.as("card_id"),
         sql<string>`ca.sender_user_id`.as("sender_id"),
         sql<string>`caa.action`.as("action_type"),
-        sql<CardActionValue>`caa.source`.as("source"),
+        sql<string>`caa.old_value`.as("old_value"),
+        sql<string>`caa.new_value`.as("new_value"),
+        sql<string>`ca.triggered_by`.as("triggered_by"),
         sql<string>`cat.text`.as("text"),
         sql<string>`"ca"."created_at"`.as("xcreated_at"),
       ])
@@ -628,16 +621,16 @@ export class CardRepository implements CardRepositoryI {
         sender_id: row.sender_id,
       };
       if (row.action_type) {
-        const action = new CardActionActivity({});
+        const action = new CardActivityAction({});
         // const action = new CardActionActivity({
         // 	action_type: row.action_type as CardActionType
         // });
         // if (row.action_type == CardActionType.MoveList){
         // 	action.setMoveListValue(row.source as MoveListValue);
         // }
-        result.push(new CardActivity(act, action));
+        result.push(new CardActivity(act));
       } else if (row.text) {
-        result.push(new CardActivity(act, new CardComment({ text: row.text })));
+        result.push(new CardActivity(act));
       }
     }
 
@@ -1127,37 +1120,30 @@ export class CardRepository implements CardRepositoryI {
             const cardIds: string[] = [];
 
             if (value) {
-              switch (operator) {
-                case "includes_any_of":
-                  const queryAssignInclude = await db
-                    .selectFrom("card_member")
-                    .innerJoin("card", "card.id", "card_member.card_id")
-                    .innerJoin("list", "list.id", "card.list_id")
-                    .innerJoin("board", "board.id", "list.board_id")
-                    .select(["card_member.card_id"])
-                    .where("board.workspace_id", "=", workspace_id)
-                    .where("card_member.user_id", "in", [value])
-                    .execute();
+              const isUuid = /[0-9a-fA-F\-]{36}/.test(String(value));
+              let queryAssignInclude = db
+                .selectFrom("card_member")
+                .innerJoin("card", "card.id", "card_member.card_id")
+                .innerJoin("list", "list.id", "card.list_id")
+                .innerJoin("board", "board.id", "list.board_id")
+                .select(["card_member.card_id"])
+                .where("board.workspace_id", "=", workspace_id);
 
-                  cardIds.push(...queryAssignInclude.map((a) => a.card_id));
-                  break;
-
-                case "does_not_include":
-                  const queryAssignNotInclude = await db
-                    .selectFrom("card_member")
-                    .innerJoin("card", "card.id", "card_member.card_id")
-                    .innerJoin("list", "list.id", "card.list_id")
-                    .innerJoin("board", "board.id", "list.board_id")
-                    .select(["card_member.card_id"])
-                    .where("board.workspace_id", "=", workspace_id)
-                    .where("card_member.user_id", "not in", [value])
-                    .execute();
-                  cardIds.push(...queryAssignNotInclude.map((a) => a.card_id));
-                  break;
-
-                default:
-                  break;
+              if (isUuid) {
+                queryAssignInclude = queryAssignInclude.where(
+                  "card_member.user_id",
+                  "in",
+                  [value]
+                );
+              } else {
+                queryAssignInclude = queryAssignInclude
+                  .innerJoin("user", "user.id", "card_member.user_id")
+                  .where("user.username", "=", value);
               }
+
+              const resultAssignInclude = await queryAssignInclude.execute();
+
+              cardIds.push(...resultAssignInclude.map((a) => a.card_id));
             }
 
             if (cardIds.length > 0) {
@@ -1194,6 +1180,7 @@ export class CardRepository implements CardRepositoryI {
                     eb.or([
                       eb("card_custom_field.value_option", "=", value),
                       eb("card_custom_field.value_string", "=", value),
+                      eb("card_custom_field.value_user_id", "=", value),
                     ])
                   );
                 break;
@@ -1204,6 +1191,7 @@ export class CardRepository implements CardRepositoryI {
                     eb.or([
                       eb("card_custom_field.value_option", "ilike", value),
                       eb("card_custom_field.value_string", "ilike", value),
+                      eb("card_custom_field.value_user_id", "ilike", value),
                     ])
                   );
                 break;

@@ -15,8 +15,10 @@ import {
   EnumCustomFieldSource,
 } from "@/types/custom_field";
 import { EnumTriggeredBy } from "@/types/event";
+import { EventPublisher } from "@/event_publisher";
 
 export interface CustomFieldControllerI {
+  SetEventPublisher(event_publisher: EventPublisher): void;
   CreateCustomField(
     user_id: string,
     data: CustomFieldCreateData
@@ -56,6 +58,8 @@ export interface CustomFieldControllerI {
     targetPosition: number,
     targetPositionTopOrBottom?: "top" | "bottom"
   ): Promise<ResponseData<null>>;
+
+  GetCustomFieldOptions(customFieldId: string): Promise<ResponseData<any[]>>;
 }
 
 export class CreateCustomFieldResponse {
@@ -70,7 +74,7 @@ export class CustomFieldResponse {
   id!: string;
   name?: string;
   description?: string;
-  source?: EnumCustomFieldSource;
+  source?: string;
   trigger_id?: string;
   type!: EnumCustomFieldType;
   is_show_at_front!: boolean;
@@ -173,7 +177,7 @@ export class CustomFieldFilter {
   name?: string;
   workspace_id?: string;
   description?: string;
-  source?: EnumCustomFieldSource;
+  source?: string;
   trigger_id?: string;
 
   constructor(payload: Partial<CustomFieldFilter>) {
@@ -220,7 +224,7 @@ export class CustomFieldCreateData {
   name!: string;
   description?: string;
   workspace_id!: string;
-  source!: EnumCustomFieldSource;
+  source!: string;
   trigger_id?: string;
   type!: EnumCustomFieldType;
   is_show_at_front!: boolean;
@@ -286,10 +290,11 @@ export class CustomFieldCreateData {
       !(
         this.source.toLowerCase() == EnumCustomFieldSource.Custom ||
         this.source.toLowerCase() == EnumCustomFieldSource.Product ||
-        this.source.toLowerCase() == EnumCustomFieldSource.User
+        this.source.toLowerCase() == EnumCustomFieldSource.User ||
+        this.source.startsWith("user-role:")
       )
     ) {
-      return "'source' sould be 'user','product' or 'custom'";
+      return "'source' sould be 'user','product', 'custom', or 'user-role:roleIds'";
     }
     return null;
   }

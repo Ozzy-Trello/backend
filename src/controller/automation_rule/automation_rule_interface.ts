@@ -8,8 +8,10 @@ import {
 import { AutomationRuleActionDetail } from "@/repository/automation_rule_action/automation_rule_action_interface";
 import { CardDetail } from "@/repository/card/card_interfaces";
 import { UserActionEvent } from "@/types/event";
+import { ControllerContext } from "../controller_context";
 
 export interface AutomationRuleControllerI {
+  SetControllerContext(controllerContext: ControllerContext): void;
   CreateAutomationRule(
     user_id: string,
     data: AutomationRuleCreateData
@@ -122,6 +124,7 @@ export class AutomationRuleCreateData {
   created_by?: string;
   updated_by?: string;
   condition!: Record<string, any>;
+  filter?: AutomationRuleActionData[];
   action!: AutomationRuleActionData[];
 
   constructor(payload: Partial<AutomationRuleCreateData>) {
@@ -158,6 +161,7 @@ export class AutomationRuleCreateData {
       group_type: this.group_type,
       type: this.type,
       condition: this.condition,
+      filter: this.filter,
       action: this.action,
       created_by: this.created_by,
       updated_by: this.updated_by,

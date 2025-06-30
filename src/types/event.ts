@@ -1,5 +1,11 @@
+import Card from "@/database/schemas/card";
+import CardCustomField from "@/database/schemas/card_custom_field";
 import { CardLabelAttributes } from "@/database/schemas/card_label";
+import CustomField from "@/database/schemas/custom_field";
 import User from "@/database/schemas/user";
+import { CardDetail } from "@/repository/card/card_interfaces";
+import { CardLabelDetail } from "@/repository/label/label_interfaces";
+import { ListDetail } from "@/repository/list/list_interfaces";
 
 export enum EnumTriggeredBy {
   User = "user",
@@ -65,6 +71,8 @@ export enum EnumActions {
   AddChecklist = "add.checklist",
   AddChecklistItem = "add.checklist.item",
   RemoveChecklistItem = "remove.checklist.item",
+  AddCardMember = "add.card.member",
+  RemoveCardMember = "remove.card.member",
   CheckChecklistItem = "check.item",
   UncheckChecklistItem = "uncheck.item",
   SetChecklistItemDueDate = "set.item.due.date",
@@ -78,13 +86,18 @@ export interface UserActionEvent {
   user_id: string;
   timestamp: Date;
   data: {
-    card?: any;
-    list?: any;
+    card?: CardDetail;
+    list?: ListDetail;
     board?: any;
-    label?: CardLabelAttributes;
+    label?: CardLabelDetail;
     member?: User;
-    previous_data?: any;
     value_user_id?: string;
     checklist?: any;
+    custom_field?: CardLabelDetail;
+    _previous_data?: {
+      card?: CardDetail;
+      list?: ListDetail;
+      custom_field?: CardLabelDetail;
+    };
   };
 }

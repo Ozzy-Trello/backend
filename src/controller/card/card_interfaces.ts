@@ -10,7 +10,6 @@ import {
 } from "@/repository/card/card_interfaces";
 import { AssignCardDetail } from "@/repository/custom_field/custom_field_interfaces";
 import {
-  CardActionValue,
   CardActivityType,
   ConditionType,
   EnumCustomFieldSource,
@@ -23,8 +22,10 @@ import { CardType } from "@/types/card";
 import { EnumTriggeredBy } from "@/types/event";
 import { StringMappingType } from "typescript";
 import { EnumOptionPosition } from "@/types/options";
+import { EventPublisher } from "@/event_publisher";
 
 export interface CardControllerI {
+  SetEventPublisher(event_publisher: EventPublisher): void;
   CreateCard(
     user_id: string,
     data: CardCreateData,
@@ -85,6 +86,9 @@ export interface CardControllerI {
     data: UpdateCardData,
     triggerdBy: EnumTriggeredBy
   ): Promise<ResponseData<null>>;
+  // AddActivity(
+  //   data: CardActivity
+  // ): Promise<ResponseData<CardActivity>>;
   GetCardActivity(
     card_id: string,
     paginate: Paginate
@@ -168,7 +172,7 @@ export class AssignCardResponse {
   description?: string;
   value?: null | string | number;
   order!: number;
-  source!: EnumCustomFieldSource;
+  source!: string;
   location?: string;
 
   constructor(payload: Partial<AssignCardResponse>) {
@@ -392,6 +396,8 @@ export class CardCreateData {
   dash_config?: DashCardConfig | string;
   is_complete?: boolean; // Added
   completed_at?: Date; // Added
+  start_date?: Date | null;
+  due_date?: Date | null;
 
   constructor(payload: Partial<CardCreateData>) {
     Object.assign(this, payload);
@@ -513,28 +519,6 @@ export class CardCommentData extends CardActivity {
   // 		sender_id: this.sender_id,
   // 		text: this.text
   // 	})
-  // }
-}
-
-export class CardActionActivityData extends CardActivity {
-  activity_id!: string;
-  // action_type!: CardActionType;
-  source?: CardActionValue;
-
-  constructor(payload: Partial<CardActionActivityData>) {
-    super(payload);
-    Object.assign(this, payload);
-  }
-
-  // toCardActionActivity(): CardActionActivity{
-  // 	return {
-  // 		activity_id: this.activity_id,
-  // 		activity_type: this.activity_type,
-  // 		card_id: this.card_id,
-  // 		sender_id: this.sender_id,
-  // 		source: this.source,
-  // 		action_type: this.action_type
-  // 	}
   // }
 }
 

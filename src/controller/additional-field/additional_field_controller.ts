@@ -1,6 +1,6 @@
+import { RepositoryContext } from "@/repository/repository_context";
 import { 
   IAdditionalFieldController, 
-  IAdditionalFieldRepository, 
   AdditionalFieldDTO, 
   CreateAdditionalFieldDTO, 
   UpdateAdditionalFieldDTO 
@@ -9,15 +9,15 @@ import { ResponseData } from "@/utils/response_utils";
 import { StatusCodes } from "http-status-codes";
 
 export class AdditionalFieldController implements IAdditionalFieldController {
-  private additionalFieldRepo: IAdditionalFieldRepository;
+  private repository_context: RepositoryContext;
 
-  constructor(additionalFieldRepo: IAdditionalFieldRepository) {
-    this.additionalFieldRepo = additionalFieldRepo;
+  constructor(repository_context: RepositoryContext) {
+    this.repository_context = repository_context;
   }
 
   async GetAdditionalFieldsByCardId(cardId: string): Promise<ResponseData<AdditionalFieldDTO[]>> {
     try {
-      return await this.additionalFieldRepo.getAdditionalFieldsByCardId(cardId);
+      return await this.repository_context.additional_field.getAdditionalFieldsByCardId(cardId);
     } catch (error) {
       console.error("Error in AdditionalFieldController.GetAdditionalFieldsByCardId:", error);
       return {
@@ -30,7 +30,7 @@ export class AdditionalFieldController implements IAdditionalFieldController {
 
   async GetAdditionalFieldById(id: string): Promise<ResponseData<AdditionalFieldDTO>> {
     try {
-      return await this.additionalFieldRepo.getAdditionalFieldById(id);
+      return await this.repository_context.additional_field.getAdditionalFieldById(id);
     } catch (error) {
       console.error("Error in AdditionalFieldController.GetAdditionalFieldById:", error);
       return {
@@ -42,7 +42,7 @@ export class AdditionalFieldController implements IAdditionalFieldController {
 
   async CreateAdditionalField(data: CreateAdditionalFieldDTO): Promise<ResponseData<AdditionalFieldDTO>> {
     try {
-      return await this.additionalFieldRepo.createAdditionalField(data);
+      return await this.repository_context.additional_field.createAdditionalField(data);
     } catch (error) {
       console.error("Error in AdditionalFieldController.CreateAdditionalField:", error);
       return {
@@ -54,7 +54,7 @@ export class AdditionalFieldController implements IAdditionalFieldController {
 
   async UpdateAdditionalField(id: string, data: UpdateAdditionalFieldDTO): Promise<ResponseData<AdditionalFieldDTO>> {
     try {
-      return await this.additionalFieldRepo.updateAdditionalField(id, data);
+      return await this.repository_context.additional_field.updateAdditionalField(id, data);
     } catch (error) {
       console.error("Error in AdditionalFieldController.UpdateAdditionalField:", error);
       return {
@@ -66,7 +66,7 @@ export class AdditionalFieldController implements IAdditionalFieldController {
 
   async DeleteAdditionalField(id: string): Promise<ResponseData<null>> {
     try {
-      const result = await this.additionalFieldRepo.deleteAdditionalField(id);
+      const result = await this.repository_context.additional_field.deleteAdditionalField(id);
       
       if (result === StatusCodes.NOT_FOUND) {
         return {

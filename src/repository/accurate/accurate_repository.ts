@@ -132,7 +132,7 @@ export class AccurateRepository implements AccurateRepositoryI {
     return response.data.d;
   }
 
-  async getItemDetail(productId: number) {
+  async getItemDetail(productId: number): Promise<any> {
     const latest = await this.getLatestToken();
     if (!latest || !latest.token || !latest.db_session) {
       throw new Error("No AccurateAuth token/session found in DB");

@@ -6,6 +6,7 @@ export interface AccountRestViewI {
   UpdateAccount(req: Request, res: Response): Promise<void>;
   UpdateMyAccount(req: Request, res: Response): Promise<void>;
   DeleteAccount(req: Request, res: Response): Promise<void>;
+  GetAccount(req: Request, res: Response): Promise<void>;
 }
 
 export interface AuthRestViewI {
@@ -111,6 +112,7 @@ export interface LabelRestViewI {
   AddLabelToCard(req: Request, res: Response): Promise<void>;
   RemoveLabelFromCard(req: Request, res: Response): Promise<void>;
   GetAssignedLabelInCard(req: Request, res: Response): Promise<void>;
+  GetAllLabels(req: Request, res: Response): Promise<void>;
 }
 
 export interface AutomationRuleRestViewI {

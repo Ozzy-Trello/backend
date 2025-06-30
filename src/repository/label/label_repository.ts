@@ -387,4 +387,46 @@ export class LabelRepository implements LabelRepositoryI {
       );
     }
   }
+
+  async getAllLabels(
+    workspace_id: string
+  ): Promise<ResponseData<LabelAttributes[]>> {
+    try {
+      const result = await db
+        .selectFrom("label")
+        .selectAll()
+        .where("workspace_id", "=", workspace_id)
+        .orderBy("created_at", "asc")
+        .execute();
+
+      return new ResponseData({
+        status_code: StatusCodes.OK,
+        message: "label list",
+        data: result,
+      });
+    } catch (e) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
+
+  async removeAllLabelsFromCard(card_id: string): Promise<ResponseData<null>> {
+    try {
+      await db
+        .deleteFrom("card_label")
+        .where("card_id", "=", card_id)
+        .execute();
+      return new ResponseData({
+        status_code: StatusCodes.NO_CONTENT,
+        message: "All labels removed from card",
+      });
+    } catch (e) {
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e instanceof Error ? e.message : String(e)
+      );
+    }
+  }
 }

@@ -1,5 +1,6 @@
 import { ResponseData, ResponseListData } from "@/utils/response_utils";
 import { Paginate } from "@/utils/data_utils";
+import { EventPublisher } from "@/event_publisher";
 
 export interface IChecklistRepository {
   getChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
@@ -12,9 +13,14 @@ export interface IChecklistRepository {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   deleteChecklist(id: string): Promise<number>;
+  createBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
+  deleteAllChecklistFromCard(card_id: string): Promise<number>;
 }
 
 export interface IChecklistController {
+  SetEventPublisher(event_publisher: EventPublisher): void;
   GetChecklistsByCardId(cardId: string): Promise<ResponseData<ChecklistDTO[]>>;
   GetChecklistById(id: string): Promise<ResponseData<ChecklistDTO>>;
   CreateChecklist(
@@ -28,6 +34,10 @@ export interface IChecklistController {
     data: UpdateChecklistDTO
   ): Promise<ResponseData<ChecklistDTO>>;
   DeleteChecklist(user_id: string, id: string): Promise<ResponseData<null>>;
+  CreateBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>>;
+  DeleteAllChecklistFromCard(card_id: string): Promise<number>;
 }
 
 export interface ChecklistItem {

@@ -163,6 +163,30 @@ export class ChecklistRepository implements IChecklistRepository {
     }
   }
 
+  async createBulkChecklist(
+    data: CreateChecklistDTO[]
+  ): Promise<ResponseData<ChecklistDTO[]>> {
+    try {
+      const checklists = await Checklist.bulkCreate(data);
+      return new ResponseData({
+        status_code: StatusCodes.CREATED,
+        message: "Checklists created successfully",
+        data: checklists,
+      });
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
+      }
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
+    }
+  }
+
   async updateChecklist(
     id: string,
     data: UpdateChecklistDTO
@@ -249,6 +273,26 @@ export class ChecklistRepository implements IChecklistRepository {
         });
       }
 
+      return StatusCodes.NO_CONTENT;
+    } catch (e) {
+      if (e instanceof Error) {
+        throw new InternalServerError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          e.message
+        );
+      }
+      throw new InternalServerError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        e as string
+      );
+    }
+  }
+
+  async deleteAllChecklistFromCard(card_id: string): Promise<number> {
+    try {
+      await Checklist.destroy({
+        where: { card_id },
+      });
       return StatusCodes.NO_CONTENT;
     } catch (e) {
       if (e instanceof Error) {
